@@ -318,6 +318,23 @@ export default function InformationPracticeSessionPage() {
     // Prevent concurrent speech
     if (isTeachingSpeakingRef.current) return
 
+    // Helper to speak with retry
+    const speakWithRetry = async (text: string, maxRetries = 2): Promise<boolean> => {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          await speak(text, { gender: voiceGender })
+          return true
+        } catch (error: any) {
+          console.warn(`Speech attempt ${attempt + 1} failed:`, error?.message || error)
+          if (attempt < maxRetries) {
+            // Brief delay before retry
+            await new Promise(resolve => setTimeout(resolve, 200))
+          }
+        }
+      }
+      return false
+    }
+
     const speakAndAdvance = async () => {
       // Double-check we're not already speaking
       if (isTeachingSpeakingRef.current) return
@@ -335,16 +352,16 @@ export default function InformationPracticeSessionPage() {
 
       try {
         await waitForVoices()
-        await speak(item.teach_text, { gender: voiceGender })
+        const speechSucceeded = await speakWithRetry(item.teach_text)
 
-        // Wait a moment to let user hear and process
-        await new Promise(resolve => setTimeout(resolve, 2500))
+        // Wait a moment to let user hear and process (longer if speech failed so they can read)
+        await new Promise(resolve => setTimeout(resolve, speechSucceeded ? 2500 : 3500))
 
         // Move to next item or switch to quiz
         const nextIndex = currentIdx + 1
         if (nextIndex >= allItems.length) {
           // Teaching complete, start quiz phase
-          await speak("Now let's see what you remember!", { gender: voiceGender })
+          await speakWithRetry("Now let's see what you remember!")
           await new Promise(resolve => setTimeout(resolve, 1500))
 
           // Reset to first item for quiz
@@ -364,7 +381,7 @@ export default function InformationPracticeSessionPage() {
           questionStartTimeRef.current = startTime
 
           // Speak the first question
-          await speak(allItems[0].question_text, { gender: voiceGender })
+          await speakWithRetry(allItems[0].question_text)
           startTimeoutTimer()
         } else {
           // Move to next teaching item
@@ -376,11 +393,11 @@ export default function InformationPracticeSessionPage() {
           setTeachingSpoken(false)
         }
       } catch (error: any) {
-        console.warn('Teaching phase speech failed:', error?.message || error)
+        console.warn('Teaching phase failed:', error?.message || error)
         isTeachingSpeakingRef.current = false
 
-        // Wait a moment before retrying or advancing
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // Wait so user can read the text on screen
+        await new Promise(resolve => setTimeout(resolve, 3500))
 
         // Advance even if speech fails
         const nextIndex = currentIdx + 1
@@ -428,18 +445,34 @@ export default function InformationPracticeSessionPage() {
     isTeachingSpeakingRef.current = true
     setTeachingSpoken(true)
 
+    // Helper to speak with retry (inline for user-initiated context)
+    const speakWithRetry = async (text: string, maxRetries = 2): Promise<boolean> => {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          await speak(text, { gender: voiceGender })
+          return true
+        } catch (error: any) {
+          console.warn(`Speech attempt ${attempt + 1} failed:`, error?.message || error)
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 200))
+          }
+        }
+      }
+      return false
+    }
+
     const item = items[0]
     try {
       await waitForVoices()
-      await speak(item.teach_text, { gender: voiceGender })
+      const speechSucceeded = await speakWithRetry(item.teach_text)
 
-      // Wait a moment then advance
-      await new Promise(resolve => setTimeout(resolve, 2500))
+      // Wait a moment then advance (longer if speech failed)
+      await new Promise(resolve => setTimeout(resolve, speechSucceeded ? 2500 : 3500))
 
       const nextIndex = 1
       if (nextIndex >= items.length) {
         // Only one item, go to quiz
-        await speak("Now let's see what you remember!", { gender: voiceGender })
+        await speakWithRetry("Now let's see what you remember!")
         await new Promise(resolve => setTimeout(resolve, 1500))
 
         isTeachingSpeakingRef.current = false
@@ -454,7 +487,7 @@ export default function InformationPracticeSessionPage() {
         const startTime = Date.now()
         setQuestionStartTime(startTime)
         questionStartTimeRef.current = startTime
-        await speak(items[0].question_text, { gender: voiceGender })
+        await speakWithRetry(items[0].question_text)
         startTimeoutTimer()
       } else {
         // Move to next item
@@ -468,7 +501,8 @@ export default function InformationPracticeSessionPage() {
     } catch (error: any) {
       console.warn('Start learning speech failed:', error?.message || error)
       isTeachingSpeakingRef.current = false
-      // Still advance
+      // Still advance after a delay so user can read
+      await new Promise(resolve => setTimeout(resolve, 3500))
       setCurrentIndex(1)
       currentIndexRef.current = 1
       if (items[1]) {

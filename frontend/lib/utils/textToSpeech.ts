@@ -13,8 +13,11 @@ export interface SpeechOptions {
   gender?: VoiceGender // Preferred voice gender
 }
 
-// Track current audio for stopping
-let currentAudio: HTMLAudioElement | null = null
+// Reuse single Audio element to maintain iOS Safari "unlock" state
+// On iOS, each new Audio() element requires a fresh user gesture to play.
+// By reusing the same element, we keep it "unlocked" after the first user-initiated play.
+let audioElement: HTMLAudioElement | null = null
+let currentAudioUrl: string | null = null
 
 /**
  * Checks if text-to-speech is supported
@@ -42,6 +45,10 @@ export function getVoiceByGender(
 
 /**
  * Speaks text using Amazon Polly via backend API
+ *
+ * On iOS Safari, reuses a single Audio element to maintain the "unlocked" state
+ * after the first user-initiated play. This prevents subsequent programmatic
+ * plays from being blocked by autoplay policies.
  */
 export async function speak(
   text: string,
@@ -77,30 +84,59 @@ export async function speak(
     const audioBlob = await response.blob()
     const audioUrl = URL.createObjectURL(audioBlob)
 
-    // Play the audio
-    return new Promise((resolve, reject) => {
-      const audio = new Audio(audioUrl)
-      currentAudio = audio
+    // Clean up previous URL if exists
+    if (currentAudioUrl) {
+      URL.revokeObjectURL(currentAudioUrl)
+    }
+    currentAudioUrl = audioUrl
 
-      // Set volume
+    // Play the audio - reuse existing element on iOS to maintain unlock state
+    return new Promise((resolve, reject) => {
+      // Create audio element once and reuse it
+      if (!audioElement) {
+        audioElement = new Audio()
+      }
+      const audio = audioElement
+
+      // Set the new source
+      audio.src = audioUrl
       audio.volume = options.volume ?? 1
 
+      // Clean up handlers from any previous play
+      const cleanup = () => {
+        audio.onended = null
+        audio.onerror = null
+      }
+
       audio.onended = () => {
-        URL.revokeObjectURL(audioUrl)
-        currentAudio = null
+        cleanup()
         resolve()
       }
 
-      audio.onerror = (error) => {
-        URL.revokeObjectURL(audioUrl)
-        currentAudio = null
+      audio.onerror = () => {
+        cleanup()
         reject(new Error('Audio playback failed'))
       }
 
-      audio.play().catch((error) => {
-        URL.revokeObjectURL(audioUrl)
-        currentAudio = null
-        reject(new Error(`Failed to play audio: ${error.message}`))
+      // Load and play with retry logic for iOS
+      audio.load()
+
+      const playWithRetry = async (retriesLeft: number): Promise<void> => {
+        try {
+          await audio.play()
+        } catch (error: any) {
+          if (retriesLeft > 0) {
+            // Wait briefly and retry - iOS sometimes needs this
+            await new Promise(r => setTimeout(r, 100))
+            return playWithRetry(retriesLeft - 1)
+          }
+          cleanup()
+          reject(new Error(`Failed to play audio: ${error?.message || 'Unknown error'}`))
+        }
+      }
+
+      playWithRetry(2).catch(() => {
+        // Error already handled in playWithRetry
       })
     })
   } catch (error) {
@@ -113,10 +149,10 @@ export async function speak(
  * Stops any ongoing speech
  */
 export function stopSpeaking(): void {
-  if (currentAudio) {
-    currentAudio.pause()
-    currentAudio.currentTime = 0
-    currentAudio = null
+  if (audioElement) {
+    audioElement.pause()
+    audioElement.currentTime = 0
+    // Don't null out audioElement - keep it for reuse to maintain iOS unlock state
   }
 }
 
