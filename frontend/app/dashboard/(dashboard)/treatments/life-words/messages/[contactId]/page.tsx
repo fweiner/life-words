@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient, ApiError } from '@/lib/api/client'
 import { MessageList } from '@/components/messaging/MessageList'
 import { MessageInput } from '@/components/messaging/MessageInput'
 import { ShareLinkModal } from '@/components/messaging/ShareLinkModal'
@@ -40,7 +40,6 @@ export default function ConversationPage() {
   const [error, setError] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadConversation()
@@ -57,44 +56,18 @@ export default function ConversationPage() {
 
   const loadConversation = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/conversations/${contactId}`,
-        {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        }
-      )
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Contact not found')
-        } else {
-          throw new Error('Failed to load conversation')
-        }
-        setIsLoading(false)
-        return
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<any>(`/api/life-words/messaging/conversations/${contactId}`)
       setMessages(data.messages)
       setContact(data.contact)
 
       // Mark messages as read
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/conversations/${contactId}/read`,
-        {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        }
-      )
+      await apiClient.put(`/api/life-words/messaging/conversations/${contactId}/read`)
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      if (err instanceof ApiError && err.status === 404) {
+        setError('Contact not found')
+      } else {
+        setError(err.message || 'An error occurred')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -102,20 +75,8 @@ export default function ConversationPage() {
 
   const loadMessagingToken = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/conversations/${contactId}/token`,
-        {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        }
-      )
-
-      if (response.ok) {
-        const data = await response.json()
-        setMessagingUrl(data.messaging_url)
-      }
+      const data = await apiClient.get<any>(`/api/life-words/messaging/conversations/${contactId}/token`)
+      setMessagingUrl(data.messaging_url)
     } catch (err) {
       console.error('Error loading messaging token:', err)
     }
@@ -129,24 +90,10 @@ export default function ConversationPage() {
   }) => {
     setIsSending(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) throw new Error('Not authenticated')
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/conversations/${contactId}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(content)
-        }
+      const newMessage = await apiClient.post<Message>(
+        `/api/life-words/messaging/conversations/${contactId}/messages`,
+        content
       )
-
-      if (!response.ok) throw new Error('Failed to send message')
-
-      const newMessage = await response.json()
       setMessages(prev => [...prev, newMessage])
     } catch (err) {
       console.error('Error sending message:', err)

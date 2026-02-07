@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { apiClient } from '@/lib/api/client'
 import { VoiceRecorder } from './VoiceRecorder'
 
 interface MessageInputProps {
@@ -80,20 +81,15 @@ export function MessageInput({ onSend, isSending = false, isPublic = false }: Me
       const formData = new FormData()
       formData.append('file', file)
 
-      const uploadUrl = isPublic
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/public/upload-media?media_type=photo`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/upload-media?media_type=photo`
+      const uploadPath = isPublic
+        ? '/api/life-words/messaging/public/upload-media?media_type=photo'
+        : '/api/life-words/messaging/upload-media?media_type=photo'
 
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        throw new Error('Upload failed')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.postFormData<{ url: string }>(
+        uploadPath,
+        formData,
+        !isPublic
+      )
       setPhotoUrl(data.url)
     } catch (err) {
       console.error('Error uploading photo:', err)

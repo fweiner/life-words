@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient, ApiError } from '@/lib/api/client'
 import { ItemForm, ItemFormData } from '@/components/life-words/ItemForm'
 import Link from 'next/link'
 
@@ -33,7 +33,6 @@ export default function EditItemPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadItem()
@@ -41,30 +40,14 @@ export default function EditItemPage() {
 
   const loadItem = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/items/${itemId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Item not found')
-        }
-        throw new Error('Failed to load item')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<ItemData>(`/api/life-words/items/${itemId}`)
       setItem(data)
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      if (err instanceof ApiError && err.status === 404) {
+        setError('Item not found')
+      } else {
+        setError(err.detail || err.message || 'An error occurred')
+      }
       console.error('Error loading item:', err)
     } finally {
       setIsLoading(false)
@@ -76,29 +59,12 @@ export default function EditItemPage() {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/items/${itemId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to update item')
-      }
+      await apiClient.put(`/api/life-words/items/${itemId}`, formData)
 
       // Redirect back to items list
       router.push('/dashboard/treatments/life-words/items')
     } catch (err: any) {
-      setError(err.message || 'Failed to update item')
+      setError(err.detail || err.message || 'Failed to update item')
       throw err
     } finally {
       setIsSaving(false)

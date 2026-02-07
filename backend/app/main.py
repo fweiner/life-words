@@ -56,3 +56,6 @@ app.include_router(life_words_information.router, prefix="/api/life-words", tags
 
 from app.routers import speech
 app.include_router(speech.router, prefix="/api/speech", tags=["speech"])
+
+from app.routers import matching
+app.include_router(matching.router, prefix="/api/matching", tags=["matching"])

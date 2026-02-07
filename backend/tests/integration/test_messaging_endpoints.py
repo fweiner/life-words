@@ -392,15 +392,16 @@ def test_create_new_token_success(app, client, mock_user_id, mock_db):
 
 # ============== Public Endpoints ==============
 
-@patch("httpx.AsyncClient")
-def test_verify_token_not_found(mock_client_class, client):
+def test_verify_token_not_found(app, client, mock_db):
     """Test verifying a non-existent token."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    mock_response = MagicMock()
-    mock_response.json.return_value = []
-    mock_async_client.get.return_value = mock_response
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = []
 
     response = client.get("/api/life-words/messaging/public/verify/invalid-token")
 
@@ -410,16 +411,17 @@ def test_verify_token_not_found(mock_client_class, client):
     assert data["status"] == "not_found"
 
 
-@patch("httpx.AsyncClient")
-def test_verify_token_inactive(mock_client_class, client):
+def test_verify_token_inactive(app, client, mock_db):
     """Test verifying an inactive token."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
 
     inactive_token = {**SAMPLE_MESSAGING_TOKEN, "is_active": False}
-    mock_response = MagicMock()
-    mock_response.json.return_value = [inactive_token]
-    mock_async_client.get.return_value = mock_response
+    mock_db.query.return_value = [inactive_token]
 
     response = client.get("/api/life-words/messaging/public/verify/inactive-token")
 
@@ -429,26 +431,21 @@ def test_verify_token_inactive(mock_client_class, client):
     assert data["status"] == "inactive"
 
 
-@patch("httpx.AsyncClient")
-def test_verify_token_valid(mock_client_class, client):
+def test_verify_token_valid(app, client, mock_db):
     """Test verifying a valid token."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    # Mock responses for token, contact, profile, and update
-    token_response = MagicMock()
-    token_response.json.return_value = [SAMPLE_MESSAGING_TOKEN]
+    async def override_get_db():
+        return mock_db
 
-    contact_response = MagicMock()
-    contact_response.json.return_value = [{"name": "Jane Smith", "photo_url": "https://example.com/photo.jpg"}]
+    app.dependency_overrides[get_db] = override_get_db
 
-    profile_response = MagicMock()
-    profile_response.json.return_value = [SAMPLE_PROFILE]
-
-    update_response = MagicMock()
-
-    mock_async_client.get.side_effect = [token_response, contact_response, profile_response]
-    mock_async_client.patch.return_value = update_response
+    mock_db.query.side_effect = [
+        [SAMPLE_MESSAGING_TOKEN],  # token lookup
+        [{"name": "Jane Smith", "photo_url": "https://example.com/photo.jpg"}],  # contact
+        [SAMPLE_PROFILE],  # profile
+    ]
+    mock_db.update.return_value = SAMPLE_MESSAGING_TOKEN
 
     response = client.get(f"/api/life-words/messaging/public/verify/{SAMPLE_TOKEN}")
 
@@ -460,34 +457,35 @@ def test_verify_token_valid(mock_client_class, client):
     assert data["contact_name"] == "Jane Smith"
 
 
-@patch("httpx.AsyncClient")
-def test_get_public_messages_invalid_token(mock_client_class, client):
+def test_get_public_messages_invalid_token(app, client, mock_db):
     """Test getting messages with invalid token."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    mock_response = MagicMock()
-    mock_response.json.return_value = []
-    mock_async_client.get.return_value = mock_response
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = []
 
     response = client.get("/api/life-words/messaging/public/invalid-token/messages")
 
     assert response.status_code == 404
 
 
-@patch("httpx.AsyncClient")
-def test_get_public_messages_success(mock_client_class, client):
+def test_get_public_messages_success(app, client, mock_db):
     """Test successfully getting public messages."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    token_response = MagicMock()
-    token_response.json.return_value = [SAMPLE_MESSAGING_TOKEN]
+    async def override_get_db():
+        return mock_db
 
-    messages_response = MagicMock()
-    messages_response.json.return_value = [SAMPLE_MESSAGE]
+    app.dependency_overrides[get_db] = override_get_db
 
-    mock_async_client.get.side_effect = [token_response, messages_response]
+    mock_db.query.side_effect = [
+        [SAMPLE_MESSAGING_TOKEN],  # token lookup
+        [SAMPLE_MESSAGE],          # messages
+    ]
 
     response = client.get(f"/api/life-words/messaging/public/{SAMPLE_TOKEN}/messages")
 
@@ -496,15 +494,16 @@ def test_get_public_messages_success(mock_client_class, client):
     assert len(data["messages"]) == 1
 
 
-@patch("httpx.AsyncClient")
-def test_send_public_message_invalid_token(mock_client_class, client):
+def test_send_public_message_invalid_token(app, client, mock_db):
     """Test sending message with invalid token."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    mock_response = MagicMock()
-    mock_response.json.return_value = []
-    mock_async_client.get.return_value = mock_response
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = []
 
     response = client.post(
         "/api/life-words/messaging/public/invalid-token/messages",
@@ -514,8 +513,7 @@ def test_send_public_message_invalid_token(mock_client_class, client):
     assert response.status_code == 404
 
 
-@patch("httpx.AsyncClient")
-def test_send_public_message_no_content(mock_client_class, client):
+def test_send_public_message_no_content(client):
     """Test sending public message without content."""
     response = client.post(
         f"/api/life-words/messaging/public/{SAMPLE_TOKEN}/messages",
@@ -526,26 +524,23 @@ def test_send_public_message_no_content(mock_client_class, client):
     assert "content" in response.json()["detail"].lower()
 
 
-@patch("httpx.AsyncClient")
-def test_send_public_message_success(mock_client_class, client):
+def test_send_public_message_success(app, client, mock_db):
     """Test successfully sending a public message."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    token_response = MagicMock()
-    token_response.json.return_value = [SAMPLE_MESSAGING_TOKEN]
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
 
     incoming_message = {
         **SAMPLE_MESSAGE,
         "direction": "contact_to_user",
         "is_read": False
     }
-    msg_response = MagicMock()
-    msg_response.json.return_value = [incoming_message]
-    msg_response.raise_for_status = MagicMock()
 
-    mock_async_client.get.return_value = token_response
-    mock_async_client.post.return_value = msg_response
+    mock_db.query.return_value = [SAMPLE_MESSAGING_TOKEN]
+    mock_db.insert.return_value = [incoming_message]
 
     response = client.post(
         f"/api/life-words/messaging/public/{SAMPLE_TOKEN}/messages",
@@ -568,7 +563,7 @@ def test_upload_public_media_invalid_type(client):
     assert "image" in response.json()["detail"].lower()
 
 
-@patch("httpx.AsyncClient")
+@patch("app.services.utils.httpx.AsyncClient")
 def test_upload_public_photo_success(mock_client_class, client):
     """Test successfully uploading a photo."""
     mock_async_client = AsyncMock()
@@ -596,7 +591,7 @@ def test_upload_public_photo_success(mock_client_class, client):
     assert response.json()["media_type"] == "photo"
 
 
-@patch("httpx.AsyncClient")
+@patch("app.services.utils.httpx.AsyncClient")
 def test_upload_public_voice_success(mock_client_class, client):
     """Test successfully uploading a voice message."""
     mock_async_client = AsyncMock()
@@ -627,7 +622,7 @@ def test_mark_messages_read_unauthorized(client):
     assert response.status_code == 401
 
 
-@patch("httpx.AsyncClient")
+@patch("app.services.messaging_service.httpx.AsyncClient")
 def test_mark_messages_read_contact_not_found(mock_client_class, app, client, mock_user_id, mock_db):
     """Test marking messages read for non-existent contact."""
     from app.core.auth import get_current_user_id
@@ -652,7 +647,7 @@ def test_mark_messages_read_contact_not_found(mock_client_class, app, client, mo
     assert response.status_code == 404
 
 
-@patch("httpx.AsyncClient")
+@patch("app.services.messaging_service.httpx.AsyncClient")
 def test_mark_messages_read_success(mock_client_class, app, client, mock_user_id, mock_db):
     """Test successfully marking messages as read."""
     from app.core.auth import get_current_user_id
@@ -774,10 +769,11 @@ def test_authenticated_upload_media_unauthorized(client):
     assert response.status_code == 401
 
 
-@patch("httpx.AsyncClient")
-def test_authenticated_upload_media_success(mock_client_class, app, client, mock_user_id):
+@patch("app.services.utils.httpx.AsyncClient")
+def test_authenticated_upload_media_success(mock_client_class, app, client, mock_user_id, mock_db):
     """Test authenticated media upload."""
     from app.core.auth import get_current_user_id
+    from app.core.dependencies import get_db
 
     mock_async_client = AsyncMock()
     mock_client_class.return_value.__aenter__.return_value = mock_async_client
@@ -785,7 +781,11 @@ def test_authenticated_upload_media_success(mock_client_class, app, client, mock
     async def override_get_current_user_id():
         return mock_user_id
 
+    async def override_get_db():
+        return mock_db
+
     app.dependency_overrides[get_current_user_id] = override_get_current_user_id
+    app.dependency_overrides[get_db] = override_get_db
 
     mock_response = MagicMock()
     mock_response.status_code = 200

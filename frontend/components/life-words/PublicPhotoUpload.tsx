@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
+import { apiClient } from '@/lib/api/client'
+import { compressImage } from '@/lib/utils/compressImage'
 
 interface PublicPhotoUploadProps {
   onUploadComplete: (url: string) => void
@@ -19,50 +21,6 @@ export function PublicPhotoUpload({ onUploadComplete, currentPhotoUrl, className
   const [error, setError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const compressImage = useCallback(async (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = document.createElement('img')
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'))
-          return
-        }
-
-        // Max dimensions
-        const maxWidth = 800
-        const maxHeight = 800
-        let { width, height } = img
-
-        // Calculate new dimensions
-        if (width > maxWidth || height > maxHeight) {
-          const ratio = Math.min(maxWidth / width, maxHeight / height)
-          width = Math.round(width * ratio)
-          height = Math.round(height * ratio)
-        }
-
-        canvas.width = width
-        canvas.height = height
-        ctx.drawImage(img, 0, 0, width, height)
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob)
-            } else {
-              reject(new Error('Could not compress image'))
-            }
-          },
-          'image/jpeg',
-          0.8
-        )
-      }
-      img.onerror = () => reject(new Error('Could not load image'))
-      img.src = URL.createObjectURL(file)
-    })
-  }, [])
 
   const processFile = useCallback(async (file: File) => {
     // Validate file type
@@ -92,18 +50,12 @@ export function PublicPhotoUpload({ onUploadComplete, currentPhotoUrl, className
       const formData = new FormData()
       formData.append('file', compressedBlob, 'photo.jpg')
 
-      // Upload via public API endpoint
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/invites/upload-photo`, {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to upload image')
-      }
-
-      const data = await response.json()
+      // Upload via public API endpoint (unauthenticated)
+      const data = await apiClient.postFormData<{ photo_url: string }>(
+        '/api/life-words/invites/upload-photo',
+        formData,
+        false
+      )
       onUploadComplete(data.photo_url)
     } catch (err) {
       console.error('Upload error:', err)
@@ -112,7 +64,7 @@ export function PublicPhotoUpload({ onUploadComplete, currentPhotoUrl, className
     } finally {
       setUploading(false)
     }
-  }, [compressImage, currentPhotoUrl, onUploadComplete])
+  }, [currentPhotoUrl, onUploadComplete])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

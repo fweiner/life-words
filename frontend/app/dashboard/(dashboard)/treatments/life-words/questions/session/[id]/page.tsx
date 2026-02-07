@@ -8,6 +8,8 @@ import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton
 import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
 import { useVoicePreference } from '@/hooks/useVoicePreference'
 import { getRandomPositiveFeedback } from '@/lib/utils/positiveFeedback'
+import { evaluateQuestionAnswer, type MatchSettings, type QuestionMatchResult } from '@/lib/api/matching'
+import { apiClient } from '@/lib/api/client'
 
 interface PersonalContact {
   id: string
@@ -60,102 +62,9 @@ const QUESTION_TYPE_NAMES: Record<number, string> = {
   5: 'Name Recall'
 }
 
-// Stop words to filter out when comparing significant words
-const STOP_WORDS = new Set([
-  // Articles
-  'a', 'an', 'the',
-  // Prepositions
-  'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'up', 'down',
-  'into', 'onto', 'upon', 'out', 'over', 'under', 'through', 'during',
-  // Conjunctions
-  'and', 'or', 'but', 'so', 'yet', 'nor',
-  // Pronouns
-  'i', 'me', 'my', 'we', 'us', 'our', 'you', 'your', 'he', 'him', 'his',
-  'she', 'her', 'it', 'its', 'they', 'them', 'their', 'who', 'whom',
-  // Common verbs
-  'is', 'are', 'was', 'were', 'be', 'been', 'being', 'am',
-  'do', 'does', 'did', 'doing', 'done',
-  'have', 'has', 'had', 'having',
-  'go', 'goes', 'went', 'going', 'gone',
-  'get', 'gets', 'got', 'getting',
-  'see', 'sees', 'saw', 'seeing', 'seen',
-  'come', 'comes', 'came', 'coming',
-  'take', 'takes', 'took', 'taking', 'taken',
-  'make', 'makes', 'made', 'making',
-  'know', 'knows', 'knew', 'knowing', 'known',
-  'think', 'thinks', 'thought', 'thinking',
-  'say', 'says', 'said', 'saying',
-  'like', 'likes', 'liked', 'liking',
-  'want', 'wants', 'wanted', 'wanting',
-  'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might', 'must',
-  // Adverbs
-  'very', 'really', 'just', 'also', 'too', 'always', 'never', 'often',
-  'sometimes', 'usually', 'when', 'where', 'why', 'how', 'there', 'here',
-  // Other common words
-  'that', 'this', 'these', 'those', 'what', 'which',
-  'all', 'each', 'every', 'some', 'any', 'no', 'not',
-  'as', 'if', 'then', 'than', 'because', 'while', 'about',
-])
+// Answer evaluation is now handled by the backend via evaluateQuestionAnswer API
 
-function extractSignificantWords(text: string): Set<string> {
-  const words = new Set(text.toLowerCase().split(/\s+/))
-  const significant = new Set<string>()
-  for (const word of words) {
-    if (!STOP_WORDS.has(word)) {
-      significant.add(word)
-    }
-  }
-  return significant
-}
-
-// Synonym groups for semantic matching
-const SYNONYM_GROUPS: Set<string>[] = [
-  // Relationships
-  new Set(['daughter', 'girl', 'child', 'kid']),
-  new Set(['son', 'boy', 'child', 'kid']),
-  new Set(['spouse', 'husband', 'wife', 'partner']),
-  new Set(['grandchild', 'grandkid', 'grandson', 'granddaughter']),
-  new Set(['parent', 'mom', 'dad', 'mother', 'father']),
-  new Set(['sibling', 'brother', 'sister']),
-  new Set(['friend', 'buddy', 'pal', 'companion']),
-  new Set(['caregiver', 'helper', 'aide', 'nurse']),
-  // Personality traits
-  new Set(['outgoing', 'social', 'extroverted', 'friendly', 'sociable', 'talkative']),
-  new Set(['reserved', 'quiet', 'shy', 'introverted', 'private']),
-  new Set(['optimistic', 'positive', 'cheerful', 'upbeat', 'hopeful']),
-  new Set(['cautious', 'careful', 'prudent', 'wary']),
-  new Set(['friendly', 'kind', 'nice', 'warm', 'caring', 'loving', 'sweet']),
-  new Set(['energetic', 'active', 'lively', 'spirited', 'dynamic']),
-  new Set(['calm', 'peaceful', 'relaxed', 'mellow', 'easygoing', 'laid back']),
-  new Set(['funny', 'humorous', 'witty', 'hilarious', 'comedic']),
-  new Set(['smart', 'intelligent', 'clever', 'bright', 'wise']),
-  new Set(['generous', 'giving', 'charitable', 'kind']),
-  new Set(['patient', 'understanding', 'tolerant']),
-  new Set(['hardworking', 'diligent', 'dedicated', 'industrious']),
-  // Locations
-  new Set(['home', 'house', 'my place', 'their place', 'residence']),
-  new Set(['church', 'temple', 'synagogue', 'mosque', 'place of worship']),
-  new Set(['work', 'office', 'job', 'workplace']),
-  new Set(['school', 'class', 'college', 'university']),
-  new Set(['park', 'playground', 'outside', 'outdoors']),
-  new Set(['store', 'shop', 'market', 'mall']),
-  new Set(['restaurant', 'diner', 'cafe', 'eatery']),
-  new Set(['hospital', 'clinic', 'doctor', 'medical']),
-]
-
-function findSynonymMatch(word1: string, word2: string): boolean {
-  const w1 = word1.toLowerCase().trim()
-  const w2 = word2.toLowerCase().trim()
-
-  for (const group of SYNONYM_GROUPS) {
-    if (group.has(w1) && group.has(w2)) {
-      return true
-    }
-  }
-  return false
-}
-
-// Accommodation settings interface
+// Accommodation settings interface (used for UI state, sent to backend)
 interface AccommodationSettings {
   match_acceptable_alternatives: boolean
   match_partial_substring: boolean
@@ -172,110 +81,6 @@ const DEFAULT_ACCOMMODATIONS: AccommodationSettings = {
   match_stop_word_filtering: true,
   match_synonyms: true,
   match_first_name_only: true,
-}
-
-// Evaluate user answer against expected
-function evaluateAnswer(
-  userAnswer: string,
-  expected: string,
-  acceptable: string[],
-  settings: AccommodationSettings = DEFAULT_ACCOMMODATIONS
-): { isCorrect: boolean; isPartial: boolean; score: number } {
-  if (!userAnswer) {
-    return { isCorrect: false, isPartial: false, score: 0 }
-  }
-
-  const userLower = userAnswer.toLowerCase().trim()
-  const expectedLower = expected.toLowerCase().trim()
-
-  // Exact match (always enabled, case-insensitive)
-  if (userLower === expectedLower) {
-    return { isCorrect: true, isPartial: false, score: 1.0 }
-  }
-
-  // Check acceptable alternatives
-  if (settings.match_acceptable_alternatives) {
-    for (const alt of acceptable) {
-      if (alt && userLower === alt.toLowerCase()) {
-        return { isCorrect: true, isPartial: false, score: 1.0 }
-      }
-    }
-  }
-
-  // First name only matching
-  if (settings.match_first_name_only && expected.includes(' ')) {
-    const firstName = expected.split(' ')[0].toLowerCase()
-    if (userLower === firstName) {
-      return { isCorrect: true, isPartial: true, score: 0.9 }
-    }
-  }
-
-  // Partial match - user answer contains expected or vice versa
-  if (settings.match_partial_substring) {
-    if (expectedLower.includes(userLower) || userLower.includes(expectedLower)) {
-      return { isCorrect: true, isPartial: true, score: 0.8 }
-    }
-  }
-
-  // Check word overlap
-  const userWords = new Set(userLower.split(/\s+/))
-  const expectedWords = new Set(expectedLower.split(/\s+/))
-
-  if (settings.match_word_overlap) {
-    const common = [...userWords].filter(w => expectedWords.has(w))
-    if (common.length > 0) {
-      const score = common.length / Math.max(userWords.size, expectedWords.size)
-      if (score >= 0.5) {
-        return { isCorrect: true, isPartial: true, score }
-      }
-    }
-  }
-
-  // Stop word filtering and significant word matching
-  if (settings.match_stop_word_filtering) {
-    const userSignificant = extractSignificantWords(userLower)
-    const expectedSignificant = extractSignificantWords(expectedLower)
-
-    // Check significant word overlap (e.g., "Connecticut" matches in both)
-    if (userSignificant.size > 0 && expectedSignificant.size > 0) {
-      const significantCommon = [...userSignificant].filter(w => expectedSignificant.has(w))
-      if (significantCommon.length > 0) {
-        const score = significantCommon.length / Math.max(userSignificant.size, expectedSignificant.size)
-        // If any significant word matches, give credit
-        if (score >= 0.3 || significantCommon.length >= 1) {
-          return { isCorrect: true, isPartial: true, score: Math.max(0.7, score) }
-        }
-      }
-    }
-  }
-
-  // Synonym matching
-  if (settings.match_synonyms) {
-    for (const uw of userWords) {
-      for (const ew of expectedWords) {
-        if (findSynonymMatch(uw, ew)) {
-          return { isCorrect: true, isPartial: true, score: 0.7 }
-        }
-      }
-    }
-
-    // Also check synonyms on significant words only (if stop word filtering enabled)
-    if (settings.match_stop_word_filtering) {
-      const userSignificant = extractSignificantWords(userLower)
-      const expectedSignificant = extractSignificantWords(expectedLower)
-      if (userSignificant.size > 0 && expectedSignificant.size > 0) {
-        for (const uw of userSignificant) {
-          for (const ew of expectedSignificant) {
-            if (findSynonymMatch(uw, ew)) {
-              return { isCorrect: true, isPartial: true, score: 0.7 }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return { isCorrect: false, isPartial: false, score: 0 }
 }
 
 // Generate contextual cues based on question type and contact info
@@ -437,51 +242,24 @@ export default function LifeWordsQuestionSessionPage() {
         return
       }
 
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) {
-        setError('Authentication required')
-        return
-      }
-
       // Load user's accommodation settings from profile
       try {
-        const profileResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/profile`,
-          {
-            headers: {
-              Authorization: `Bearer ${authSession.access_token}`,
-            },
-          }
-        )
-        if (profileResponse.ok) {
-          const profile = await profileResponse.json()
-          setAccommodations({
-            match_acceptable_alternatives: profile.match_acceptable_alternatives ?? true,
-            match_partial_substring: profile.match_partial_substring ?? true,
-            match_word_overlap: profile.match_word_overlap ?? true,
-            match_stop_word_filtering: profile.match_stop_word_filtering ?? true,
-            match_synonyms: profile.match_synonyms ?? true,
-            match_first_name_only: profile.match_first_name_only ?? true,
-          })
-        }
+        const profile = await apiClient.get<any>('/api/profile')
+        setAccommodations({
+          match_acceptable_alternatives: profile.match_acceptable_alternatives ?? true,
+          match_partial_substring: profile.match_partial_substring ?? true,
+          match_word_overlap: profile.match_word_overlap ?? true,
+          match_stop_word_filtering: profile.match_stop_word_filtering ?? true,
+          match_synonyms: profile.match_synonyms ?? true,
+          match_first_name_only: profile.match_first_name_only ?? true,
+        })
       } catch (e) {
         console.warn('Could not load accommodation settings, using defaults')
       }
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/question-sessions/${sessionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-        }
+      const sessionData = await apiClient.get<any>(
+        `/api/life-words/question-sessions/${sessionId}`
       )
-
-      if (!response.ok) {
-        throw new Error('Failed to load session')
-      }
-
-      const sessionData = await response.json()
       setSession(sessionData.session as QuestionSession)
       setContacts(sessionData.contacts as PersonalContact[])
 
@@ -492,8 +270,7 @@ export default function LifeWordsQuestionSessionPage() {
 
       // Generate questions from contacts
       const questionsResponse = await regenerateQuestions(
-        sessionData.contacts,
-        authSession.access_token
+        sessionData.contacts
       )
 
       if (questionsResponse && questionsResponse.length > 0) {
@@ -512,8 +289,7 @@ export default function LifeWordsQuestionSessionPage() {
   }
 
   const regenerateQuestions = async (
-    contactList: PersonalContact[],
-    token: string
+    contactList: PersonalContact[]
   ): Promise<GeneratedQuestion[]> => {
     const generated: GeneratedQuestion[] = []
 
@@ -662,24 +438,30 @@ export default function LifeWordsQuestionSessionPage() {
 
     try {
       const responseTime = Date.now() - startTime
-      const evaluation = evaluateAnswer(
-        transcript,
-        currentQ.expected_answer,
-        currentQ.acceptable_answers,
-        accommodations
-      )
+      let evaluation: { is_correct: boolean; is_partial: boolean; score: number }
+      try {
+        evaluation = await evaluateQuestionAnswer(
+          transcript,
+          currentQ.expected_answer,
+          currentQ.acceptable_answers,
+          accommodations
+        )
+      } catch (error) {
+        console.warn('Matching API error, treating as incorrect:', error)
+        evaluation = { is_correct: false, is_partial: false, score: 0 }
+      }
 
       // Show feedback
       setLastResult({
-        isCorrect: evaluation.isCorrect,
-        isPartial: evaluation.isPartial,
+        isCorrect: evaluation.is_correct,
+        isPartial: evaluation.is_partial,
         userAnswer: transcript,
         expectedAnswer: currentQ.expected_answer
       })
       setShowFeedback(true)
       setIsAnswering(false)
 
-      if (evaluation.isCorrect) {
+      if (evaluation.is_correct) {
         // Correct answer - save and move on
         await saveResponse(currentQ, transcript, evaluation, responseTime, cuesUsedForQuestion)
         const feedback = getRandomPositiveFeedback()
@@ -743,45 +525,35 @@ export default function LifeWordsQuestionSessionPage() {
   const saveResponse = async (
     question: GeneratedQuestion,
     userAnswer: string,
-    evaluation: { isCorrect: boolean; isPartial: boolean; score: number },
+    evaluation: { is_correct: boolean; is_partial: boolean; score: number },
     responseTime: number,
     cuesUsed: number = 0
   ) => {
     if (!session) return
 
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) return
-
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/question-sessions/${session.id}/responses`,
+      await apiClient.post(
+        `/api/life-words/question-sessions/${session.id}/responses`,
         {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contact_id: question.contact_id,
-            question_type: question.question_type,
-            question_text: question.question_text,
-            expected_answer: question.expected_answer,
-            user_answer: userAnswer,
-            is_correct: evaluation.isCorrect,
-            is_partial: evaluation.isPartial,
-            response_time: responseTime,
-            clarity_score: 0.8,
-            correctness_score: evaluation.score,
-            cues_used: cuesUsed,
-          }),
+          contact_id: question.contact_id,
+          question_type: question.question_type,
+          question_text: question.question_text,
+          expected_answer: question.expected_answer,
+          user_answer: userAnswer,
+          is_correct: evaluation.is_correct,
+          is_partial: evaluation.is_partial,
+          response_time: responseTime,
+          clarity_score: 0.8,
+          correctness_score: evaluation.score,
+          cues_used: cuesUsed,
         }
       )
 
       // Track locally
       setResponses(prev => [...prev, {
         question_type: question.question_type,
-        is_correct: evaluation.isCorrect,
-        is_partial: evaluation.isPartial,
+        is_correct: evaluation.is_correct,
+        is_partial: evaluation.is_partial,
         response_time: responseTime,
         correctness_score: evaluation.score
       }])
@@ -828,23 +600,10 @@ export default function LifeWordsQuestionSessionPage() {
     setIsAnswering(false)
 
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) return
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/question-sessions/${session.id}/complete`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-        }
+      const data = await apiClient.put<any>(
+        `/api/life-words/question-sessions/${session.id}/complete`
       )
-
-      if (response.ok) {
-        const data = await response.json()
-        setStatistics(data.statistics)
-      }
+      setStatistics(data.statistics)
     } catch (error) {
       console.error('Error completing session:', error)
     }

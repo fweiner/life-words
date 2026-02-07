@@ -7,7 +7,8 @@ import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton
 import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
 import { useVoicePreference } from '@/hooks/useVoicePreference'
 import { getRandomPositiveFeedback } from '@/lib/utils/positiveFeedback'
-import { matchInformationAnswer } from '@/lib/matching/informationMatcher'
+import { evaluateInformationAnswer } from '@/lib/api/matching'
+import { apiClient } from '@/lib/api/client'
 
 interface InformationItem {
   field_name: string
@@ -104,27 +105,10 @@ export default function InformationPracticeSessionPage() {
         return
       }
 
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) {
-        setError('Authentication required')
-        return
-      }
-
       // Get the session data
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/information-sessions/${sessionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-        }
+      const sessionData = await apiClient.get<any>(
+        `/api/life-words/information-sessions/${sessionId}`
       )
-
-      if (!response.ok) {
-        throw new Error('Failed to load session')
-      }
-
-      const sessionData = await response.json()
       setSession(sessionData.session as InformationSession)
 
       // If session has existing responses, it might be resumed
@@ -139,17 +123,8 @@ export default function InformationPracticeSessionPage() {
       }
 
       // Get user profile to regenerate items (items are generated dynamically from profile)
-      const profileResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/profile`,
-        {
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-        }
-      )
-
-      if (profileResponse.ok) {
-        const profile = await profileResponse.json()
+      try {
+        const profile = await apiClient.get<any>('/api/profile')
         const generatedItems = generateItemsFromProfile(profile)
 
         if (generatedItems.length > 0) {
@@ -161,6 +136,9 @@ export default function InformationPracticeSessionPage() {
         } else {
           setError('Not enough profile information to practice. Please fill in more fields in My Info.')
         }
+      } catch (profileError) {
+        console.error('Error loading profile:', profileError)
+        setError('Failed to load profile information')
       }
 
       setLoading(false)
@@ -570,22 +548,28 @@ export default function InformationPracticeSessionPage() {
 
     try {
       const responseTime = Date.now() - startTime
-      const result = matchInformationAnswer(
-        transcript,
-        currentItemVal.expected_answer,
-        currentItemVal.field_name
-      )
+      let result: { is_correct: boolean; confidence: number }
+      try {
+        result = await evaluateInformationAnswer(
+          transcript,
+          currentItemVal.expected_answer,
+          currentItemVal.field_name
+        )
+      } catch (error) {
+        console.warn('Matching API error, treating as incorrect:', error)
+        result = { is_correct: false, confidence: 0 }
+      }
 
       // Show feedback
       setLastResult({
-        isCorrect: result.isCorrect,
+        isCorrect: result.is_correct,
         userAnswer: transcript,
         expectedAnswer: currentItemVal.expected_answer
       })
       setShowFeedback(true)
       setIsAnswering(false)
 
-      if (result.isCorrect) {
+      if (result.is_correct) {
         // Correct answer - save and move on
         await saveResponse(currentItemVal, transcript, true, responseTime, usedHintForCurrent, false)
         const feedback = getRandomPositiveFeedback()
@@ -647,30 +631,20 @@ export default function InformationPracticeSessionPage() {
     if (!session) return
 
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) return
-
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/information-sessions/${session.id}/responses`,
+      await apiClient.post(
+        `/api/life-words/information-sessions/${session.id}/responses`,
         {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            field_name: item.field_name,
-            field_label: item.field_label,
-            teach_text: item.teach_text,
-            question_text: item.question_text,
-            expected_answer: item.expected_answer,
-            hint_text: item.hint_text,
-            user_answer: userAnswer,
-            is_correct: isCorrect,
-            used_hint: usedHint,
-            timed_out: timedOut,
-            response_time: responseTime,
-          }),
+          field_name: item.field_name,
+          field_label: item.field_label,
+          teach_text: item.teach_text,
+          question_text: item.question_text,
+          expected_answer: item.expected_answer,
+          hint_text: item.hint_text,
+          user_answer: userAnswer,
+          is_correct: isCorrect,
+          used_hint: usedHint,
+          timed_out: timedOut,
+          response_time: responseTime,
         }
       )
 
@@ -737,18 +711,7 @@ export default function InformationPracticeSessionPage() {
     setIsAnswering(false)
 
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) return
-
-      await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/information-sessions/${session.id}/complete`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-        }
-      )
+      await apiClient.put(`/api/life-words/information-sessions/${session.id}/complete`)
     } catch (error) {
       console.error('Error completing session:', error)
     }

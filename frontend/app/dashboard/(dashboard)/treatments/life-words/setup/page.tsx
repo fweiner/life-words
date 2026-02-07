@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import { ContactForm, ContactFormData } from '@/components/life-words/ContactForm'
 import { ContactCard, Contact } from '@/components/life-words/ContactCard'
 import Link from 'next/link'
@@ -18,7 +18,6 @@ export default function LifeWordsSetupPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadContacts()
@@ -26,24 +25,7 @@ export default function LifeWordsSetupPage() {
 
   const loadContacts = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load contacts')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<Contact[]>('/api/life-words/contacts')
       setContacts(data)
 
       // Show form automatically if no contacts yet
@@ -63,26 +45,7 @@ export default function LifeWordsSetupPage() {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to add contact')
-      }
-
-      const newContact = await response.json()
+      const newContact = await apiClient.post<Contact>('/api/life-words/contacts', formData)
       setContacts(prev => [newContact, ...prev])
       setShowForm(false)
     } catch (err: any) {
@@ -95,22 +58,7 @@ export default function LifeWordsSetupPage() {
 
   const handleDeleteContact = async (contactId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts/${contactId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete contact')
-      }
-
+      await apiClient.delete(`/api/life-words/contacts/${contactId}`)
       setContacts(prev => prev.filter(c => c.id !== contactId))
     } catch (err: any) {
       setError(err.message || 'Failed to delete contact')

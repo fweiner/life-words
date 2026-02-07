@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import { ContactCard, Contact } from '@/components/life-words/ContactCard'
 import { InviteModal } from '@/components/life-words/InviteModal'
 import { QuickCompleteModal } from '@/components/life-words/QuickCompleteModal'
@@ -17,7 +17,6 @@ export default function ContactsListPage() {
   const [error, setError] = useState<string | null>(null)
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
   const [quickCompleteContact, setQuickCompleteContact] = useState<Contact | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadContacts()
@@ -25,27 +24,10 @@ export default function ContactsListPage() {
 
   const loadContacts = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load contacts')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<Contact[]>('/api/life-words/contacts')
       setContacts(data)
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.detail || err.message || 'An error occurred')
       console.error('Error loading contacts:', err)
     } finally {
       setIsLoading(false)
@@ -54,54 +36,20 @@ export default function ContactsListPage() {
 
   const handleDeleteContact = async (contactId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts/${contactId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete contact')
-      }
-
+      await apiClient.delete(`/api/life-words/contacts/${contactId}`)
       setContacts(prev => prev.filter(c => c.id !== contactId))
     } catch (err: any) {
-      setError(err.message || 'Failed to delete contact')
+      setError(err.detail || err.message || 'Failed to delete contact')
     }
   }
 
   const handleQuickComplete = async (data: { name: string; relationship?: string }) => {
     if (!quickCompleteContact) return
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.access_token) {
-      throw new Error('Please log in to continue')
-    }
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts/${quickCompleteContact.id}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: data.name,
-          relationship: data.relationship,
-        }),
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error('Failed to update contact')
-    }
+    await apiClient.put(`/api/life-words/contacts/${quickCompleteContact.id}`, {
+      name: data.name,
+      relationship: data.relationship,
+    })
 
     // Reload contacts to get updated data
     await loadContacts()

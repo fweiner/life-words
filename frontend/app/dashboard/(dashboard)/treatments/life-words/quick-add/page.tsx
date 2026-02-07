@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -160,11 +161,6 @@ export default function QuickAddPage() {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
       // Fetch the blob from the preview URL and compress it
       const response = await fetch(currentPhoto)
       const blob = await response.blob()
@@ -175,28 +171,15 @@ export default function QuickAddPage() {
       const photoUrl = await uploadPhoto(compressedBlob)
 
       // Save to backend
-      const endpoint = type === 'contact'
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts/quick-add`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/items/quick-add`
+      const path = type === 'contact'
+        ? '/api/life-words/contacts/quick-add'
+        : '/api/life-words/items/quick-add'
 
       const body = type === 'contact'
         ? { photo_url: photoUrl, category: 'family' }
         : { photo_url: photoUrl }
 
-      const apiResponse = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      })
-
-      if (!apiResponse.ok) {
-        throw new Error('Failed to save photo')
-      }
-
-      const savedEntry = await apiResponse.json()
+      const savedEntry = await apiClient.post<{ id: string }>(path, body)
 
       // Add to local state
       setAddedPhotos(prev => [...prev, {

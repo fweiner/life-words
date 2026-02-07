@@ -55,7 +55,7 @@ def test_create_invite_unauthorized(client):
     assert response.status_code == 401
 
 
-@patch("app.routers.invites.send_invite_email")
+@patch("app.services.invite_service.send_invite_email")
 def test_create_invite_success(mock_send_email, app, client, mock_db):
     """Test successfully creating an invite."""
     from app.core.auth import get_current_user
@@ -263,21 +263,19 @@ def test_cancel_invite_already_completed(app, client, mock_user_id, mock_db):
 
 # ============== Public Endpoints ==============
 
-@patch("httpx.AsyncClient")
-def test_verify_invite_valid(mock_client_class, client):
+def test_verify_invite_valid(app, client, mock_db):
     """Test verifying a valid invite token."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    # First call returns invite, second call returns profile
-    invite_response = MagicMock()
-    invite_response.json.return_value = [SAMPLE_INVITE]
-    invite_response.raise_for_status = MagicMock()
+    async def override_get_db():
+        return mock_db
 
-    profile_response = MagicMock()
-    profile_response.json.return_value = [SAMPLE_PROFILE]
+    app.dependency_overrides[get_db] = override_get_db
 
-    mock_async_client.get.side_effect = [invite_response, profile_response]
+    mock_db.query.side_effect = [
+        [SAMPLE_INVITE],    # invite lookup
+        [SAMPLE_PROFILE],   # profile lookup
+    ]
 
     response = client.get("/api/life-words/invites/verify/test-token-abc123")
 
@@ -287,16 +285,16 @@ def test_verify_invite_valid(mock_client_class, client):
     assert data["status"] == "pending"
 
 
-@patch("httpx.AsyncClient")
-def test_verify_invite_not_found(mock_client_class, client):
+def test_verify_invite_not_found(app, client, mock_db):
     """Test verifying a non-existent token."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    mock_response = MagicMock()
-    mock_response.json.return_value = []
-    mock_response.raise_for_status = MagicMock()
-    mock_async_client.get.return_value = mock_response
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = []
 
     response = client.get("/api/life-words/invites/verify/invalid-token")
 
@@ -306,20 +304,20 @@ def test_verify_invite_not_found(mock_client_class, client):
     assert data["status"] == "not_found"
 
 
-@patch("httpx.AsyncClient")
-def test_verify_invite_expired(mock_client_class, client):
+def test_verify_invite_expired(app, client, mock_db):
     """Test verifying an expired invite."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
 
     expired_invite = {
         **SAMPLE_INVITE,
         "expires_at": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     }
-    mock_response = MagicMock()
-    mock_response.json.return_value = [expired_invite]
-    mock_response.raise_for_status = MagicMock()
-    mock_async_client.get.return_value = mock_response
+    mock_db.query.return_value = [expired_invite]
 
     response = client.get("/api/life-words/invites/verify/expired-token")
 
@@ -329,31 +327,24 @@ def test_verify_invite_expired(mock_client_class, client):
     assert data["status"] == "expired"
 
 
-@patch("app.routers.invites.send_thank_you_email")
-@patch("httpx.AsyncClient")
-def test_submit_invite_success(mock_client_class, mock_send_email, client):
+@patch("app.services.invite_service.send_thank_you_email")
+def test_submit_invite_success(mock_send_email, app, client, mock_db):
     """Test successfully submitting an invite form."""
+    from app.core.dependencies import get_db
+
     mock_send_email.return_value = True
 
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    async def override_get_db():
+        return mock_db
 
-    # Mock responses
-    invite_response = MagicMock()
-    invite_response.json.return_value = [SAMPLE_INVITE]
+    app.dependency_overrides[get_db] = override_get_db
 
-    contact_response = MagicMock()
-    contact_response.json.return_value = [SAMPLE_CONTACT]
-    contact_response.raise_for_status = MagicMock()
-
-    update_response = MagicMock()
-
-    profile_response = MagicMock()
-    profile_response.json.return_value = [SAMPLE_PROFILE]
-
-    mock_async_client.get.side_effect = [invite_response, profile_response]
-    mock_async_client.post.return_value = contact_response
-    mock_async_client.patch.return_value = update_response
+    mock_db.query.side_effect = [
+        [SAMPLE_INVITE],    # invite lookup
+        [SAMPLE_PROFILE],   # profile lookup for thank you email
+    ]
+    mock_db.insert.return_value = [SAMPLE_CONTACT]
+    mock_db.update.return_value = {**SAMPLE_INVITE, "status": "completed"}
 
     response = client.post(
         "/api/life-words/invites/submit/test-token-abc123",
@@ -369,15 +360,16 @@ def test_submit_invite_success(mock_client_class, mock_send_email, client):
     assert data["success"] is True
 
 
-@patch("httpx.AsyncClient")
-def test_submit_invite_not_found(mock_client_class, client):
+def test_submit_invite_not_found(app, client, mock_db):
     """Test submitting to a non-existent invite."""
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
+    from app.core.dependencies import get_db
 
-    mock_response = MagicMock()
-    mock_response.json.return_value = []
-    mock_async_client.get.return_value = mock_response
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = []
 
     response = client.post(
         "/api/life-words/invites/submit/invalid-token",
@@ -391,20 +383,20 @@ def test_submit_invite_not_found(mock_client_class, client):
     assert response.status_code == 404
 
 
-@patch("httpx.AsyncClient")
-def test_submit_invite_expired(mock_client_class, client):
+def test_submit_invite_expired(app, client, mock_db):
     """Test submitting to an expired invite."""
+    from app.core.dependencies import get_db
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
     expired_invite = {
         **SAMPLE_INVITE,
         "expires_at": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
     }
-
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
-
-    mock_response = MagicMock()
-    mock_response.json.return_value = [expired_invite]
-    mock_async_client.get.return_value = mock_response
+    mock_db.query.return_value = [expired_invite]
 
     response = client.post(
         "/api/life-words/invites/submit/expired-token",
@@ -419,17 +411,17 @@ def test_submit_invite_expired(mock_client_class, client):
     assert "expired" in response.json()["detail"].lower()
 
 
-@patch("httpx.AsyncClient")
-def test_submit_invite_already_completed(mock_client_class, client):
+def test_submit_invite_already_completed(app, client, mock_db):
     """Test submitting to an already completed invite."""
+    from app.core.dependencies import get_db
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
     completed_invite = {**SAMPLE_INVITE, "status": "completed"}
-
-    mock_async_client = AsyncMock()
-    mock_client_class.return_value.__aenter__.return_value = mock_async_client
-
-    mock_response = MagicMock()
-    mock_response.json.return_value = [completed_invite]
-    mock_async_client.get.return_value = mock_response
+    mock_db.query.return_value = [completed_invite]
 
     response = client.post(
         "/api/life-words/invites/submit/completed-token",
@@ -455,7 +447,7 @@ def test_upload_photo_invalid_file(client):
     assert "image" in response.json()["detail"].lower()
 
 
-@patch("httpx.AsyncClient")
+@patch("app.services.utils.httpx.AsyncClient")
 def test_upload_photo_success(mock_client_class, client):
     """Test successfully uploading a photo."""
     mock_async_client = AsyncMock()

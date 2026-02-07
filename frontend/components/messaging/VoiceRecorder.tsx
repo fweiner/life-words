@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import { apiClient } from '@/lib/api/client'
 
 interface VoiceRecorderProps {
   onRecordingComplete: (url: string, duration: number) => void
@@ -41,20 +42,15 @@ export function VoiceRecorder({
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm'
       formData.append('file', blob, `voice.${ext}`)
 
-      const uploadUrl = isPublic
-        ? `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/public/upload-media?media_type=voice`
-        : `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/upload-media?media_type=voice`
+      const uploadPath = isPublic
+        ? '/api/life-words/messaging/public/upload-media?media_type=voice'
+        : '/api/life-words/messaging/upload-media?media_type=voice'
 
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        throw new Error('Upload failed')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.postFormData<{ url: string }>(
+        uploadPath,
+        formData,
+        !isPublic
+      )
       onRecordingComplete(data.url, recordedDuration)
 
     } catch (err) {

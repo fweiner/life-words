@@ -7,7 +7,7 @@ from datetime import datetime
 
 def test_format_phone_for_tts_10_digits():
     """Test formatting 10-digit phone number for TTS."""
-    from app.routers.life_words_information import format_phone_for_tts
+    from app.services.life_words_information_service import format_phone_for_tts
 
     result = format_phone_for_tts("5551234567")
     assert result == "5 5 5, 1 2 3, 4 5 6 7"
@@ -15,7 +15,7 @@ def test_format_phone_for_tts_10_digits():
 
 def test_format_phone_for_tts_7_digits():
     """Test formatting 7-digit phone number for TTS."""
-    from app.routers.life_words_information import format_phone_for_tts
+    from app.services.life_words_information_service import format_phone_for_tts
 
     result = format_phone_for_tts("1234567")
     assert result == "1 2 3, 4 5 6 7"
@@ -23,7 +23,7 @@ def test_format_phone_for_tts_7_digits():
 
 def test_format_phone_for_tts_other():
     """Test formatting other length phone number for TTS."""
-    from app.routers.life_words_information import format_phone_for_tts
+    from app.services.life_words_information_service import format_phone_for_tts
 
     result = format_phone_for_tts("12345")
     assert result == "1 2 3 4 5"
@@ -31,7 +31,7 @@ def test_format_phone_for_tts_other():
 
 def test_format_phone_for_tts_with_dashes():
     """Test formatting phone number with dashes for TTS."""
-    from app.routers.life_words_information import format_phone_for_tts
+    from app.services.life_words_information_service import format_phone_for_tts
 
     result = format_phone_for_tts("555-123-4567")
     assert result == "5 5 5, 1 2 3, 4 5 6 7"
@@ -39,7 +39,7 @@ def test_format_phone_for_tts_with_dashes():
 
 def test_format_zip_for_tts():
     """Test formatting zip code for TTS."""
-    from app.routers.life_words_information import format_zip_for_tts
+    from app.services.life_words_information_service import format_zip_for_tts
 
     result = format_zip_for_tts("90210")
     assert result == "9 0 2 1 0"
@@ -47,7 +47,7 @@ def test_format_zip_for_tts():
 
 def test_format_state_for_tts_abbreviation():
     """Test expanding state abbreviation for TTS."""
-    from app.routers.life_words_information import format_state_for_tts
+    from app.services.life_words_information_service import format_state_for_tts
 
     result = format_state_for_tts("CA")
     assert result == "California"
@@ -55,7 +55,7 @@ def test_format_state_for_tts_abbreviation():
 
 def test_format_state_for_tts_full_name():
     """Test state full name passes through."""
-    from app.routers.life_words_information import format_state_for_tts
+    from app.services.life_words_information_service import format_state_for_tts
 
     result = format_state_for_tts("California")
     assert result == "California"
@@ -63,7 +63,7 @@ def test_format_state_for_tts_full_name():
 
 def test_format_state_for_tts_lowercase():
     """Test lowercase state abbreviation works."""
-    from app.routers.life_words_information import format_state_for_tts
+    from app.services.life_words_information_service import format_state_for_tts
 
     result = format_state_for_tts("ny")
     assert result == "New York"
@@ -71,7 +71,7 @@ def test_format_state_for_tts_lowercase():
 
 def test_format_date_for_display_string():
     """Test formatting date string for display."""
-    from app.routers.life_words_information import format_date_for_display
+    from app.services.life_words_information_service import format_date_for_display
 
     result = format_date_for_display("1950-01-15")
     assert result == "January 15"
@@ -79,7 +79,7 @@ def test_format_date_for_display_string():
 
 def test_format_date_for_display_none():
     """Test formatting None date."""
-    from app.routers.life_words_information import format_date_for_display
+    from app.services.life_words_information_service import format_date_for_display
 
     result = format_date_for_display(None)
     assert result == ""
@@ -87,7 +87,7 @@ def test_format_date_for_display_none():
 
 def test_format_date_for_display_invalid():
     """Test formatting invalid date string."""
-    from app.routers.life_words_information import format_date_for_display
+    from app.services.life_words_information_service import format_date_for_display
 
     result = format_date_for_display("not-a-date")
     assert result == "not-a-date"
@@ -95,7 +95,7 @@ def test_format_date_for_display_invalid():
 
 def test_generate_hint_first_letter():
     """Test generating first letter hint."""
-    from app.routers.life_words_information import generate_hint
+    from app.services.life_words_information_service import generate_hint
 
     result = generate_hint("Boston", "first_letter")
     assert result == "It starts with the letter B"
@@ -103,7 +103,7 @@ def test_generate_hint_first_letter():
 
 def test_generate_hint_first_digit():
     """Test generating first digit hint."""
-    from app.routers.life_words_information import generate_hint
+    from app.services.life_words_information_service import generate_hint
 
     result = generate_hint("5551234", "first_digit")
     assert result == "The first digit is 5"
@@ -111,7 +111,7 @@ def test_generate_hint_first_digit():
 
 def test_generate_hint_first_digit_no_digits():
     """Test generating first digit hint when no digits exist."""
-    from app.routers.life_words_information import generate_hint
+    from app.services.life_words_information_service import generate_hint
 
     result = generate_hint("ABC", "first_digit")
     assert result == "It starts with A"
@@ -119,7 +119,7 @@ def test_generate_hint_first_digit_no_digits():
 
 def test_generate_hint_empty_value():
     """Test generating hint for empty value."""
-    from app.routers.life_words_information import generate_hint
+    from app.services.life_words_information_service import generate_hint
 
     result = generate_hint("", "first_letter")
     assert result == ""
@@ -127,7 +127,7 @@ def test_generate_hint_empty_value():
 
 def test_generate_hint_unknown_type():
     """Test generating hint with unknown type."""
-    from app.routers.life_words_information import generate_hint
+    from app.services.life_words_information_service import generate_hint
 
     result = generate_hint("Test", "unknown")
     assert result == "The first character is T"
@@ -135,7 +135,7 @@ def test_generate_hint_unknown_type():
 
 def test_get_filled_fields_count():
     """Test counting filled profile fields."""
-    from app.routers.life_words_information import get_filled_fields_count
+    from app.services.life_words_information_service import get_filled_fields_count
 
     profile = {
         "phone_number": "5551234567",
@@ -153,7 +153,7 @@ def test_get_filled_fields_count():
 
 def test_generate_information_items():
     """Test generating information items from profile."""
-    from app.routers.life_words_information import generate_information_items
+    from app.services.life_words_information_service import generate_information_items
 
     profile = {
         "phone_number": "5551234567",
@@ -177,7 +177,7 @@ def test_generate_information_items():
 
 def test_generate_information_items_with_pronunciation():
     """Test generating information items uses pronunciation for full_name."""
-    from app.routers.life_words_information import generate_information_items
+    from app.services.life_words_information_service import generate_information_items
 
     profile = {
         "full_name": "John Smith",

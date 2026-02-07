@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import { apiClient } from '@/lib/api/client'
 import { InviteContactForm, InviteFormData } from '@/components/life-words/InviteContactForm'
 
 interface InviteStatus {
@@ -28,13 +29,9 @@ export default function InvitePage() {
 
   const verifyToken = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/invites/verify/${token}`)
-
-      if (!response.ok) {
-        throw new Error('Failed to verify invite')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.getPublic<InviteStatus>(
+        `/api/life-words/invites/verify/${token}`
+      )
       setInviteStatus(data)
     } catch (err: any) {
       console.error('Error verifying invite:', err)
@@ -52,18 +49,10 @@ export default function InvitePage() {
     setError(null)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/invites/submit/${token}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to submit form')
-      }
+      await apiClient.postPublic(
+        `/api/life-words/invites/submit/${token}`,
+        formData
+      )
 
       setIsComplete(true)
     } catch (err: any) {

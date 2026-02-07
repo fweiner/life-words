@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { speak, waitForVoices, type VoiceGender } from '@/lib/utils/textToSpeech'
 import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton'
+import { evaluateNameAnswer } from '@/lib/api/matching'
 
 interface PersonalContact {
   id: string
@@ -160,26 +161,7 @@ function getCueTypes(contact: PersonalContact) {
   return cues
 }
 
-// Check if the answer matches the contact name or nickname
-function matchPersonalAnswer(answer: string, contact: PersonalContact): boolean {
-  const normalizedAnswer = answer.toLowerCase().trim()
-  const normalizedName = contact.name.toLowerCase().trim()
-  const normalizedNickname = contact.nickname?.toLowerCase().trim()
-
-  // Exact match
-  if (normalizedAnswer === normalizedName) return true
-  if (normalizedNickname && normalizedAnswer === normalizedNickname) return true
-
-  // Contains match (for multi-word answers)
-  if (normalizedAnswer.includes(normalizedName)) return true
-  if (normalizedNickname && normalizedAnswer.includes(normalizedNickname)) return true
-
-  // First name match (if full name provided)
-  const firstName = normalizedName.split(' ')[0]
-  if (normalizedAnswer === firstName) return true
-
-  return false
-}
+// matchPersonalAnswer is now handled by the backend via evaluateNameAnswer API
 
 export function PersonalizedCueSystem({
   contact,
@@ -310,12 +292,26 @@ export function PersonalizedCueSystem({
     onFinalAnswer()
   }
 
-  const handleAnswer = (transcript: string, confidence?: number) => {
-    const isCorrect = matchPersonalAnswer(transcript, contact)
+  const handleAnswer = async (transcript: string, confidence?: number) => {
+    try {
+      const result = await evaluateNameAnswer(transcript, contact.name, {
+        nickname: contact.nickname,
+      })
+      const isCorrect = result.is_correct
 
-    if (isCorrect) {
-      onAnswer(transcript, true, confidence)
-    } else {
+      if (isCorrect) {
+        onAnswer(transcript, true, confidence)
+      } else {
+        if (currentCueLevel < 7) {
+          onAnswer(transcript, false, confidence)
+        } else {
+          if (!finalAnswerCalledRef.current) {
+            handleFinalAnswer()
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Matching API error, treating as incorrect:', error)
       if (currentCueLevel < 7) {
         onAnswer(transcript, false, confidence)
       } else {

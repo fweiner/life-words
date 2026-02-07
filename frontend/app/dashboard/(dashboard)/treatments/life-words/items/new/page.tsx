@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import { ItemForm, ItemFormData } from '@/components/life-words/ItemForm'
 import Link from 'next/link'
 
@@ -12,36 +12,18 @@ export default function NewItemPage() {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   const handleSubmit = async (formData: ItemFormData) => {
     setIsSaving(true)
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/items`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to add item')
-      }
+      await apiClient.post('/api/life-words/items', formData)
 
       // Redirect back to items list
       router.push('/dashboard/treatments/life-words/items')
     } catch (err: any) {
-      setError(err.message || 'Failed to add item')
+      setError(err.detail || err.message || 'Failed to add item')
       throw err
     } finally {
       setIsSaving(false)

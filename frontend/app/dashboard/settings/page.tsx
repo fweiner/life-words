@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 
 interface AccommodationSettings {
@@ -79,29 +80,18 @@ export default function SettingsPage() {
       }
 
       // Get profile from API
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
+      const profile = await apiClient.get<any>('/api/profile')
+      setFullName(profile.full_name || '')
+      setVoiceGender(profile.voice_gender || 'female')
+      // Load accommodation settings with defaults
+      setAccommodations({
+        match_acceptable_alternatives: profile.match_acceptable_alternatives ?? true,
+        match_partial_substring: profile.match_partial_substring ?? true,
+        match_word_overlap: profile.match_word_overlap ?? true,
+        match_stop_word_filtering: profile.match_stop_word_filtering ?? true,
+        match_synonyms: profile.match_synonyms ?? true,
+        match_first_name_only: profile.match_first_name_only ?? true,
       })
-
-      if (response.ok) {
-        const profile = await response.json()
-        setFullName(profile.full_name || '')
-        setVoiceGender(profile.voice_gender || 'female')
-        // Load accommodation settings with defaults
-        setAccommodations({
-          match_acceptable_alternatives: profile.match_acceptable_alternatives ?? true,
-          match_partial_substring: profile.match_partial_substring ?? true,
-          match_word_overlap: profile.match_word_overlap ?? true,
-          match_stop_word_filtering: profile.match_stop_word_filtering ?? true,
-          match_synonyms: profile.match_synonyms ?? true,
-          match_first_name_only: profile.match_first_name_only ?? true,
-        })
-      }
     } catch (err) {
       console.error('Error loading profile:', err)
       setError('Failed to load profile')
@@ -124,29 +114,11 @@ export default function SettingsPage() {
     setSaving(true)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setError('Not authenticated')
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          full_name: fullName,
-          voice_gender: voiceGender,
-          ...accommodations
-        })
+      await apiClient.patch('/api/profile', {
+        full_name: fullName,
+        voice_gender: voiceGender,
+        ...accommodations
       })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.detail || 'Failed to update profile')
-      }
 
       setSuccess('Settings saved successfully!')
     } catch (err: any) {

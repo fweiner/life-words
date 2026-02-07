@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient, ApiError } from '@/lib/api/client'
 import { ContactForm, ContactFormData } from '@/components/life-words/ContactForm'
 import Link from 'next/link'
 
@@ -35,7 +35,6 @@ export default function EditContactPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadContact()
@@ -43,30 +42,14 @@ export default function EditContactPage() {
 
   const loadContact = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts/${contactId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Contact not found')
-        }
-        throw new Error('Failed to load contact')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<ContactData>(`/api/life-words/contacts/${contactId}`)
       setContact(data)
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      if (err instanceof ApiError && err.status === 404) {
+        setError('Contact not found')
+      } else {
+        setError(err.detail || err.message || 'An error occurred')
+      }
       console.error('Error loading contact:', err)
     } finally {
       setIsLoading(false)
@@ -78,29 +61,12 @@ export default function EditContactPage() {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/contacts/${contactId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to update contact')
-      }
+      await apiClient.put(`/api/life-words/contacts/${contactId}`, formData)
 
       // Redirect back to contacts list
       router.push('/dashboard/treatments/life-words/contacts')
     } catch (err: any) {
-      setError(err.message || 'Failed to update contact')
+      setError(err.detail || err.message || 'Failed to update contact')
       throw err
     } finally {
       setIsSaving(false)

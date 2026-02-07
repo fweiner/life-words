@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -64,7 +64,6 @@ export default function MyInformationPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const supabase = createClient()
 
   // Form state
   const [fullName, setFullName] = useState('')
@@ -91,24 +90,7 @@ export default function MyInformationPage() {
 
   const loadProfile = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load profile')
-      }
-
-      const data: ProfileData = await response.json()
+      const data = await apiClient.get<ProfileData>('/api/profile')
       setProfile(data)
 
       // Populate form
@@ -144,11 +126,6 @@ export default function MyInformationPage() {
     setSuccess(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
       const updateData = {
         full_name: fullName || null,
         full_name_pronunciation: fullNamePronunciation || null,
@@ -169,19 +146,7 @@ export default function MyInformationPage() {
         favorite_music: favoriteMusic || null,
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updateData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to save information')
-      }
+      await apiClient.patch('/api/profile', updateData)
 
       setSuccess('Your information has been saved!')
 

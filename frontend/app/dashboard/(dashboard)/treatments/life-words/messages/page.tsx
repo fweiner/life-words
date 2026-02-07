@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 import Image from 'next/image'
 
@@ -21,7 +21,6 @@ export default function MessagesInboxPage() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadConversations()
@@ -32,25 +31,7 @@ export default function MessagesInboxPage() {
 
   const loadConversations = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/conversations`,
-        {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          }
-        }
-      )
-
-      if (!response.ok) throw new Error('Failed to load conversations')
-
-      const data = await response.json()
+      const data = await apiClient.get<ConversationSummary[]>('/api/life-words/messaging/conversations')
       setConversations(data)
     } catch (err: any) {
       setError(err.message || 'An error occurred')

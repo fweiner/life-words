@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 
 interface ProgressSummary {
@@ -70,26 +71,7 @@ export default function LifeWordsProgressPage() {
         return
       }
 
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Authentication required')
-        return
-      }
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/progress`,
-        {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error('Failed to load progress')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<any>('/api/life-words/progress')
       setSummary(data.summary)
       setSessionHistory(data.session_history || [])
     } catch (err: any) {

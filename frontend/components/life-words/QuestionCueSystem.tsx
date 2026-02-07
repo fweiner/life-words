@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
 import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton'
+import { evaluateQuestionAnswer } from '@/lib/api/matching'
 
 interface GeneratedQuestion {
   contact_id: string
@@ -118,41 +119,7 @@ function getCueTypes(question: GeneratedQuestion) {
   return cues
 }
 
-// Evaluate user answer
-function evaluateAnswer(
-  userAnswer: string,
-  expected: string,
-  acceptable: string[]
-): boolean {
-  if (!userAnswer) return false
-
-  const userLower = userAnswer.toLowerCase().trim()
-  const expectedLower = expected.toLowerCase().trim()
-
-  // Exact match
-  if (userLower === expectedLower) return true
-
-  // Check acceptable alternatives
-  for (const alt of acceptable) {
-    if (alt && userLower === alt.toLowerCase()) return true
-  }
-
-  // Partial match - user answer contains expected or vice versa
-  if (expectedLower.includes(userLower) || userLower.includes(expectedLower)) {
-    return true
-  }
-
-  // Check if any significant word matches
-  const userWords = new Set(userLower.split(/\s+/).filter(w => w.length > 2))
-  const expectedWords = new Set(expectedLower.split(/\s+/).filter(w => w.length > 2))
-  const common = [...userWords].filter(w => expectedWords.has(w))
-
-  if (common.length > 0 && common.length >= expectedWords.size * 0.5) {
-    return true
-  }
-
-  return false
-}
+// evaluateAnswer is now handled by the backend via evaluateQuestionAnswer API
 
 export function QuestionCueSystem({
   question,
@@ -282,16 +249,27 @@ export function QuestionCueSystem({
     onFinalAnswer()
   }
 
-  const handleAnswer = (transcript: string) => {
-    const isCorrect = evaluateAnswer(
-      transcript,
-      question.expected_answer,
-      question.acceptable_answers
-    )
+  const handleAnswer = async (transcript: string) => {
+    try {
+      const result = await evaluateQuestionAnswer(
+        transcript,
+        question.expected_answer,
+        question.acceptable_answers
+      )
 
-    if (isCorrect) {
-      onAnswer(transcript, true)
-    } else {
+      if (result.is_correct) {
+        onAnswer(transcript, true)
+      } else {
+        if (currentCueLevel < 7) {
+          onAnswer(transcript, false)
+        } else {
+          if (!finalAnswerCalledRef.current) {
+            handleFinalAnswer()
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Matching API error, treating as incorrect:', error)
       if (currentCueLevel < 7) {
         onAnswer(transcript, false)
       } else {

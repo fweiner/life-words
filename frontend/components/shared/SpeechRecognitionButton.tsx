@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
-import { extractAnswer } from '@/lib/matching/answerMatcher'
+import { extractAnswer } from '@/lib/api/matching'
 
 interface SpeechRecognitionButtonProps {
   onResult: (transcript: string, confidence?: number) => void
@@ -37,7 +37,7 @@ export default function SpeechRecognitionButton({
   const [isInitializing, setIsInitializing] = useState(autoStart) // Track auto-start initialization
 
   // Function to submit an answer
-  const submitAnswer = useCallback((transcript: string, confidence?: number) => {
+  const submitAnswer = useCallback(async (transcript: string, confidence?: number) => {
     if (hasSubmittedRef.current) return
 
     // Don't submit empty or very short transcripts (likely noise or silence)
@@ -48,8 +48,13 @@ export default function SpeechRecognitionButton({
     }
 
     hasSubmittedRef.current = true
-    const answer = extractAnswer(transcript)
-    onResult(answer, confidence)
+    try {
+      const answer = await extractAnswer(transcript)
+      onResult(answer, confidence)
+    } catch {
+      // Fallback to raw transcript if API fails
+      onResult(transcript.trim(), confidence)
+    }
   }, [onResult])
 
   const { isListening, isSupported, error, start, stop, transcript, abort } =

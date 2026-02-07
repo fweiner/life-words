@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import { ItemCard, Item } from '@/components/life-words/ItemCard'
 import { QuickCompleteModal } from '@/components/life-words/QuickCompleteModal'
 import Link from 'next/link'
@@ -15,7 +15,6 @@ export default function ItemsListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [quickCompleteItem, setQuickCompleteItem] = useState<Item | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadItems()
@@ -23,27 +22,10 @@ export default function ItemsListPage() {
 
   const loadItems = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/items`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load items')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<Item[]>('/api/life-words/items')
       setItems(data)
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.detail || err.message || 'An error occurred')
       console.error('Error loading items:', err)
     } finally {
       setIsLoading(false)
@@ -52,53 +34,19 @@ export default function ItemsListPage() {
 
   const handleDeleteItem = async (itemId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/items/${itemId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete item')
-      }
-
+      await apiClient.delete(`/api/life-words/items/${itemId}`)
       setItems(prev => prev.filter(i => i.id !== itemId))
     } catch (err: any) {
-      setError(err.message || 'Failed to delete item')
+      setError(err.detail || err.message || 'Failed to delete item')
     }
   }
 
   const handleQuickComplete = async (data: { name: string }) => {
     if (!quickCompleteItem) return
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.access_token) {
-      throw new Error('Please log in to continue')
-    }
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/items/${quickCompleteItem.id}`,
-      {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: data.name,
-        }),
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error('Failed to update item')
-    }
+    await apiClient.put(`/api/life-words/items/${quickCompleteItem.id}`, {
+      name: data.name,
+    })
 
     // Reload items to get updated data
     await loadItems()

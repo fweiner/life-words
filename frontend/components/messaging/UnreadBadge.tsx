@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 
 interface UnreadBadgeProps {
   className?: string
@@ -9,8 +9,6 @@ interface UnreadBadgeProps {
 
 export function UnreadBadge({ className = '' }: UnreadBadgeProps) {
   const [unreadCount, setUnreadCount] = useState(0)
-  const supabase = createClient()
-
   useEffect(() => {
     loadUnreadCount()
     // Poll for new messages every 30 seconds
@@ -20,20 +18,10 @@ export function UnreadBadge({ className = '' }: UnreadBadgeProps) {
 
   const loadUnreadCount = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/unread-count`,
-        {
-          headers: { 'Authorization': `Bearer ${session.access_token}` }
-        }
+      const data = await apiClient.get<{ count: number }>(
+        '/api/life-words/messaging/unread-count'
       )
-
-      if (response.ok) {
-        const data = await response.json()
-        setUnreadCount(data.count)
-      }
+      setUnreadCount(data.count)
     } catch (err) {
       console.error('Error loading unread count:', err)
     }

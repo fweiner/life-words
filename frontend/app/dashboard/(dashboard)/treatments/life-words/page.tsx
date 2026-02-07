@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 import { UnreadBadge } from '@/components/messaging/UnreadBadge'
 
@@ -27,7 +27,6 @@ export default function LifeWordsPage() {
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<LifeWordsStatus | null>(null)
   const [infoStatus, setInfoStatus] = useState<InformationStatus | null>(null)
-  const supabase = createClient()
 
   useEffect(() => {
     loadStatus()
@@ -35,42 +34,18 @@ export default function LifeWordsPage() {
 
   const loadStatus = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to continue')
-        setIsLoading(false)
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/status`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load status')
-      }
-
-      const data = await response.json()
+      const data = await apiClient.get<LifeWordsStatus>('/api/life-words/status')
       setStatus(data)
 
       // Also load information practice status
       try {
-        const infoResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/information-status`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          }
-        })
-        if (infoResponse.ok) {
-          const infoData = await infoResponse.json()
-          setInfoStatus(infoData)
-        }
+        const infoData = await apiClient.get<InformationStatus>('/api/life-words/information-status')
+        setInfoStatus(infoData)
       } catch (infoErr) {
         console.warn('Could not load information status:', infoErr)
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.detail || err.message || 'An error occurred')
       console.error('Error loading status:', err)
     } finally {
       setIsLoading(false)
@@ -82,37 +57,11 @@ export default function LifeWordsPage() {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to start a session')
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/sessions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      })
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to create session'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.detail || errorMessage
-        } catch (e) {
-          errorMessage = `HTTP ${response.status}: ${response.statusText}`
-        }
-        throw new Error(errorMessage)
-      }
-
-      const sessionData = await response.json()
+      const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/sessions', {})
       router.push(`/dashboard/treatments/life-words/session/${sessionData.session.id}`)
 
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.detail || err.message || 'An error occurred')
       console.error('Error creating session:', err)
     } finally {
       setIsStarting(false)
@@ -124,37 +73,11 @@ export default function LifeWordsPage() {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to start a session')
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/question-sessions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      })
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to create question session'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.detail || errorMessage
-        } catch (e) {
-          errorMessage = `HTTP ${response.status}: ${response.statusText}`
-        }
-        throw new Error(errorMessage)
-      }
-
-      const sessionData = await response.json()
+      const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/question-sessions', {})
       router.push(`/dashboard/treatments/life-words/questions/session/${sessionData.session.id}`)
 
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.detail || err.message || 'An error occurred')
       console.error('Error creating question session:', err)
     } finally {
       setIsStarting(false)
@@ -166,37 +89,11 @@ export default function LifeWordsPage() {
     setError(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Please log in to start a session')
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/information-sessions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({})
-      })
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to create information session'
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.detail || errorMessage
-        } catch (e) {
-          errorMessage = `HTTP ${response.status}: ${response.statusText}`
-        }
-        throw new Error(errorMessage)
-      }
-
-      const sessionData = await response.json()
+      const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/information-sessions', {})
       router.push(`/dashboard/treatments/life-words/information/session/${sessionData.session.id}`)
 
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      setError(err.detail || err.message || 'An error occurred')
       console.error('Error creating information session:', err)
     } finally {
       setIsStarting(false)

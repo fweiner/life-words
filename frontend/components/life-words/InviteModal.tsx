@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 
 interface InviteModalProps {
   isOpen: boolean
@@ -22,8 +22,6 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const supabase = createClient()
-
   // Fetch user's name when modal opens
   useEffect(() => {
     if (isOpen && !userName) {
@@ -41,20 +39,9 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
   const fetchUserName = async () => {
     setIsLoadingProfile(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/profile`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
-      })
-
-      if (response.ok) {
-        const profile = await response.json()
-        if (profile.full_name) {
-          setUserName(profile.full_name)
-        }
+      const profile = await apiClient.get<{ full_name?: string }>('/api/profile')
+      if (profile.full_name) {
+        setUserName(profile.full_name)
       }
     } catch (err) {
       console.error('Error fetching profile:', err)
@@ -69,28 +56,11 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
     setIsLoading(true)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('Please log in to continue')
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/invites`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          recipient_name: recipientName,
-          recipient_email: recipientEmail,
-          custom_message: customMessage
-        })
+      await apiClient.post('/api/life-words/invites', {
+        recipient_name: recipientName,
+        recipient_email: recipientEmail,
+        custom_message: customMessage
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Failed to send invite')
-      }
 
       setSuccess(true)
       onSuccess?.()

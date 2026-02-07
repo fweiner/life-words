@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams } from 'next/navigation'
+import { apiClient } from '@/lib/api/client'
 import { MessageList } from '@/components/messaging/MessageList'
 import { MessageInput } from '@/components/messaging/MessageInput'
 import Image from 'next/image'
@@ -57,15 +58,9 @@ export default function PublicMessagePage() {
 
   const verifyToken = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/public/verify/${token}`
+      const data = await apiClient.getPublic<TokenStatus>(
+        `/api/life-words/messaging/public/verify/${token}`
       )
-
-      if (!response.ok) {
-        throw new Error('Failed to verify token')
-      }
-
-      const data = await response.json()
       setTokenStatus(data)
     } catch (err: any) {
       console.error('Error verifying token:', err)
@@ -80,15 +75,9 @@ export default function PublicMessagePage() {
 
   const loadMessages = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/public/${token}/messages`
+      const data = await apiClient.getPublic<Message[]>(
+        `/api/life-words/messaging/public/${token}/messages`
       )
-
-      if (!response.ok) {
-        throw new Error('Failed to load messages')
-      }
-
-      const data = await response.json()
       setMessages(data)
     } catch (err: any) {
       console.error('Error loading messages:', err)
@@ -103,22 +92,10 @@ export default function PublicMessagePage() {
   }) => {
     setIsSending(true)
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/life-words/messaging/public/${token}/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(content)
-        }
+      const newMessage = await apiClient.postPublic<Message>(
+        `/api/life-words/messaging/public/${token}/messages`,
+        content
       )
-
-      if (!response.ok) {
-        throw new Error('Failed to send message')
-      }
-
-      const newMessage = await response.json()
       setMessages(prev => [...prev, newMessage])
     } catch (err) {
       console.error('Error sending message:', err)

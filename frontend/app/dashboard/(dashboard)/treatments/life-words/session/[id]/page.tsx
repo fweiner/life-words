@@ -9,6 +9,8 @@ import { PersonalizedCueSystem } from '@/components/life-words/PersonalizedCueSy
 import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
 import { useVoicePreference } from '@/hooks/useVoicePreference'
 import { getRandomPositiveFeedback } from '@/lib/utils/positiveFeedback'
+import { evaluateNameAnswer } from '@/lib/api/matching'
+import { apiClient } from '@/lib/api/client'
 
 interface PersonalContact {
   id: string
@@ -37,67 +39,7 @@ interface Session {
   is_completed: boolean
 }
 
-// Check if the answer matches the contact name or nickname
-function matchPersonalAnswer(answer: string, contact: PersonalContact): boolean {
-  // Normalize: lowercase, trim, remove punctuation, collapse multiple spaces
-  const normalize = (s: string) => s.toLowerCase().trim().replace(/[.,!?'"]/g, '').replace(/\s+/g, ' ')
-
-  const normalizedAnswer = normalize(answer)
-  const normalizedName = normalize(contact.name)
-  const normalizedNickname = contact.nickname ? normalize(contact.nickname) : undefined
-
-  // Empty answer - no match
-  if (!normalizedAnswer) return false
-
-  // Exact match
-  if (normalizedAnswer === normalizedName) return true
-  if (normalizedNickname && normalizedAnswer === normalizedNickname) return true
-
-  // Contains match - either direction (answer contains name OR name contains answer)
-  if (normalizedAnswer.includes(normalizedName)) return true
-  if (normalizedName.includes(normalizedAnswer)) return true
-  if (normalizedNickname && normalizedAnswer.includes(normalizedNickname)) return true
-  if (normalizedNickname && normalizedNickname.includes(normalizedAnswer)) return true
-
-  // Split into words for partial matching
-  const answerWords = normalizedAnswer.split(' ').filter(w => w.length > 0)
-  const nameWords = normalizedName.split(' ').filter(w => w.length > 0)
-
-  // First name match
-  const firstName = nameWords[0]
-  if (firstName && normalizedAnswer === firstName) return true
-  if (firstName && answerWords.includes(firstName)) return true
-
-  // Last name match (if multi-word name)
-  if (nameWords.length > 1) {
-    const lastName = nameWords[nameWords.length - 1]
-    if (normalizedAnswer === lastName) return true
-    if (answerWords.includes(lastName)) return true
-
-    // Check if answer contains both first AND last name
-    if (answerWords.includes(firstName) && answerWords.includes(lastName)) return true
-  }
-
-  // Check if first name starts with answer word (handles "Ben" matching "Benjamin")
-  if (answerWords.length >= 1) {
-    const firstAnswerWord = answerWords[0]
-    if (firstName && (firstName.startsWith(firstAnswerWord) || firstAnswerWord.startsWith(firstName))) {
-      // If there's a last name, check if it also appears
-      if (nameWords.length > 1) {
-        const lastName = nameWords[nameWords.length - 1]
-        const lastAnswerWord = answerWords[answerWords.length - 1]
-        if (lastAnswerWord === lastName || lastName.startsWith(lastAnswerWord) || lastAnswerWord.startsWith(lastName)) {
-          return true
-        }
-      } else {
-        // Single-word name, first word match is enough
-        return true
-      }
-    }
-  }
-
-  return false
-}
+// matchPersonalAnswer is now handled by the backend via evaluateNameAnswer API
 
 export default function LifeWordsSessionPage() {
   const router = useRouter()
@@ -295,23 +237,7 @@ export default function LifeWordsSessionPage() {
         return
       }
 
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) {
-        setError('Authentication required')
-        return
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/sessions/${sessionId}`, {
-        headers: {
-          'Authorization': `Bearer ${authSession.access_token}`,
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to load session')
-      }
-
-      const sessionData = await response.json()
+      const sessionData = await apiClient.get<any>(`/api/life-words/sessions/${sessionId}`)
       setSession(sessionData.session as Session)
       setContacts(sessionData.contacts as PersonalContact[])
 
@@ -349,7 +275,10 @@ export default function LifeWordsSessionPage() {
     isProcessingAnswerRef.current = true
 
     try {
-      const isCorrect = matchPersonalAnswer(transcript, currentCont)
+      const matchResult = await evaluateNameAnswer(transcript, currentCont.name, {
+        nickname: currentCont.nickname,
+      })
+      const isCorrect = matchResult.is_correct
 
       if (isCorrect) {
         await handleCorrectAnswer(transcript, confidence)
@@ -505,24 +434,14 @@ export default function LifeWordsSessionPage() {
     const actualCuesUsed = cuesUsedOverride !== undefined ? cuesUsedOverride : cuesUsed
 
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) return
-
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/sessions/${session.id}/responses`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${authSession.access_token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          contact_id: currentCont.id,
-          is_correct: isCorrect,
-          cues_used: actualCuesUsed,
-          response_time: responseTime ?? null,
-          user_answer: userAnswer,
-          correct_answer: currentCont.name,
-          speech_confidence: confidence ?? null,
-        })
+      await apiClient.post(`/api/life-words/sessions/${session.id}/responses`, {
+        contact_id: currentCont.id,
+        is_correct: isCorrect,
+        cues_used: actualCuesUsed,
+        response_time: responseTime ?? null,
+        user_answer: userAnswer,
+        correct_answer: currentCont.name,
+        speech_confidence: confidence ?? null,
       })
     } catch (error) {
       console.error('Error saving response:', error)
@@ -566,15 +485,7 @@ export default function LifeWordsSessionPage() {
     setIsAnswering(false)
 
     try {
-      const { data: { session: authSession } } = await supabase.auth.getSession()
-      if (!authSession?.access_token) return
-
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/life-words/sessions/${session.id}/complete`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${authSession.access_token}`,
-        }
-      })
+      await apiClient.put(`/api/life-words/sessions/${session.id}/complete`)
     } catch (error) {
       console.error('Error completing session:', error)
     }

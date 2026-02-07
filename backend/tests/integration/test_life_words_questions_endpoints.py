@@ -417,7 +417,7 @@ def test_generate_questions_produces_5_questions(app, client, mock_user_id, mock
 
 def test_evaluate_answer_function():
     """Test the evaluate_answer utility function."""
-    from app.routers.life_words_questions import evaluate_answer
+    from app.services.life_words_question_service import evaluate_answer
 
     # Exact match
     is_correct, is_partial, score = evaluate_answer("son", "son", ["son"])

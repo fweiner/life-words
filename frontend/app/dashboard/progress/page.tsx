@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 
 interface ProgressData {
   id: string
@@ -24,42 +24,24 @@ export default function ProgressPage() {
   const [progress, setProgress] = useState<ProgressData[]>([])
   const [recentSessions, setRecentSessions] = useState<SessionData[]>([])
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
     const loadProgress = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) return
-
         // Fetch progress data
-        const progressResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/results/my-progress`,
-          {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          }
-        )
-
-        if (progressResponse.ok) {
-          const progressData = await progressResponse.json()
+        try {
+          const progressData = await apiClient.get<ProgressData[]>('/api/results/my-progress')
           setProgress(progressData)
+        } catch {
+          // silently handle progress fetch failure
         }
 
         // Fetch recent sessions
-        const sessionsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/treatments/sessions?limit=10`,
-          {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
-          }
-        )
-
-        if (sessionsResponse.ok) {
-          const sessionsData = await sessionsResponse.json()
+        try {
+          const sessionsData = await apiClient.get<SessionData[]>('/api/treatments/sessions?limit=10')
           setRecentSessions(sessionsData)
+        } catch {
+          // silently handle sessions fetch failure
         }
 
       } catch (error) {
