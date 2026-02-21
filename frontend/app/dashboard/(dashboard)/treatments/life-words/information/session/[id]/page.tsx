@@ -172,7 +172,7 @@ export default function InformationPracticeSessionPage() {
     const formatDate = (dateValue: unknown): string => {
       if (!dateValue) return ''
       try {
-        const date = new Date(dateValue)
+        const date = new Date(dateValue as string | number)
         return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
       } catch {
         return String(dateValue)
