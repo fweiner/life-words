@@ -38,6 +38,7 @@ export function getVoices(): SpeechSynthesisVoice[] {
  */
 export function getVoiceByGender(
   gender: VoiceGender,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   lang: string = 'en-US'
 ): SpeechSynthesisVoice | null {
   return null
@@ -124,14 +125,13 @@ export async function speak(
       const playWithRetry = async (retriesLeft: number): Promise<void> => {
         try {
           await audio.play()
-        } catch (error: any) {
+        } catch (error: unknown) {
           if (retriesLeft > 0) {
-            // Wait briefly and retry - iOS sometimes needs this
             await new Promise(r => setTimeout(r, 100))
             return playWithRetry(retriesLeft - 1)
           }
           cleanup()
-          reject(new Error(`Failed to play audio: ${error?.message || 'Unknown error'}`))
+          reject(new Error(`Failed to play audio: ${error instanceof Error ? error.message : 'Unknown error'}`))
         }
       }
 

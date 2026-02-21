@@ -98,8 +98,8 @@ export function InviteContactForm({
 
     try {
       await onSubmit(formData)
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit form')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to submit form')
     }
   }
 

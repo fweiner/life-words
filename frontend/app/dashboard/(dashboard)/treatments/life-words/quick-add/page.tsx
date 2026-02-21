@@ -193,13 +193,14 @@ export default function QuickAddPage() {
       setCurrentPhoto(null)
       setStep('capture')
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving photo:', err)
-      setError(err.message || 'Failed to save photo')
+      const e = err as Record<string, unknown>
+      setError((e.message as string) || 'Failed to save photo')
     } finally {
       setIsSaving(false)
     }
-  }, [currentPhoto, supabase, compressImage, uploadPhoto])
+  }, [currentPhoto, compressImage, uploadPhoto])
 
   const handleDone = useCallback(() => {
     router.push('/dashboard/treatments/life-words')

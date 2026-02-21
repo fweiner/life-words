@@ -11,7 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<import('@supabase/supabase-js').User | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
@@ -24,7 +24,7 @@ export default function DashboardLayout({
     }
 
     getUser()
-  }, [])
+  }, [supabase.auth])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()

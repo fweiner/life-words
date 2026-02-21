@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { speak, waitForVoices, type VoiceGender } from '@/lib/utils/textToSpeech'
 import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton'
 import { evaluateNameAnswer } from '@/lib/api/matching'
@@ -191,7 +191,7 @@ export function PersonalizedCueSystem({
     }
 
     if (cuesUsedChanged) {
-      setCurrentCueLevel(expectedLevel)
+      setCurrentCueLevel(expectedLevel) // eslint-disable-line react-hooks/set-state-in-effect
       setHasSpoken(false)
       initializedRef.current = true
       previousCuesUsedRef.current = cuesUsed
@@ -203,9 +203,27 @@ export function PersonalizedCueSystem({
     }
   }, [cuesUsed])
 
+  const handleFinalAnswer = useCallback(async () => {
+    if (finalAnswerCalledRef.current) {
+      return
+    }
+    finalAnswerCalledRef.current = true
+
+    setIsShowingFinalAnswer(true)
+    setHasSpoken(false)
+
+    try {
+      await speak(`This is ${contact.name}`, { gender: voiceGender })
+    } catch (error) {
+      console.warn('Failed to speak final answer:', error)
+    }
+
+    onFinalAnswer()
+  }, [contact.name, voiceGender, onFinalAnswer])
+
   useEffect(() => {
     finalAnswerCalledRef.current = false
-    setIsShowingFinalAnswer(false)
+    setIsShowingFinalAnswer(false) // eslint-disable-line react-hooks/set-state-in-effect
 
     if (currentCueLevel > 7) {
       if (!finalAnswerCalledRef.current) {
@@ -272,25 +290,7 @@ export function PersonalizedCueSystem({
         currentSpeechRef.current = null
       }
     }
-  }, [currentCueLevel, contact])
-
-  const handleFinalAnswer = async () => {
-    if (finalAnswerCalledRef.current) {
-      return
-    }
-    finalAnswerCalledRef.current = true
-
-    setIsShowingFinalAnswer(true)
-    setHasSpoken(false)
-
-    try {
-      await speak(`This is ${contact.name}`, { gender: voiceGender })
-    } catch (error) {
-      console.warn('Failed to speak final answer:', error)
-    }
-
-    onFinalAnswer()
-  }
+  }, [currentCueLevel, contact, CUE_TYPES, handleFinalAnswer, voiceGender])
 
   const handleAnswer = async (transcript: string, confidence?: number) => {
     try {

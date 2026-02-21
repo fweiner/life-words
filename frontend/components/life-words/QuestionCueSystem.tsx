@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
 import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton'
 import { evaluateQuestionAnswer } from '@/lib/api/matching'
@@ -21,15 +21,6 @@ interface QuestionCueSystemProps {
   onAnswer: (answer: string, isCorrect: boolean) => void
   onFinalAnswer: () => void
   onContinue: () => void
-}
-
-// Question type names for display
-const QUESTION_TYPE_NAMES: Record<number, string> = {
-  1: 'Relationship',
-  2: 'Association',
-  3: 'Interests',
-  4: 'Personality',
-  5: 'Name Recall'
 }
 
 // Generate cue types based on question type and expected answer
@@ -148,7 +139,7 @@ export function QuestionCueSystem({
     }
 
     if (cuesUsedChanged) {
-      setCurrentCueLevel(expectedLevel)
+      setCurrentCueLevel(expectedLevel) // eslint-disable-line react-hooks/set-state-in-effect
       setHasSpoken(false)
       initializedRef.current = true
       previousCuesUsedRef.current = cuesUsed
@@ -160,9 +151,27 @@ export function QuestionCueSystem({
     }
   }, [cuesUsed])
 
+  const handleFinalAnswer = useCallback(async () => {
+    if (finalAnswerCalledRef.current) {
+      return
+    }
+    finalAnswerCalledRef.current = true
+
+    setIsShowingFinalAnswer(true)
+    setHasSpoken(false)
+
+    try {
+      await speak(`The answer is: ${question.expected_answer}`)
+    } catch (error) {
+      console.warn('Failed to speak final answer:', error)
+    }
+
+    onFinalAnswer()
+  }, [question.expected_answer, onFinalAnswer])
+
   useEffect(() => {
     finalAnswerCalledRef.current = false
-    setIsShowingFinalAnswer(false)
+    setIsShowingFinalAnswer(false) // eslint-disable-line react-hooks/set-state-in-effect
 
     if (currentCueLevel > 7) {
       if (!finalAnswerCalledRef.current) {
@@ -229,25 +238,7 @@ export function QuestionCueSystem({
         currentSpeechRef.current = null
       }
     }
-  }, [currentCueLevel, question])
-
-  const handleFinalAnswer = async () => {
-    if (finalAnswerCalledRef.current) {
-      return
-    }
-    finalAnswerCalledRef.current = true
-
-    setIsShowingFinalAnswer(true)
-    setHasSpoken(false)
-
-    try {
-      await speak(`The answer is: ${question.expected_answer}`)
-    } catch (error) {
-      console.warn('Failed to speak final answer:', error)
-    }
-
-    onFinalAnswer()
-  }
+  }, [currentCueLevel, question, CUE_TYPES, handleFinalAnswer])
 
   const handleAnswer = async (transcript: string) => {
     try {

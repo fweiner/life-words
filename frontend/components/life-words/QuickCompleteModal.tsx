@@ -63,8 +63,8 @@ export function QuickCompleteModal({
       setName('')
       setRelationship('')
       onClose()
-    } catch (err: any) {
-      setError(err.message || 'Failed to save')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
       setIsSaving(false)
     }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Image from 'next/image'
@@ -8,7 +8,7 @@ import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton
 import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
 import { useVoicePreference } from '@/hooks/useVoicePreference'
 import { getRandomPositiveFeedback } from '@/lib/utils/positiveFeedback'
-import { evaluateQuestionAnswer, type MatchSettings, type QuestionMatchResult } from '@/lib/api/matching'
+import { evaluateQuestionAnswer } from '@/lib/api/matching'
 import { apiClient } from '@/lib/api/client'
 
 interface PersonalContact {
@@ -211,8 +211,8 @@ export default function LifeWordsQuestionSessionPage() {
     expectedAnswer: string
   } | null>(null)
   const [responses, setResponses] = useState<QuestionResponse[]>([])
-  const [questionStartTime, setQuestionStartTime] = useState<number>(0)
-  const [statistics, setStatistics] = useState<any>(null)
+  const [, setQuestionStartTime] = useState<number>(0)
+  const [, setStatistics] = useState<unknown>(null)
 
   // Cueing state
   const [cueLevel, setCueLevel] = useState(0) // 0 = no cue, 1 = first cue, 2 = second cue, 3 = reveal answer
@@ -227,12 +227,7 @@ export default function LifeWordsQuestionSessionPage() {
   const currentIndexRef = useRef(0)
   const questionStartTimeRef = useRef(0)
 
-  // Initialize session
-  useEffect(() => {
-    initializeSession()
-  }, [])
-
-  const initializeSession = async () => {
+  const initializeSession = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -244,33 +239,33 @@ export default function LifeWordsQuestionSessionPage() {
 
       // Load user's accommodation settings from profile
       try {
-        const profile = await apiClient.get<any>('/api/profile')
+        const profile = await apiClient.get<Record<string, unknown>>('/api/profile')
         setAccommodations({
-          match_acceptable_alternatives: profile.match_acceptable_alternatives ?? true,
-          match_partial_substring: profile.match_partial_substring ?? true,
-          match_word_overlap: profile.match_word_overlap ?? true,
-          match_stop_word_filtering: profile.match_stop_word_filtering ?? true,
-          match_synonyms: profile.match_synonyms ?? true,
-          match_first_name_only: profile.match_first_name_only ?? true,
+          match_acceptable_alternatives: (profile.match_acceptable_alternatives as boolean) ?? true,
+          match_partial_substring: (profile.match_partial_substring as boolean) ?? true,
+          match_word_overlap: (profile.match_word_overlap as boolean) ?? true,
+          match_stop_word_filtering: (profile.match_stop_word_filtering as boolean) ?? true,
+          match_synonyms: (profile.match_synonyms as boolean) ?? true,
+          match_first_name_only: (profile.match_first_name_only as boolean) ?? true,
         })
-      } catch (e) {
+      } catch {
         console.warn('Could not load accommodation settings, using defaults')
       }
 
-      const sessionData = await apiClient.get<any>(
+      const sessionData = await apiClient.get<Record<string, unknown>>(
         `/api/life-words/question-sessions/${sessionId}`
       )
       setSession(sessionData.session as QuestionSession)
       setContacts(sessionData.contacts as PersonalContact[])
 
       // If session has existing responses, this is a resumed session - skip to quiz
-      if (sessionData.responses && sessionData.responses.length > 0) {
-        setResponses(sessionData.responses)
+      if (sessionData.responses && (sessionData.responses as unknown[]).length > 0) {
+        setResponses(sessionData.responses as QuestionResponse[])
       }
 
       // Generate questions from contacts
       const questionsResponse = await regenerateQuestions(
-        sessionData.contacts
+        sessionData.contacts as PersonalContact[]
       )
 
       if (questionsResponse && questionsResponse.length > 0) {
@@ -281,12 +276,19 @@ export default function LifeWordsQuestionSessionPage() {
       }
 
       setLoading(false)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
       console.error('Session initialization error:', err)
-      setError(`Failed to initialize session: ${err?.message || 'Unknown error'}`)
+      setError(`Failed to initialize session: ${message}`)
       setLoading(false)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
+
+  // Initialize session
+  useEffect(() => {
+    initializeSession()
+  }, [initializeSession])
 
   const regenerateQuestions = async (
     contactList: PersonalContact[]
@@ -420,7 +422,7 @@ export default function LifeWordsQuestionSessionPage() {
       }
       speakFirst()
     }
-  }, [phase, questions])
+  }, [phase, questions, studyIndex, voiceGender])
 
   // ==================== QUIZ PHASE ====================
 
@@ -588,8 +590,9 @@ export default function LifeWordsQuestionSessionPage() {
 
     try {
       await speak(nextQuestion.question_text, { gender: voiceGender })
-    } catch (speakError: any) {
-      console.warn('Text-to-speech failed:', speakError?.message || speakError)
+    } catch (speakError: unknown) {
+      const msg = speakError instanceof Error ? speakError.message : speakError
+      console.warn('Text-to-speech failed:', msg)
     }
   }
 
@@ -600,7 +603,7 @@ export default function LifeWordsQuestionSessionPage() {
     setIsAnswering(false)
 
     try {
-      const data = await apiClient.put<any>(
+      const data = await apiClient.put<Record<string, unknown>>(
         `/api/life-words/question-sessions/${session.id}/complete`
       )
       setStatistics(data.statistics)
@@ -871,14 +874,14 @@ export default function LifeWordsQuestionSessionPage() {
                     <p className="text-xl font-bold">
                       {lastResult.isPartial ? 'Partial Match!' : 'Correct!'}
                     </p>
-                    <p className="text-lg mt-2">You said: "{lastResult.userAnswer}"</p>
+                    <p className="text-lg mt-2">You said: &quot;{lastResult.userAnswer}&quot;</p>
                   </div>
                 ) : showCue && currentCue ? (
                   // Show cue instead of answer (showCue is true when hint is being offered)
                   <div className="text-amber-800">
                     <span className="text-4xl mb-2 block">💡</span>
-                    <p className="text-xl font-bold">Here's a hint</p>
-                    <p className="text-lg mt-2">You said: "{lastResult.userAnswer}"</p>
+                    <p className="text-xl font-bold">Here&apos;s a hint</p>
+                    <p className="text-lg mt-2">You said: &quot;{lastResult.userAnswer}&quot;</p>
                     <p className="text-lg mt-3 italic bg-amber-100 p-3 rounded-lg">
                       {currentCue}
                     </p>
@@ -894,7 +897,7 @@ export default function LifeWordsQuestionSessionPage() {
                     <p className="text-2xl mt-2 font-bold text-[var(--color-primary)]">
                       {lastResult.expectedAnswer}
                     </p>
-                    <p className="text-base mt-3 text-gray-600">You said: "{lastResult.userAnswer}"</p>
+                    <p className="text-base mt-3 text-gray-600">You said: &quot;{lastResult.userAnswer}&quot;</p>
                   </div>
                 )}
               </div>

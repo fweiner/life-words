@@ -22,8 +22,9 @@ export default function NewContactPage() {
 
       // Redirect back to contacts list
       router.push('/dashboard/treatments/life-words/contacts')
-    } catch (err: any) {
-      setError(err.detail || err.message || 'Failed to add contact')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'Failed to add contact')
       throw err
     } finally {
       setIsSaving(false)

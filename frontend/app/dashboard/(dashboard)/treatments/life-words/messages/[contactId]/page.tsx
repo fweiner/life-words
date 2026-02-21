@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { apiClient, ApiError } from '@/lib/api/client'
 import { MessageList } from '@/components/messaging/MessageList'
@@ -41,46 +41,47 @@ export default function ConversationPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const loadConversation = useCallback(async () => {
+    try {
+      const data = await apiClient.get<Record<string, unknown>>(`/api/life-words/messaging/conversations/${contactId}`)
+      setMessages(data.messages as Message[])
+      setContact(data.contact as Contact)
+
+      // Mark messages as read
+      await apiClient.put(`/api/life-words/messaging/conversations/${contactId}/read`)
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 404) {
+        setError('Contact not found')
+      } else {
+        const e = err as Record<string, unknown>
+        setError((e.message as string) || 'An error occurred')
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [contactId])
+
+  const loadMessagingToken = useCallback(async () => {
+    try {
+      const data = await apiClient.get<Record<string, unknown>>(`/api/life-words/messaging/conversations/${contactId}/token`)
+      setMessagingUrl(data.messaging_url as string)
+    } catch (err) {
+      console.error('Error loading messaging token:', err)
+    }
+  }, [contactId])
+
   useEffect(() => {
     loadConversation()
     loadMessagingToken()
     // Poll for new messages every 10 seconds
     const interval = setInterval(loadConversation, 10000)
     return () => clearInterval(interval)
-  }, [contactId])
+  }, [contactId, loadConversation, loadMessagingToken])
 
   useEffect(() => {
     // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  const loadConversation = async () => {
-    try {
-      const data = await apiClient.get<any>(`/api/life-words/messaging/conversations/${contactId}`)
-      setMessages(data.messages)
-      setContact(data.contact)
-
-      // Mark messages as read
-      await apiClient.put(`/api/life-words/messaging/conversations/${contactId}/read`)
-    } catch (err: any) {
-      if (err instanceof ApiError && err.status === 404) {
-        setError('Contact not found')
-      } else {
-        setError(err.message || 'An error occurred')
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const loadMessagingToken = async () => {
-    try {
-      const data = await apiClient.get<any>(`/api/life-words/messaging/conversations/${contactId}/token`)
-      setMessagingUrl(data.messaging_url)
-    } catch (err) {
-      console.error('Error loading messaging token:', err)
-    }
-  }
 
   const handleSendMessage = async (content: {
     text_content?: string

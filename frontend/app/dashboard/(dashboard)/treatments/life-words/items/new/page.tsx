@@ -22,8 +22,9 @@ export default function NewItemPage() {
 
       // Redirect back to items list
       router.push('/dashboard/treatments/life-words/items')
-    } catch (err: any) {
-      setError(err.detail || err.message || 'Failed to add item')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'Failed to add item')
       throw err
     } finally {
       setIsSaving(false)

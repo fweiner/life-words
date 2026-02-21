@@ -63,7 +63,7 @@ export const apiClient = {
   /**
    * GET request (authenticated by default).
    */
-  async get<T = any>(path: string, authenticated = true): Promise<T> {
+  async get<T = unknown>(path: string, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
     const response = await fetch(`${API_URL}${path}`, { headers })
     return handleResponse<T>(response)
@@ -72,7 +72,7 @@ export const apiClient = {
   /**
    * POST request with JSON body.
    */
-  async post<T = any>(path: string, body?: any, authenticated = true): Promise<T> {
+  async post<T = unknown>(path: string, body?: unknown, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
     const response = await fetch(`${API_URL}${path}`, {
       method: 'POST',
@@ -85,7 +85,7 @@ export const apiClient = {
   /**
    * PUT request with JSON body.
    */
-  async put<T = any>(path: string, body?: any, authenticated = true): Promise<T> {
+  async put<T = unknown>(path: string, body?: unknown, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
     const response = await fetch(`${API_URL}${path}`, {
       method: 'PUT',
@@ -98,7 +98,7 @@ export const apiClient = {
   /**
    * PATCH request with JSON body.
    */
-  async patch<T = any>(path: string, body?: any, authenticated = true): Promise<T> {
+  async patch<T = unknown>(path: string, body?: unknown, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
     const response = await fetch(`${API_URL}${path}`, {
       method: 'PATCH',
@@ -111,7 +111,7 @@ export const apiClient = {
   /**
    * DELETE request.
    */
-  async delete<T = any>(path: string, authenticated = true): Promise<T> {
+  async delete<T = unknown>(path: string, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
     const response = await fetch(`${API_URL}${path}`, {
       method: 'DELETE',
@@ -124,7 +124,7 @@ export const apiClient = {
    * POST with FormData (for file uploads). Does NOT set Content-Type
    * (browser sets multipart boundary automatically).
    */
-  async postFormData<T = any>(path: string, formData: FormData, authenticated = true): Promise<T> {
+  async postFormData<T = unknown>(path: string, formData: FormData, authenticated = true): Promise<T> {
     const headers: Record<string, string> = {}
     if (authenticated) {
       const token = await getAuthToken()
@@ -143,14 +143,14 @@ export const apiClient = {
   /**
    * POST with no auth (public endpoints).
    */
-  async postPublic<T = any>(path: string, body?: any): Promise<T> {
+  async postPublic<T = unknown>(path: string, body?: unknown): Promise<T> {
     return this.post<T>(path, body, false)
   },
 
   /**
    * GET with no auth (public endpoints).
    */
-  async getPublic<T = any>(path: string): Promise<T> {
+  async getPublic<T = unknown>(path: string): Promise<T> {
     return this.get<T>(path, false)
   },
 }

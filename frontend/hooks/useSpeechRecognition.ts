@@ -3,15 +3,47 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 // Extend Window interface for Web Speech API
-declare global {
-  interface Window {
-    SpeechRecognition: any
-    webkitSpeechRecognition: any
+interface SpeechRecognitionEvent {
+  resultIndex: number
+  results: {
+    [index: number]: {
+      isFinal: boolean
+      [index: number]: {
+        transcript: string
+        confidence?: number
+      }
+    }
+    length: number
   }
 }
 
-// Type for SpeechRecognition (browser API)
-type SpeechRecognition = any
+interface SpeechRecognitionErrorEvent {
+  error: string
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean
+  interimResults: boolean
+  lang: string
+  onstart: (() => void) | null
+  onend: (() => void) | null
+  onresult: ((event: SpeechRecognitionEvent) => void) | null
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+  start: () => void
+  stop: () => void
+  abort: () => void
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition: SpeechRecognitionConstructor
+    webkitSpeechRecognition: SpeechRecognitionConstructor
+  }
+}
 
 interface SpeechRecognitionState {
   isListening: boolean
@@ -44,7 +76,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
     transcript: '',
   })
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
   const isStartingRef = useRef<boolean>(false)
   const onResultRef = useRef(onResult)
   const onErrorRef = useRef(onError)
@@ -95,7 +127,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       }))
     }
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let interimTranscript = ''
       let finalTranscript = ''
       let confidence: number | undefined
@@ -137,7 +169,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       }
     }
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error('Speech recognition error event:', event.error, event)
       isStartingRef.current = false
 
@@ -232,7 +264,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop()
-        } catch (e) {
+        } catch {
           // Ignore errors during cleanup
         }
         recognitionRef.current = null
@@ -291,26 +323,23 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
     try {
       console.log('Calling recognition.start()')
       recognitionRef.current.start()
-    } catch (error: any) {
-      // If start fails due to InvalidStateError, recognition may already be running
-      // Just log and reset our state - don't show error to user
-      if (error?.name === 'InvalidStateError') {
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : null
+      if (err?.name === 'InvalidStateError') {
         console.log('Recognition already started, ignoring')
         isStartingRef.current = false
         return
       }
 
-      // If start fails, reset listening state
       console.error('Error starting recognition:', error)
       setState((prev) => ({
         ...prev,
         isListening: false,
-        error: error?.message || 'Failed to start speech recognition. Please check microphone permissions.',
+        error: err?.message || 'Failed to start speech recognition. Please check microphone permissions.',
       }))
       isStartingRef.current = false
 
-      // If it's a permission error, provide helpful message
-      if (error?.name === 'NotAllowedError' || error?.message?.includes('permission')) {
+      if (err?.name === 'NotAllowedError' || err?.message?.includes('permission')) {
         setState((prev) => ({
           ...prev,
           error: 'Microphone permission denied. Please allow microphone access in your browser settings.',

@@ -44,8 +44,9 @@ export default function LifeWordsPage() {
       } catch (infoErr) {
         console.warn('Could not load information status:', infoErr)
       }
-    } catch (err: any) {
-      setError(err.detail || err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'An error occurred')
       console.error('Error loading status:', err)
     } finally {
       setIsLoading(false)
@@ -60,8 +61,9 @@ export default function LifeWordsPage() {
       const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/sessions', {})
       router.push(`/dashboard/treatments/life-words/session/${sessionData.session.id}`)
 
-    } catch (err: any) {
-      setError(err.detail || err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'An error occurred')
       console.error('Error creating session:', err)
     } finally {
       setIsStarting(false)
@@ -76,8 +78,9 @@ export default function LifeWordsPage() {
       const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/question-sessions', {})
       router.push(`/dashboard/treatments/life-words/questions/session/${sessionData.session.id}`)
 
-    } catch (err: any) {
-      setError(err.detail || err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'An error occurred')
       console.error('Error creating question session:', err)
     } finally {
       setIsStarting(false)
@@ -92,8 +95,9 @@ export default function LifeWordsPage() {
       const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/information-sessions', {})
       router.push(`/dashboard/treatments/life-words/information/session/${sessionData.session.id}`)
 
-    } catch (err: any) {
-      setError(err.detail || err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'An error occurred')
       console.error('Error creating information session:', err)
     } finally {
       setIsStarting(false)
@@ -135,7 +139,7 @@ export default function LifeWordsPage() {
                 </h2>
                 <p className="text-lg text-gray-700 mb-6">
                   This tool helps you practice remembering the names of people, pets, and things
-                  that matter most to you. Let's get you set up!
+                  that matter most to you. Let&apos;s get you set up!
                 </p>
 
                 <div className="bg-white rounded-lg p-6 mb-6 text-left">
@@ -194,7 +198,7 @@ export default function LifeWordsPage() {
                   Almost Ready!
                 </h2>
                 <p className="text-lg text-gray-700 mb-6">
-                  You're making progress! Add a few more contacts to start practicing.
+                  You&apos;re making progress! Add a few more contacts to start practicing.
                 </p>
 
                 <p className="text-lg text-amber-700 mb-6">
@@ -204,7 +208,7 @@ export default function LifeWordsPage() {
 
                 <div className="bg-white rounded-lg p-6 mb-6 text-left">
                   <h3 className="text-2xl font-bold mb-4 text-gray-900">
-                    What you'll add:
+                    What you&apos;ll add:
                   </h3>
                   <ul className="space-y-3 text-lg text-gray-700">
                     <li className="flex items-start">

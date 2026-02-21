@@ -26,8 +26,9 @@ export default function ContactsListPage() {
     try {
       const data = await apiClient.get<Contact[]>('/api/life-words/contacts')
       setContacts(data)
-    } catch (err: any) {
-      setError(err.detail || err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'An error occurred')
       console.error('Error loading contacts:', err)
     } finally {
       setIsLoading(false)
@@ -38,8 +39,9 @@ export default function ContactsListPage() {
     try {
       await apiClient.delete(`/api/life-words/contacts/${contactId}`)
       setContacts(prev => prev.filter(c => c.id !== contactId))
-    } catch (err: any) {
-      setError(err.detail || err.message || 'Failed to delete contact')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'Failed to delete contact')
     }
   }
 

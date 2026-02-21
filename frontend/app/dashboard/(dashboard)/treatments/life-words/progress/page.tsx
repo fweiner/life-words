@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { apiClient } from '@/lib/api/client'
@@ -56,11 +56,7 @@ export default function LifeWordsProgressPage() {
   const [summary, setSummary] = useState<ProgressSummary | null>(null)
   const [sessionHistory, setSessionHistory] = useState<SessionHistory[]>([])
 
-  useEffect(() => {
-    loadProgress()
-  }, [])
-
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -71,16 +67,21 @@ export default function LifeWordsProgressPage() {
         return
       }
 
-      const data = await apiClient.get<any>('/api/life-words/progress')
-      setSummary(data.summary)
-      setSessionHistory(data.session_history || [])
-    } catch (err: any) {
+      const data = await apiClient.get<Record<string, unknown>>('/api/life-words/progress')
+      setSummary(data.summary as ProgressSummary)
+      setSessionHistory((data.session_history as SessionHistory[]) || [])
+    } catch (err: unknown) {
       console.error('Error loading progress:', err)
-      setError(err?.message || 'Failed to load progress')
+      const e = err as Record<string, unknown>
+      setError((e?.message as string) || 'Failed to load progress')
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase, router])
+
+  useEffect(() => {
+    loadProgress()
+  }, [loadProgress])
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A'

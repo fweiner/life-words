@@ -24,8 +24,9 @@ export default function ItemsListPage() {
     try {
       const data = await apiClient.get<Item[]>('/api/life-words/items')
       setItems(data)
-    } catch (err: any) {
-      setError(err.detail || err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'An error occurred')
       console.error('Error loading items:', err)
     } finally {
       setIsLoading(false)
@@ -36,8 +37,9 @@ export default function ItemsListPage() {
     try {
       await apiClient.delete(`/api/life-words/items/${itemId}`)
       setItems(prev => prev.filter(i => i.id !== itemId))
-    } catch (err: any) {
-      setError(err.detail || err.message || 'Failed to delete item')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'Failed to delete item')
     }
   }
 

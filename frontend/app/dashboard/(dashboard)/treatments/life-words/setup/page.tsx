@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
 import { ContactForm, ContactFormData } from '@/components/life-words/ContactForm'
 import { ContactCard, Contact } from '@/components/life-words/ContactCard'
@@ -12,7 +11,6 @@ export const dynamic = 'force-dynamic'
 const MIN_CONTACTS = 2
 
 export default function LifeWordsSetupPage() {
-  const router = useRouter()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -32,8 +30,9 @@ export default function LifeWordsSetupPage() {
       if (data.length === 0) {
         setShowForm(true)
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.message as string) || 'An error occurred')
       console.error('Error loading contacts:', err)
     } finally {
       setIsLoading(false)
@@ -48,8 +47,9 @@ export default function LifeWordsSetupPage() {
       const newContact = await apiClient.post<Contact>('/api/life-words/contacts', formData)
       setContacts(prev => [newContact, ...prev])
       setShowForm(false)
-    } catch (err: any) {
-      setError(err.message || 'Failed to add contact')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.message as string) || 'Failed to add contact')
       throw err
     } finally {
       setIsSaving(false)
@@ -60,8 +60,9 @@ export default function LifeWordsSetupPage() {
     try {
       await apiClient.delete(`/api/life-words/contacts/${contactId}`)
       setContacts(prev => prev.filter(c => c.id !== contactId))
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete contact')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.message as string) || 'Failed to delete contact')
     }
   }
 

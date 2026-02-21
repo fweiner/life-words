@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<import('@supabase/supabase-js').User | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export default function DashboardPage() {
     }
 
     loadUserData()
-  }, [])
+  }, [supabase.auth])
 
   return (
     <div className="space-y-8">

@@ -33,8 +33,9 @@ export default function MessagesInboxPage() {
     try {
       const data = await apiClient.get<ConversationSummary[]>('/api/life-words/messaging/conversations')
       setConversations(data)
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.message as string) || 'An error occurred')
     } finally {
       setIsLoading(false)
     }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
@@ -67,11 +67,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('')
   const supabase = createClient()
 
-  useEffect(() => {
-    loadProfile()
-  }, [])
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       // Get user email from auth
       const { data: { user } } = await supabase.auth.getUser()
@@ -80,17 +76,16 @@ export default function SettingsPage() {
       }
 
       // Get profile from API
-      const profile = await apiClient.get<any>('/api/profile')
-      setFullName(profile.full_name || '')
-      setVoiceGender(profile.voice_gender || 'female')
-      // Load accommodation settings with defaults
+      const profile = await apiClient.get<Record<string, unknown>>('/api/profile')
+      setFullName((profile.full_name as string) || '')
+      setVoiceGender((profile.voice_gender as 'male' | 'female' | 'neutral') || 'female')
       setAccommodations({
-        match_acceptable_alternatives: profile.match_acceptable_alternatives ?? true,
-        match_partial_substring: profile.match_partial_substring ?? true,
-        match_word_overlap: profile.match_word_overlap ?? true,
-        match_stop_word_filtering: profile.match_stop_word_filtering ?? true,
-        match_synonyms: profile.match_synonyms ?? true,
-        match_first_name_only: profile.match_first_name_only ?? true,
+        match_acceptable_alternatives: (profile.match_acceptable_alternatives as boolean) ?? true,
+        match_partial_substring: (profile.match_partial_substring as boolean) ?? true,
+        match_word_overlap: (profile.match_word_overlap as boolean) ?? true,
+        match_stop_word_filtering: (profile.match_stop_word_filtering as boolean) ?? true,
+        match_synonyms: (profile.match_synonyms as boolean) ?? true,
+        match_first_name_only: (profile.match_first_name_only as boolean) ?? true,
       })
     } catch (err) {
       console.error('Error loading profile:', err)
@@ -98,7 +93,11 @@ export default function SettingsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase.auth])
+
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
 
   const handleAccommodationToggle = (key: keyof AccommodationSettings) => {
     setAccommodations(prev => ({
@@ -121,8 +120,8 @@ export default function SettingsPage() {
       })
 
       setSuccess('Settings saved successfully!')
-    } catch (err: any) {
-      setError(err.message || 'Failed to save changes')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save changes')
     } finally {
       setSaving(false)
     }

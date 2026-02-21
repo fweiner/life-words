@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { apiClient, ApiError } from '@/lib/api/client'
 import { ItemForm, ItemFormData } from '@/components/life-words/ItemForm'
@@ -34,25 +34,26 @@ export default function EditItemPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadItem()
-  }, [itemId])
-
-  const loadItem = async () => {
+  const loadItem = useCallback(async () => {
     try {
       const data = await apiClient.get<ItemData>(`/api/life-words/items/${itemId}`)
       setItem(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 404) {
         setError('Item not found')
       } else {
-        setError(err.detail || err.message || 'An error occurred')
+        const e = err as Record<string, unknown>
+        setError((e.detail as string) || (e.message as string) || 'An error occurred')
       }
       console.error('Error loading item:', err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [itemId])
+
+  useEffect(() => {
+    loadItem()
+  }, [loadItem])
 
   const handleSubmit = async (formData: ItemFormData) => {
     setIsSaving(true)
@@ -63,8 +64,9 @@ export default function EditItemPage() {
 
       // Redirect back to items list
       router.push('/dashboard/treatments/life-words/items')
-    } catch (err: any) {
-      setError(err.detail || err.message || 'Failed to update item')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'Failed to update item')
       throw err
     } finally {
       setIsSaving(false)
@@ -114,7 +116,7 @@ export default function EditItemPage() {
               Edit Item
             </h1>
             <p className="text-lg text-gray-600 mt-1">
-              Update {item.name}'s information.
+              Update {item.name}&apos;s information.
             </p>
           </div>
           <Link

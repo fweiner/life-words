@@ -74,19 +74,19 @@ export default function HowItWorksPage() {
 
             {/* What you'll see */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <h4 className="font-bold text-amber-900 mb-2">What you'll see:</h4>
+              <h4 className="font-bold text-amber-900 mb-2">What you&apos;ll see:</h4>
               <p className="text-gray-700 mb-2">A form to fill out with:</p>
               <ul className="space-y-1 text-gray-700 ml-4">
                 <li>• <strong>Photo upload area</strong> - Add a clear picture of the person</li>
                 <li>• <strong>Name field</strong> - Enter their full name</li>
                 <li>• <strong>Nickname field</strong> - What you usually call them</li>
-                <li>• <strong>Relationship dropdown</strong> - Select how they're connected to you</li>
+                <li>• <strong>Relationship dropdown</strong> - Select how they&apos;re connected to you</li>
                 <li>• <strong>Personal details</strong> - Their interests, personality, where you see them</li>
               </ul>
             </div>
 
             <p className="text-gray-600 italic">
-              You need at least 2 contacts to start practicing. The more details you add, the better hints you'll get!
+              You need at least 2 contacts to start practicing. The more details you add, the better hints you&apos;ll get!
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function HowItWorksPage() {
 
             {/* What you'll see */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <h4 className="font-bold text-amber-900 mb-2">What you'll see:</h4>
+              <h4 className="font-bold text-amber-900 mb-2">What you&apos;ll see:</h4>
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">•</span>
@@ -137,11 +137,11 @@ export default function HowItWorksPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">•</span>
-                  <span>A "Get Hint" button if you need help</span>
+                  <span>A &quot;Get Hint&quot; button if you need help</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">•</span>
-                  <span>A "Done for now" button when you want to stop</span>
+                  <span>A &quot;Done for now&quot; button when you want to stop</span>
                 </li>
               </ul>
             </div>
@@ -152,8 +152,8 @@ export default function HowItWorksPage() {
               <ol className="space-y-2 text-gray-700">
                 <li><span className="font-bold text-[var(--color-primary)]">1.</span> Look at the photo that appears</li>
                 <li><span className="font-bold text-[var(--color-primary)]">2.</span> Click the microphone button</li>
-                <li><span className="font-bold text-[var(--color-primary)]">3.</span> Say the person's name out loud</li>
-                <li><span className="font-bold text-[var(--color-primary)]">4.</span> The app will tell you if you're correct</li>
+                <li><span className="font-bold text-[var(--color-primary)]">3.</span> Say the person&apos;s name out loud</li>
+                <li><span className="font-bold text-[var(--color-primary)]">4.</span> The app will tell you if you&apos;re correct</li>
                 <li><span className="font-bold text-[var(--color-primary)]">5.</span> If wrong, you can get a hint or try again</li>
               </ol>
             </div>
@@ -194,7 +194,7 @@ export default function HowItWorksPage() {
 
             {/* What you'll see */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <h4 className="font-bold text-amber-900 mb-2">What you'll see:</h4>
+              <h4 className="font-bold text-amber-900 mb-2">What you&apos;ll see:</h4>
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start">
                   <span className="text-purple-600 mr-2">•</span>
@@ -206,20 +206,20 @@ export default function HowItWorksPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="text-purple-600 mr-2">•</span>
-                  <span>Progress indicator showing which question you're on</span>
+                  <span>Progress indicator showing which question you&apos;re on</span>
                 </li>
               </ul>
             </div>
 
             {/* Types of questions */}
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h4 className="font-bold text-gray-900 mb-2">Types of questions you'll be asked:</h4>
+              <h4 className="font-bold text-gray-900 mb-2">Types of questions you&apos;ll be asked:</h4>
               <ul className="space-y-2 text-gray-700 ml-4">
-                <li><span className="text-purple-600 font-bold">•</span> "What is [Name]'s relationship to you?"</li>
-                <li><span className="text-purple-600 font-bold">•</span> "Where do you usually see [Name]?"</li>
-                <li><span className="text-purple-600 font-bold">•</span> "What does [Name] enjoy doing?"</li>
-                <li><span className="text-purple-600 font-bold">•</span> "How would you describe [Name]'s personality?"</li>
-                <li><span className="text-purple-600 font-bold">•</span> "Who is your [relationship] who [hint]?"</li>
+                <li><span className="text-purple-600 font-bold">•</span> &quot;What is [Name]&apos;s relationship to you?&quot;</li>
+                <li><span className="text-purple-600 font-bold">•</span> &quot;Where do you usually see [Name]?&quot;</li>
+                <li><span className="text-purple-600 font-bold">•</span> &quot;What does [Name] enjoy doing?&quot;</li>
+                <li><span className="text-purple-600 font-bold">•</span> &quot;How would you describe [Name]&apos;s personality?&quot;</li>
+                <li><span className="text-purple-600 font-bold">•</span> &quot;Who is your [relationship] who [hint]?&quot;</li>
               </ul>
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function HowItWorksPage() {
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4 text-gray-900 flex items-center">
             <span className="text-3xl mr-3">💡</span>
-            Hints When You're Stuck
+            Hints When You&apos;re Stuck
           </h2>
           <div className="bg-amber-50 rounded-lg p-6 ml-12">
             <p className="text-lg text-gray-700 mb-4">
@@ -263,7 +263,7 @@ export default function HowItWorksPage() {
             </div>
 
             <p className="text-gray-600 italic">
-              The hints use information you've entered about each person - their personality,
+              The hints use information you&apos;ve entered about each person - their personality,
               interests, or where you typically see them. More details = better hints!
             </p>
           </div>
@@ -299,7 +299,7 @@ export default function HowItWorksPage() {
 
             {/* What you'll see */}
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <h4 className="font-bold text-amber-900 mb-2">What you'll see:</h4>
+              <h4 className="font-bold text-amber-900 mb-2">What you&apos;ll see:</h4>
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start">
                   <span className="text-green-600 mr-2">•</span>
@@ -345,7 +345,7 @@ export default function HowItWorksPage() {
                 </li>
                 <li className="flex items-start">
                   <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center mr-3 flex-shrink-0 text-sm font-bold">2</span>
-                  <span>Scroll down to the "Answer Matching" section</span>
+                  <span>Scroll down to the &quot;Answer Matching&quot; section</span>
                 </li>
               </ol>
             </div>
@@ -356,7 +356,7 @@ export default function HowItWorksPage() {
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start">
                   <span className="text-blue-600 mr-2">☑️</span>
-                  <span><strong>Synonym Matching:</strong> Accept similar words (e.g., "kind" for "nice")</span>
+                  <span><strong>Synonym Matching:</strong> Accept similar words (e.g., &quot;kind&quot; for &quot;nice&quot;)</span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-blue-600 mr-2">☑️</span>
@@ -407,7 +407,7 @@ export default function HowItWorksPage() {
             </div>
             <div className="flex items-start">
               <span className="text-green-600 mr-2 text-xl">✓</span>
-              <span>Click "Done for now" when you need a break</span>
+              <span>Click &quot;Done for now&quot; when you need a break</span>
             </div>
           </div>
         </div>
@@ -418,7 +418,7 @@ export default function HowItWorksPage() {
             Quick Reference: Icon Grid
           </h2>
           <p className="text-gray-700 mb-4">
-            On the Life Words main page, you'll see these icons at the bottom:
+            On the Life Words main page, you&apos;ll see these icons at the bottom:
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div className="bg-white rounded-lg p-3 border border-gray-200">
@@ -426,7 +426,7 @@ export default function HowItWorksPage() {
                 <span className="text-2xl">❓</span>
                 <span className="font-bold">Instructions</span>
               </div>
-              <p className="text-sm text-gray-600">This guide you're reading now</p>
+              <p className="text-sm text-gray-600">This guide you&apos;re reading now</p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-gray-200">
               <div className="flex items-center gap-2 mb-1">

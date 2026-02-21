@@ -27,14 +27,14 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
     if (isOpen && !userName) {
       fetchUserName()
     }
-  }, [isOpen])
+  }, [isOpen, userName])
 
   // Set default message when userName is loaded
   useEffect(() => {
     if (userName && !customMessage) {
       setCustomMessage(getDefaultMessage(userName))
     }
-  }, [userName])
+  }, [userName, customMessage])
 
   const fetchUserName = async () => {
     setIsLoadingProfile(true)
@@ -74,8 +74,8 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
         setSuccess(false)
         onClose()
       }, 2000)
-    } catch (err: any) {
-      setError(err.message || 'Failed to send invite')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send invite')
     } finally {
       setIsLoading(false)
     }
@@ -119,14 +119,14 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
                 Invite Sent!
               </h3>
               <p className="text-gray-600">
-                We've sent an email to {recipientName} at {recipientEmail}.
-                They'll receive instructions to add their photo and information.
+                We&apos;ve sent an email to {recipientName} at {recipientEmail}.
+                They&apos;ll receive instructions to add their photo and information.
               </p>
             </div>
           ) : (
             <>
               <p className="text-gray-600 mb-6">
-                Send an email invitation to someone you know. They'll be able to add their
+                Send an email invitation to someone you know. They&apos;ll be able to add their
                 photo and information directly, which will be added to your contacts list.
               </p>
 

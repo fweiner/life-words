@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
 import { InviteContactForm, InviteFormData } from '@/components/life-words/InviteContactForm'
@@ -23,17 +23,13 @@ export default function InvitePage() {
   const [isComplete, setIsComplete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    verifyToken()
-  }, [token])
-
-  const verifyToken = async () => {
+  const verifyToken = useCallback(async () => {
     try {
       const data = await apiClient.getPublic<InviteStatus>(
         `/api/life-words/invites/verify/${token}`
       )
       setInviteStatus(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error verifying invite:', err)
       setInviteStatus({
         valid: false,
@@ -42,7 +38,11 @@ export default function InvitePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    verifyToken()
+  }, [verifyToken])
 
   const handleSubmit = async (formData: InviteFormData) => {
     setIsSubmitting(true)
@@ -55,8 +55,8 @@ export default function InvitePage() {
       )
 
       setIsComplete(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit form')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to submit form')
       throw err
     } finally {
       setIsSubmitting(false)
@@ -81,7 +81,7 @@ export default function InvitePage() {
         <div className="text-6xl mb-4">&#x1F50D;</div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Invite Not Found</h2>
         <p className="text-lg text-gray-600">
-          This invite link doesn't exist or may have been removed.
+          This invite link doesn&apos;t exist or may have been removed.
           Please check with the person who sent you this link.
         </p>
       </div>
@@ -111,7 +111,7 @@ export default function InvitePage() {
         <h2 className="text-2xl font-bold text-green-600 mb-4">Already Submitted</h2>
         <p className="text-lg text-gray-600 mb-4">
           Your information has already been submitted and added to{' '}
-          {inviteStatus.inviter_name ? `${inviteStatus.inviter_name}'s` : 'their'} contact list.
+          {inviteStatus.inviter_name ? `${inviteStatus.inviter_name}&apos;s` : 'their'} contact list.
         </p>
         {inviteStatus.contact_name && (
           <p className="text-gray-500">
@@ -141,7 +141,7 @@ export default function InvitePage() {
         <div className="mt-8 p-6 bg-blue-50 rounded-lg">
           <p className="text-blue-800">
             Your support means so much. By helping with memory practice,
-            you're making a real difference in their rehabilitation journey.
+            you&apos;re making a real difference in their rehabilitation journey.
           </p>
         </div>
       </div>
@@ -160,7 +160,7 @@ export default function InvitePage() {
           </h2>
           <p className="text-lg text-gray-600">
             {inviteStatus.inviter_name || 'Someone'} has asked you to help with their memory rehabilitation.
-            By adding your photo and information, you'll become part of their practice exercises.
+            By adding your photo and information, you&apos;ll become part of their practice exercises.
           </p>
         </div>
 

@@ -111,8 +111,9 @@ export default function MyInformationPage() {
       setNumberOfChildren(data.number_of_children?.toString() || '')
       setFavoriteFood(data.favorite_food || '')
       setFavoriteMusic(data.favorite_music || '')
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.message as string) || 'An error occurred')
       console.error('Error loading profile:', err)
     } finally {
       setIsLoading(false)
@@ -152,8 +153,9 @@ export default function MyInformationPage() {
 
       // Scroll to top to show success message
       window.scrollTo({ top: 0, behavior: 'smooth' })
-    } catch (err: any) {
-      setError(err.message || 'Failed to save information')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.message as string) || 'Failed to save information')
     } finally {
       setIsSaving(false)
     }

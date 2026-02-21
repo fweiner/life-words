@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { apiClient } from '@/lib/api/client'
 import { VoiceRecorder } from './VoiceRecorder'
 
@@ -113,9 +114,11 @@ export function MessageInput({ onSend, isSending = false, isPublic = false }: Me
       {/* Photo preview */}
       {photoPreview && (
         <div className="mb-3 relative inline-block">
-          <img
+          <Image
             src={photoPreview}
             alt="Photo preview"
+            width={80}
+            height={80}
             className="h-20 rounded-lg object-cover"
           />
           {isUploadingPhoto && (

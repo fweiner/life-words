@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 interface ShareLinkModalProps {
   isOpen: boolean
@@ -11,12 +11,7 @@ interface ShareLinkModalProps {
 
 export function ShareLinkModal({ isOpen, onClose, messagingUrl, contactName }: ShareLinkModalProps) {
   const [copied, setCopied] = useState(false)
-  const [canShare, setCanShare] = useState(false)
-
-  useEffect(() => {
-    // Check for Web Share API support
-    setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
-  }, [])
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   if (!isOpen) return null
 

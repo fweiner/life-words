@@ -117,9 +117,9 @@ export function VoiceRecorder({
         })
       }, 1000)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error starting recording:', err)
-      if (err.name === 'NotAllowedError') {
+      if (err instanceof Error && err.name === 'NotAllowedError') {
         setError('Microphone permission denied')
       } else {
         setError('Could not access microphone')

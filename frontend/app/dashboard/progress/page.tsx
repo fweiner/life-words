@@ -93,7 +93,7 @@ export default function ProgressPage() {
           📊 My Progress
         </h1>
         <p className="text-xl text-gray-700">
-          Track your cognitive therapy journey and see how far you've come.
+          Track your cognitive therapy journey and see how far you&apos;ve come.
         </p>
       </div>
 

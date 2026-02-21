@@ -105,8 +105,8 @@ export function ItemForm({
 
     try {
       await onSubmit(formData)
-    } catch (err: any) {
-      setError(err.message || 'Failed to save item')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save item')
     }
   }
 
@@ -151,7 +151,7 @@ export function ItemForm({
           placeholder="e.g., Wy-ner (if spelled Weiner)"
           className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none"
         />
-        <p className="text-sm text-gray-500 mt-1">How do you say this item's name? Leave blank if it's pronounced as spelled.</p>
+        <p className="text-sm text-gray-500 mt-1">How do you say this item&apos;s name? Leave blank if it&apos;s pronounced as spelled.</p>
       </div>
 
       {/* Description Fields Notice */}

@@ -24,8 +24,8 @@ export default function ResetPasswordPage() {
       if (error) throw error
 
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to send reset email')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send reset email')
     } finally {
       setLoading(false)
     }
@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
             Check Your Email
           </h1>
           <p className="text-lg mb-6">
-            We've sent a password reset link to <strong>{email}</strong>
+            We&apos;ve sent a password reset link to <strong>{email}</strong>
           </p>
           <p className="text-base text-gray-600 mb-8">
             Click the link in the email to reset your password. The link will expire in 1 hour.
@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
         Reset Password
       </h1>
       <p className="text-center text-gray-600 mb-8">
-        Enter your email address and we'll send you a link to reset your password.
+        Enter your email address and we&apos;ll send you a link to reset your password.
       </p>
 
       {error && (

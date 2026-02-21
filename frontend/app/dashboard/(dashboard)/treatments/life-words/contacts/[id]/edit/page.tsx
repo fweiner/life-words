@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { apiClient, ApiError } from '@/lib/api/client'
 import { ContactForm, ContactFormData } from '@/components/life-words/ContactForm'
@@ -36,25 +36,26 @@ export default function EditContactPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadContact()
-  }, [contactId])
-
-  const loadContact = async () => {
+  const loadContact = useCallback(async () => {
     try {
       const data = await apiClient.get<ContactData>(`/api/life-words/contacts/${contactId}`)
       setContact(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 404) {
         setError('Contact not found')
       } else {
-        setError(err.detail || err.message || 'An error occurred')
+        const e = err as Record<string, unknown>
+        setError((e.detail as string) || (e.message as string) || 'An error occurred')
       }
       console.error('Error loading contact:', err)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [contactId])
+
+  useEffect(() => {
+    loadContact()
+  }, [loadContact])
 
   const handleSubmit = async (formData: ContactFormData) => {
     setIsSaving(true)
@@ -65,8 +66,9 @@ export default function EditContactPage() {
 
       // Redirect back to contacts list
       router.push('/dashboard/treatments/life-words/contacts')
-    } catch (err: any) {
-      setError(err.detail || err.message || 'Failed to update contact')
+    } catch (err: unknown) {
+      const e = err as Record<string, unknown>
+      setError((e.detail as string) || (e.message as string) || 'Failed to update contact')
       throw err
     } finally {
       setIsSaving(false)
@@ -116,7 +118,7 @@ export default function EditContactPage() {
               Edit Contact
             </h1>
             <p className="text-lg text-gray-600 mt-1">
-              Update {contact.name}'s information.
+              Update {contact.name}&apos;s information.
             </p>
           </div>
           <Link

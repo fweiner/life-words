@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Image from 'next/image'
@@ -60,7 +60,7 @@ export default function LifeWordsSessionPage() {
   const [micPermissionGranted, setMicPermissionGranted] = useState(false)
   const [sessionStarted, setSessionStarted] = useState(false)
   const [isProcessingAnswer, setIsProcessingAnswer] = useState(false)
-  const [hasSpokenFirstPrompt, setHasSpokenFirstPrompt] = useState(false)
+  const [, setHasSpokenFirstPrompt] = useState(false)
   const [isWaitingForNext, setIsWaitingForNext] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [sessionPhase, setSessionPhase] = useState<'teaching' | 'testing'>('teaching')
@@ -77,7 +77,7 @@ export default function LifeWordsSessionPage() {
     responseTimes: [] as number[],
     confidenceScores: [] as number[],  // Speech clarity scores (0-1)
   })
-  const trialStartTimeRef = useRef<number>(Date.now())
+  const trialStartTimeRef = useRef<number>(0)
 
   const isProcessingAnswerRef = useRef(false)
   const currentContactRef = useRef<PersonalContact | null>(null)
@@ -103,12 +103,50 @@ export default function LifeWordsSessionPage() {
     requestMicPermission()
   }, [])
 
+  const initializeSession = useCallback(async () => {
+    try {
+      setLoading(true)
+
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      const sessionData = await apiClient.get<Record<string, unknown>>(`/api/life-words/sessions/${sessionId}`)
+      setSession(sessionData.session as Session)
+      setContacts(sessionData.contacts as PersonalContact[])
+
+      const firstContact = (sessionData.contacts as PersonalContact[])[0]
+      setCurrentIndex(0)
+      currentIndexRef.current = 0
+      setCurrentContact(firstContact)
+      currentContactRef.current = firstContact
+      setSessionPhase('teaching')
+      setTeachingSpoken(false)
+      setIsAnswering(false)
+      isTeachingSpeakingRef.current = false
+
+      hasSpokenFirstPromptRef.current = false
+      setHasSpokenFirstPrompt(false)
+
+      setLoading(false)
+
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error('Session initialization error:', err)
+      setError(`Failed to initialize session: ${message}`)
+      setLoading(false)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
+
   // Initialize session only after user clicks Start
   useEffect(() => {
     if (sessionStarted) {
       initializeSession()
     }
-  }, [sessionStarted])
+  }, [sessionStarted, initializeSession])
 
   // Handle teaching phase - speak name and auto-advance
   useEffect(() => {
@@ -180,8 +218,9 @@ export default function LifeWordsSessionPage() {
           currentContactRef.current = contacts[nextIndex]
           setTeachingSpoken(false)
         }
-      } catch (error: any) {
-        console.warn('Teaching phase speech failed:', error?.message || error)
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : error
+        console.warn('Teaching phase speech failed:', msg)
         isTeachingSpeakingRef.current = false
         // Still advance even if speech fails
         const nextIndex = currentIndex + 1
@@ -226,42 +265,6 @@ export default function LifeWordsSessionPage() {
       hasSpokenForCurrentImageRef.current = false
     }
   }, [isSpeechReady])
-
-  const initializeSession = async () => {
-    try {
-      setLoading(true)
-
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const sessionData = await apiClient.get<any>(`/api/life-words/sessions/${sessionId}`)
-      setSession(sessionData.session as Session)
-      setContacts(sessionData.contacts as PersonalContact[])
-
-      const firstContact = sessionData.contacts[0]
-      setCurrentIndex(0)
-      currentIndexRef.current = 0
-      setCurrentContact(firstContact)
-      currentContactRef.current = firstContact
-      setSessionPhase('teaching')
-      setTeachingSpoken(false)
-      setIsAnswering(false)
-      isTeachingSpeakingRef.current = false
-
-      hasSpokenFirstPromptRef.current = false
-      setHasSpokenFirstPrompt(false)
-
-      setLoading(false)
-
-    } catch (err: any) {
-      console.error('Session initialization error:', err)
-      setError(`Failed to initialize session: ${err?.message || 'Unknown error'}`)
-      setLoading(false)
-    }
-  }
 
   const handleAnswer = async (transcript: string, confidence?: number) => {
     const currentCont = currentContactRef.current
@@ -338,8 +341,9 @@ export default function LifeWordsSessionPage() {
     try {
       const feedbackMessage = getRandomPositiveFeedback()
       await speak(feedbackMessage, { gender: voiceGender })
-    } catch (speakError: any) {
-      console.warn('Text-to-speech failed:', speakError?.message || speakError)
+    } catch (speakError: unknown) {
+      const msg = speakError instanceof Error ? speakError.message : speakError
+      console.warn('Text-to-speech failed:', msg)
     }
 
     setTimeout(async () => {
@@ -371,8 +375,9 @@ export default function LifeWordsSessionPage() {
       try {
         const feedbackMessage = getRandomPositiveFeedback()
         await speak(feedbackMessage, { gender: voiceGender })
-      } catch (speakError: any) {
-        console.warn('Text-to-speech failed:', speakError?.message || speakError)
+      } catch (speakError: unknown) {
+        const msg = speakError instanceof Error ? speakError.message : speakError
+        console.warn('Text-to-speech failed:', msg)
       }
       setShowSuccess(true)
       setTimeout(() => {
@@ -569,7 +574,7 @@ export default function LifeWordsSessionPage() {
         <div className="text-center max-w-md w-full">
           <h2 className="text-4xl font-bold text-green-600 mb-4">Great job!</h2>
           <p className="text-xl text-gray-700 mb-6">
-            You completed today's practice session.
+            You completed today&apos;s practice session.
           </p>
 
           {/* Progress Report */}
@@ -709,7 +714,7 @@ export default function LifeWordsSessionPage() {
                 </div>
               ) : showTryAgain ? (
                 <div className="text-center space-y-4">
-                  <p className="text-xl text-gray-600">That's not quite right. Want to try again?</p>
+                  <p className="text-xl text-gray-600">That&apos;s not quite right. Want to try again?</p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button
                       onClick={() => {
@@ -757,7 +762,7 @@ export default function LifeWordsSessionPage() {
                         await speak(prompt, { gender: voiceGender })
                         // Extra delay after TTS to ensure audio has stopped
                         await new Promise(resolve => setTimeout(resolve, 1000))
-                      } catch (error: any) {
+                      } catch (error: unknown) {
                         console.warn('Failed to speak prompt:', error)
                       }
                     }

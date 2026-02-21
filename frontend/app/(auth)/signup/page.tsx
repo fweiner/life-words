@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function SignupPage() {
@@ -13,7 +12,6 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -22,7 +20,7 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -35,8 +33,8 @@ export default function SignupPage() {
       if (error) throw error
 
       setSuccess(true)
-    } catch (err: any) {
-      setError(err.message || 'Failed to create account')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create account')
     } finally {
       setLoading(false)
     }

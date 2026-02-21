@@ -245,7 +245,7 @@ export default function SpeechRecognitionButton({
             </div>
             <span className="text-green-800">🎤 Listening...</span>
           </div>
-          <p className="text-xl text-green-700 font-normal">Say the object's name now</p>
+          <p className="text-xl text-green-700 font-normal">Say the object&apos;s name now</p>
           <button
             type="button"
             className="mt-4 bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg text-lg transition-colors"

@@ -247,11 +247,11 @@ export function PhotoUpload({ onUploadComplete, currentPhotoUrl, className = '' 
           <ul className="text-sm text-blue-800 space-y-1">
             <li className="flex items-start gap-2">
               <span className="text-blue-600 font-bold">1.</span>
-              <span>Tap <strong>"Take Photo"</strong> to use your camera</span>
+              <span>Tap <strong>&quot;Take Photo&quot;</strong> to use your camera</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-blue-600 font-bold">2.</span>
-              <span>Or tap <strong>"Choose from Library"</strong> to select a saved photo</span>
+              <span>Or tap <strong>&quot;Choose from Library&quot;</strong> to select a saved photo</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-blue-600 font-bold">3.</span>
@@ -262,7 +262,7 @@ export function PhotoUpload({ onUploadComplete, currentPhotoUrl, className = '' 
           <ul className="text-sm text-blue-800 space-y-1">
             <li className="flex items-start gap-2">
               <span className="text-blue-600 font-bold">1.</span>
-              <span>Click <strong>"Choose Photo"</strong> to open your files</span>
+              <span>Click <strong>&quot;Choose Photo&quot;</strong> to open your files</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-blue-600 font-bold">2.</span>
@@ -275,7 +275,7 @@ export function PhotoUpload({ onUploadComplete, currentPhotoUrl, className = '' 
           </ul>
         )}
         <p className="text-xs text-blue-600 mt-3 text-center italic">
-          Tip: Use a clear, well-lit photo showing the person's face
+          Tip: Use a clear, well-lit photo showing the person&apos;s face
         </p>
       </div>
     </div>

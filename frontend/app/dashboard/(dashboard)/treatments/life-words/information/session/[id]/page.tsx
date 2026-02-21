@@ -72,9 +72,9 @@ export default function InformationPracticeSessionPage() {
     expectedAnswer: string
   } | null>(null)
   const [responses, setResponses] = useState<ResponseRecord[]>([])
-  const [questionStartTime, setQuestionStartTime] = useState<number>(0)
+  const [, setQuestionStartTime] = useState<number>(0)
   const [usedHintForCurrent, setUsedHintForCurrent] = useState(false)
-  const [timedOutForCurrent, setTimedOutForCurrent] = useState(false)
+  const [, setTimedOutForCurrent] = useState(false)
 
   // Refs for async callbacks
   const isProcessingAnswerRef = useRef(false)
@@ -85,17 +85,7 @@ export default function InformationPracticeSessionPage() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const phaseRef = useRef<SessionPhase>('teach')
 
-  // Initialize session
-  useEffect(() => {
-    initializeSession()
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [])
-
-  const initializeSession = async () => {
+  const initializeSession = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -106,25 +96,25 @@ export default function InformationPracticeSessionPage() {
       }
 
       // Get the session data
-      const sessionData = await apiClient.get<any>(
+      const sessionData = await apiClient.get<Record<string, unknown>>(
         `/api/life-words/information-sessions/${sessionId}`
       )
       setSession(sessionData.session as InformationSession)
 
       // If session has existing responses, it might be resumed
-      if (sessionData.responses && sessionData.responses.length > 0) {
-        setResponses(sessionData.responses.map((r: any) => ({
-          field_name: r.field_name,
-          is_correct: r.is_correct,
-          used_hint: r.used_hint,
-          timed_out: r.timed_out,
-          response_time: r.response_time || 0
+      if (sessionData.responses && (sessionData.responses as unknown[]).length > 0) {
+        setResponses((sessionData.responses as Record<string, unknown>[]).map((r) => ({
+          field_name: r.field_name as string,
+          is_correct: r.is_correct as boolean,
+          used_hint: r.used_hint as boolean,
+          timed_out: r.timed_out as boolean,
+          response_time: (r.response_time as number) || 0
         })))
       }
 
       // Get user profile to regenerate items (items are generated dynamically from profile)
       try {
-        const profile = await apiClient.get<any>('/api/profile')
+        const profile = await apiClient.get<Record<string, unknown>>('/api/profile')
         const generatedItems = generateItemsFromProfile(profile)
 
         if (generatedItems.length > 0) {
@@ -142,15 +132,27 @@ export default function InformationPracticeSessionPage() {
       }
 
       setLoading(false)
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
       console.error('Session initialization error:', err)
-      setError(`Failed to initialize session: ${err?.message || 'Unknown error'}`)
+      setError(`Failed to initialize session: ${message}`)
       setLoading(false)
     }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId])
+
+  // Initialize session
+  useEffect(() => {
+    initializeSession()
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [initializeSession])
 
   // Generate items from user profile (mirrors backend logic)
-  const generateItemsFromProfile = (profile: any): InformationItem[] => {
+  const generateItemsFromProfile = (profile: Record<string, unknown>): InformationItem[] => {
     const PRACTICE_FIELDS: Record<string, { label: string; teachTemplate: string; question: string; hintType: string }> = {
       phone_number: { label: 'phone number', teachTemplate: 'Your phone number is {value}', question: 'What is your phone number?', hintType: 'first_digit' },
       address_city: { label: 'city', teachTemplate: 'You live in {value}', question: 'What city do you live in?', hintType: 'first_letter' },
@@ -167,7 +169,7 @@ export default function InformationPracticeSessionPage() {
       eye_color: { label: 'eye color', teachTemplate: 'Your eye color is {value}', question: 'What is your eye color?', hintType: 'first_letter' },
     }
 
-    const formatDate = (dateValue: any): string => {
+    const formatDate = (dateValue: unknown): string => {
       if (!dateValue) return ''
       try {
         const date = new Date(dateValue)
@@ -228,7 +230,7 @@ export default function InformationPracticeSessionPage() {
       return `The first character is ${valueStr[0] || ''}`
     }
 
-    const filledFields: { fieldName: string; config: typeof PRACTICE_FIELDS[string]; value: any }[] = []
+    const filledFields: { fieldName: string; config: typeof PRACTICE_FIELDS[string]; value: unknown }[] = []
     for (const [fieldName, config] of Object.entries(PRACTICE_FIELDS)) {
       const value = profile[fieldName]
       if (value !== null && value !== undefined && String(value).trim()) {
@@ -240,15 +242,15 @@ export default function InformationPracticeSessionPage() {
     const shuffled = filledFields.sort(() => Math.random() - 0.5).slice(0, 5)
 
     return shuffled.map(({ fieldName, config, value }) => {
-      let displayValue = fieldName === 'date_of_birth' ? formatDate(value) : String(value)
+      const displayValue = fieldName === 'date_of_birth' ? formatDate(value) : String(value)
       // Format for TTS (spoken version - digits read individually, abbreviations expanded)
       let ttsValue = displayValue
       if (fieldName === 'phone_number') {
-        ttsValue = formatPhoneForTTS(value)
+        ttsValue = formatPhoneForTTS(String(value))
       } else if (fieldName === 'address_zip') {
-        ttsValue = formatZipForTTS(value)
+        ttsValue = formatZipForTTS(String(value))
       } else if (fieldName === 'address_state') {
-        ttsValue = formatStateForTTS(value)
+        ttsValue = formatStateForTTS(String(value))
       } else if (fieldName === 'full_name') {
         // Use pronunciation if available
         const pronunciation = profile.full_name_pronunciation
@@ -256,7 +258,7 @@ export default function InformationPracticeSessionPage() {
           ttsValue = String(pronunciation)
         }
       }
-      let hintValue = fieldName === 'date_of_birth' ? displayValue.split(' ')[0] || displayValue : displayValue
+      const hintValue = fieldName === 'date_of_birth' ? displayValue.split(' ')[0] || displayValue : displayValue
       return {
         field_name: fieldName,
         field_label: config.label,
@@ -275,6 +277,8 @@ export default function InformationPracticeSessionPage() {
     itemsRef.current = items
   }, [items])
 
+  const handleTimeoutRef = useRef<() => void>(() => {})
+
   // Handle timeout for quiz phase (defined before teaching useEffect to avoid reference error)
   const startTimeoutTimer = useCallback(() => {
     if (timeoutRef.current) {
@@ -282,7 +286,7 @@ export default function InformationPracticeSessionPage() {
     }
     timeoutRef.current = setTimeout(() => {
       if (phaseRef.current === 'quiz' || phaseRef.current === 'hint') {
-        handleTimeout()
+        handleTimeoutRef.current()
       }
     }, TIMEOUT_MS)
   }, [])
@@ -302,8 +306,9 @@ export default function InformationPracticeSessionPage() {
         try {
           await speak(text, { gender: voiceGender })
           return true
-        } catch (error: any) {
-          console.warn(`Speech attempt ${attempt + 1} failed:`, error?.message || error)
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : error
+          console.warn(`Speech attempt ${attempt + 1} failed:`, msg)
           if (attempt < maxRetries) {
             // Brief delay before retry
             await new Promise(resolve => setTimeout(resolve, 200))
@@ -370,8 +375,9 @@ export default function InformationPracticeSessionPage() {
           currentItemRef.current = allItems[nextIndex]
           setTeachingSpoken(false)
         }
-      } catch (error: any) {
-        console.warn('Teaching phase failed:', error?.message || error)
+      } catch (error: unknown) {
+        const msg = error instanceof Error ? error.message : error
+        console.warn('Teaching phase failed:', msg)
         isTeachingSpeakingRef.current = false
 
         // Wait so user can read the text on screen
@@ -429,8 +435,9 @@ export default function InformationPracticeSessionPage() {
         try {
           await speak(text, { gender: voiceGender })
           return true
-        } catch (error: any) {
-          console.warn(`Speech attempt ${attempt + 1} failed:`, error?.message || error)
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : error
+          console.warn(`Speech attempt ${attempt + 1} failed:`, msg)
           if (attempt < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 200))
           }
@@ -476,8 +483,9 @@ export default function InformationPracticeSessionPage() {
         currentItemRef.current = items[nextIndex]
         setTeachingSpoken(false) // This will trigger the useEffect for auto-advance
       }
-    } catch (error: any) {
-      console.warn('Start learning speech failed:', error?.message || error)
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : error
+      console.warn('Start learning speech failed:', msg)
       isTeachingSpeakingRef.current = false
       // Still advance after a delay so user can read
       await new Promise(resolve => setTimeout(resolve, 3500))
@@ -489,39 +497,6 @@ export default function InformationPracticeSessionPage() {
       }
       setTeachingSpoken(false)
     }
-  }
-
-  const handleTimeout = async () => {
-    const currentItemVal = currentItemRef.current
-    if (!currentItemVal || !session) return
-
-    setTimedOutForCurrent(true)
-    setIsAnswering(false)
-
-    // Save response as timed out
-    await saveResponse(currentItemVal, '', false, TIMEOUT_MS, usedHintForCurrent, true)
-
-    // Speak the correct answer
-    try {
-      await speak(`Time's up. ${currentItemVal.teach_text}`, { gender: voiceGender })
-    } catch (e) {
-      console.warn('TTS failed:', e)
-    }
-
-    setLastResult({
-      isCorrect: false,
-      userAnswer: '(no response)',
-      expectedAnswer: currentItemVal.expected_answer
-    })
-    setShowFeedback(true)
-    setPhase('reveal')
-    phaseRef.current = 'reveal'
-
-    // Move to next after delay
-    setTimeout(() => {
-      setShowFeedback(false)
-      moveToNext()
-    }, 5000)
   }
 
   // ==================== TEACH PHASE ====================
@@ -691,12 +666,45 @@ export default function InformationPracticeSessionPage() {
 
     try {
       await speak(nextItem.question_text, { gender: voiceGender })
-    } catch (speakError: any) {
-      console.warn('Text-to-speech failed:', speakError?.message || speakError)
+    } catch (speakError: unknown) {
+      const msg = speakError instanceof Error ? speakError.message : speakError
+      console.warn('Text-to-speech failed:', msg)
     }
 
     startTimeoutTimer()
   }
+
+  const handleTimeout = async () => {
+    const currentItemVal = currentItemRef.current
+    if (!currentItemVal || !session) return
+
+    setTimedOutForCurrent(true)
+    setIsAnswering(false)
+
+    await saveResponse(currentItemVal, '', false, TIMEOUT_MS, usedHintForCurrent, true)
+
+    try {
+      await speak(`Time's up. ${currentItemVal.teach_text}`, { gender: voiceGender })
+    } catch (e) {
+      console.warn('TTS failed:', e)
+    }
+
+    setLastResult({
+      isCorrect: false,
+      userAnswer: '(no response)',
+      expectedAnswer: currentItemVal.expected_answer
+    })
+    setShowFeedback(true)
+    setPhase('reveal')
+    phaseRef.current = 'reveal'
+
+    setTimeout(() => {
+      setShowFeedback(false)
+      moveToNext()
+    }, 5000)
+  }
+
+  handleTimeoutRef.current = handleTimeout
 
   const completeSession = async () => {
     if (!session) return
@@ -758,7 +766,7 @@ export default function InformationPracticeSessionPage() {
         <div className="text-center max-w-2xl">
           <h2 className="text-4xl font-bold text-teal-600 mb-6">Information Practice</h2>
           <p className="text-xl text-gray-700 mb-8">
-            You'll learn to provide personal information to others.
+            You&apos;ll learn to provide personal information to others.
           </p>
 
           <div className="bg-teal-50 border-2 border-teal-200 rounded-lg p-6 mb-8">
@@ -1007,13 +1015,13 @@ export default function InformationPracticeSessionPage() {
                   <div className="text-green-700">
                     <span className="text-4xl mb-2 block">✓</span>
                     <p className="text-xl font-bold">Correct!</p>
-                    <p className="text-lg mt-2">You said: "{lastResult.userAnswer}"</p>
+                    <p className="text-lg mt-2">You said: &quot;{lastResult.userAnswer}&quot;</p>
                   </div>
                 ) : phase === 'hint' ? (
                   <div className="text-amber-800">
                     <span className="text-4xl mb-2 block">💡</span>
-                    <p className="text-xl font-bold">Here's a hint</p>
-                    <p className="text-lg mt-2">You said: "{lastResult.userAnswer}"</p>
+                    <p className="text-xl font-bold">Here&apos;s a hint</p>
+                    <p className="text-lg mt-2">You said: &quot;{lastResult.userAnswer}&quot;</p>
                     <p className="text-lg mt-3 italic bg-amber-100 p-3 rounded-lg">
                       {currentItem.hint_text}
                     </p>
@@ -1027,7 +1035,7 @@ export default function InformationPracticeSessionPage() {
                       {lastResult.expectedAnswer}
                     </p>
                     {lastResult.userAnswer !== '(no response)' && (
-                      <p className="text-base mt-3 text-gray-600">You said: "{lastResult.userAnswer}"</p>
+                      <p className="text-base mt-3 text-gray-600">You said: &quot;{lastResult.userAnswer}&quot;</p>
                     )}
                   </div>
                 )}

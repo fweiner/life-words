@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
 import { MessageList } from '@/components/messaging/MessageList'
@@ -34,35 +34,20 @@ export default function PublicMessagePage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    verifyToken()
-  }, [token])
-
-  useEffect(() => {
-    if (tokenStatus?.valid) {
-      loadMessages()
-      // Poll for new messages every 10 seconds
-      const interval = setInterval(loadMessages, 10000)
-      return () => clearInterval(interval)
-    }
-  }, [tokenStatus?.valid, token])
-
-  useEffect(() => {
-    // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const verifyToken = async () => {
+  const verifyToken = useCallback(async () => {
     try {
       const data = await apiClient.getPublic<TokenStatus>(
         `/api/life-words/messaging/public/verify/${token}`
       )
       setTokenStatus(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error verifying token:', err)
       setTokenStatus({
         valid: false,
@@ -71,18 +56,30 @@ export default function PublicMessagePage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [token])
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     try {
       const data = await apiClient.getPublic<Message[]>(
         `/api/life-words/messaging/public/${token}/messages`
       )
       setMessages(data)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading messages:', err)
     }
-  }
+  }, [token])
+
+  useEffect(() => {
+    verifyToken()
+  }, [verifyToken])
+
+  useEffect(() => {
+    if (tokenStatus?.valid) {
+      loadMessages()
+      const interval = setInterval(loadMessages, 10000)
+      return () => clearInterval(interval)
+    }
+  }, [tokenStatus?.valid, loadMessages])
 
   const handleSendMessage = async (content: {
     text_content?: string
@@ -123,7 +120,7 @@ export default function PublicMessagePage() {
         <div className="text-6xl mb-4">&#x1F50D;</div>
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Link Not Found</h2>
         <p className="text-lg text-gray-600">
-          This messaging link doesn't exist or may have been removed.
+          This messaging link doesn&apos;t exist or may have been removed.
           Please check with the person who sent you this link.
         </p>
       </div>

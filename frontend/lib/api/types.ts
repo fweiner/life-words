@@ -20,7 +20,7 @@ export interface ProfileResponse {
   email: string
   full_name: string | null
   voice_gender: string | null
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // Contact
@@ -112,7 +112,7 @@ export interface TreatmentSessionResponse {
   status: string
   started_at: string
   completed_at: string | null
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // Items

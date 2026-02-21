@@ -89,7 +89,7 @@ export function ContactCard({ contact, onDelete, showActions = true, onQuickComp
             <h3 className="text-xl font-bold text-gray-900">{contact.name}</h3>
 
             {contact.nickname && (
-              <p className="text-gray-600 text-sm">"{contact.nickname}"</p>
+              <p className="text-gray-600 text-sm">&quot;{contact.nickname}&quot;</p>
             )}
 
             <p className="text-[var(--color-primary)] font-semibold mt-1">
