@@ -92,7 +92,7 @@ jobs:
             --region $GCP_REGION \
             --project $GCP_PROJECT_ID \
             --allow-unauthenticated \
-            --set-env-vars="GOOGLE_CLOUD_PROJECT=$GCP_PROJECT_ID,ENVIRONMENT=production,ALLOWED_ORIGINS=https://treatment-web-898169248822.us-central1.run.app;https://words.parrotsoftware.com" \
+            --set-env-vars="GOOGLE_CLOUD_PROJECT=$GCP_PROJECT_ID,ENVIRONMENT=production,ALLOWED_ORIGINS=https://words.parrotsoftware.com" \
             --set-secrets="$SECRETS" \
             --memory 512Mi \
             --cpu 1 \
@@ -135,7 +135,7 @@ jobs:
             -t $REGISTRY/$GCP_PROJECT_ID/gcr.io/treatment-web:latest \
             --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ steps.secrets.outputs.supabase_url }} \
             --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ steps.secrets.outputs.supabase_anon_key }} \
-            --build-arg NEXT_PUBLIC_API_URL=https://treatment-api-898169248822.us-central1.run.app \
+            --build-arg NEXT_PUBLIC_API_URL=https://treatment-api-hpxqcjzn3q-uc.a.run.app \
             ./frontend
 
       - name: Push Docker image
