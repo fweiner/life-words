@@ -129,7 +129,7 @@ export default function SpeechRecognitionButton({
     if (autoStart && isSupported && !disabled) {
       console.log('Auto-starting speech recognition')
       setIsInitializing(true)
-      // Small delay to ensure everything is ready
+      // Small delay to ensure component is ready
       const timer = setTimeout(async () => {
         // Wait for onStartListening to complete (e.g., TTS prompt) before starting recognition
         // This prevents speech recognition from picking up the TTS audio
@@ -138,8 +138,6 @@ export default function SpeechRecognitionButton({
         } catch (e) {
           console.warn('onStartListening failed:', e)
         }
-        // Add small delay after TTS to avoid echo pickup
-        await new Promise(resolve => setTimeout(resolve, 300))
         hasEverListenedRef.current = true
         setIsInitializing(false)
 
@@ -156,7 +154,7 @@ export default function SpeechRecognitionButton({
         }
 
         start()
-      }, 500)
+      }, 100)
       return () => clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

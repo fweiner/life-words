@@ -983,7 +983,7 @@ export default function LifeWordsQuestionSessionPage() {
                         ? "Now let's see what you remember. " + questionText
                         : questionText
                       await speak(prompt, { gender: voiceGender })
-                      await new Promise(resolve => setTimeout(resolve, 1000))
+                      await new Promise(resolve => setTimeout(resolve, 300))
                     } catch (error) {
                       console.warn('Failed to speak question:', error)
                     }
