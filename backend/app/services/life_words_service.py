@@ -72,7 +72,9 @@ class LifeWordsService:
         total_count = contact_count + item_count
 
         return {
-            "contact_count": total_count,
+            "contact_count": contact_count,
+            "item_count": item_count,
+            "total_count": total_count,
             "can_start_session": total_count >= MIN_CONTACTS_REQUIRED,
             "min_contacts_required": MIN_CONTACTS_REQUIRED,
         }

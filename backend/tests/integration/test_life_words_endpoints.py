@@ -38,7 +38,9 @@ def test_get_status_success(app, client, mock_user_id, mock_db):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["contact_count"] == 3  # 2 contacts + 1 item
+    assert data["contact_count"] == 2
+    assert data["item_count"] == 1
+    assert data["total_count"] == 3
     assert data["can_start_session"] is True
     assert data["min_contacts_required"] == 2
 
@@ -70,7 +72,9 @@ def test_get_status_not_enough_contacts(app, client, mock_user_id, mock_db):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["contact_count"] == 1  # 1 contact + 0 items
+    assert data["contact_count"] == 1
+    assert data["item_count"] == 0
+    assert data["total_count"] == 1
     assert data["can_start_session"] is False
 
 
@@ -102,6 +106,8 @@ def test_get_status_no_contacts(app, client, mock_user_id, mock_db):
     assert response.status_code == 200
     data = response.json()
     assert data["contact_count"] == 0
+    assert data["item_count"] == 0
+    assert data["total_count"] == 0
     assert data["can_start_session"] is False
 
 

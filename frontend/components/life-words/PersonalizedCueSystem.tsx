@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { speak, waitForVoices, type VoiceGender } from '@/lib/utils/textToSpeech'
 import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton'
 import { evaluateNameAnswer } from '@/lib/api/matching'
@@ -27,7 +27,7 @@ interface PersonalizedCueSystemProps {
   cuesUsed: number
   onAnswer: (answer: string, isCorrect: boolean, confidence?: number) => void
   onFinalAnswer: () => void
-  onContinue: () => void
+  onContinue?: () => void
   voiceGender?: VoiceGender
 }
 
@@ -42,6 +42,31 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
   caregiver: 'your caregiver',
   neighbor: 'your neighbor',
   other: 'someone you know',
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  household: 'a household item',
+  kitchen: 'something from the kitchen',
+  clothing: 'something you wear',
+  electronics: 'an electronic device',
+  furniture: 'a piece of furniture',
+  vehicle: 'a vehicle',
+  tool: 'a tool',
+  food: 'a food item',
+  personal: 'a personal item',
+  outdoor: 'something from outdoors',
+  medical: 'a medical item',
+}
+
+// Generate a grammatically correct "This is a ___" / "These are ___" phrase for an item
+export function getItemPhrase(name: string): string {
+  const lower = name.toLowerCase().trim()
+  // Simple plural heuristic: ends in 's' but not 'ss', 'us', or 'is'
+  if (lower.endsWith('s') && !lower.endsWith('ss') && !lower.endsWith('us') && !lower.endsWith('is')) {
+    return `These are ${name}`
+  }
+  const article = /^[aeiou]/i.test(lower) ? 'an' : 'a'
+  return `This is ${article} ${name}`
 }
 
 const PERSONALITY_LABELS: Record<string, string> = {
@@ -59,20 +84,26 @@ const PERSONALITY_LABELS: Record<string, string> = {
 function getCueTypes(contact: PersonalContact) {
   const cues: { level: number; name: string; getText: () => string }[] = []
   const isItem = contact.relationship === 'item'
-  const possessivePronoun = isItem ? 'The' : 'Their'
+  const relationshipLabel = RELATIONSHIP_LABELS[contact.relationship] || contact.relationship
 
   // Level 1: First letter (always available)
   cues.push({
     level: 1,
     name: 'First Letter',
-    getText: () => `${possessivePronoun} name starts with '${contact.first_letter || contact.name[0].toUpperCase()}'`
+    getText: () => `The name starts with '${contact.first_letter || contact.name[0].toUpperCase()}'`
   })
 
   // Level 2: Relationship (always available)
   cues.push({
     level: 2,
     name: 'Relationship',
-    getText: () => `This is ${RELATIONSHIP_LABELS[contact.relationship] || contact.relationship}`
+    getText: () => {
+      if (isItem) {
+        const categoryLabel = contact.category ? CATEGORY_LABELS[contact.category] : null
+        return categoryLabel ? `This is ${categoryLabel}` : 'This is one of your things'
+      }
+      return `This is ${relationshipLabel}`
+    }
   })
 
   // Level 3: Description or Personality (context about who they are)
@@ -93,7 +124,9 @@ function getCueTypes(contact: PersonalContact) {
     cues.push({
       level: 3,
       name: 'Hint',
-      getText: () => `Think about ${RELATIONSHIP_LABELS[contact.relationship] || 'someone special'} in your life`
+      getText: () => isItem
+        ? 'Think about what this item looks like'
+        : `Think about ${relationshipLabel || 'someone special'} in your life`
     })
   }
 
@@ -102,7 +135,7 @@ function getCueTypes(contact: PersonalContact) {
   cues.push({
     level: 4,
     name: 'Phonemic',
-    getText: () => `${possessivePronoun} name sounds like '${firstTwoLetters}...'`
+    getText: () => `The name sounds like '${firstTwoLetters}...'`
   })
 
   // Level 5: Association, Interests, Social Behavior, or Location (meaningful memory cues)
@@ -140,7 +173,9 @@ function getCueTypes(contact: PersonalContact) {
     cues.push({
       level: 5,
       name: 'Memory',
-      getText: () => `Think of a happy memory with ${RELATIONSHIP_LABELS[contact.relationship] || 'this person'}`
+      getText: () => isItem
+        ? 'Think about where you usually see or use this'
+        : `Think of a happy memory with ${relationshipLabel || 'this person'}`
     })
   }
 
@@ -148,7 +183,7 @@ function getCueTypes(contact: PersonalContact) {
   cues.push({
     level: 6,
     name: 'Name Shown',
-    getText: () => `${possessivePronoun} name is: ${contact.name}`
+    getText: () => `The name is: ${contact.name}`
   })
 
   // Level 7: Full name + audio (repetition)
@@ -168,10 +203,9 @@ export function PersonalizedCueSystem({
   cuesUsed,
   onAnswer,
   onFinalAnswer,
-  onContinue,
   voiceGender = 'female',
 }: PersonalizedCueSystemProps) {
-  const CUE_TYPES = getCueTypes(contact)
+  const CUE_TYPES = useMemo(() => getCueTypes(contact), [contact])
   const [currentCueLevel, setCurrentCueLevel] = useState(cuesUsed + 1)
   const [cueText, setCueText] = useState('')
   const [hasSpoken, setHasSpoken] = useState(false)
@@ -213,25 +247,26 @@ export function PersonalizedCueSystem({
     setHasSpoken(false)
 
     try {
-      await speak(`This is ${contact.name}`, { gender: voiceGender })
+      const isItem = contact.relationship === 'item'
+      const phrase = isItem ? getItemPhrase(contact.name) : `This is ${contact.name}`
+      await speak(phrase, { gender: voiceGender })
     } catch (error) {
       console.warn('Failed to speak final answer:', error)
     }
 
     onFinalAnswer()
-  }, [contact.name, voiceGender, onFinalAnswer])
+  }, [contact.name, contact.relationship, voiceGender, onFinalAnswer])
 
   useEffect(() => {
-    finalAnswerCalledRef.current = false
-    setIsShowingFinalAnswer(false) // eslint-disable-line react-hooks/set-state-in-effect
-
     if (currentCueLevel > 7) {
       if (!finalAnswerCalledRef.current) {
-        finalAnswerCalledRef.current = true
         handleFinalAnswer()
       }
       return
     }
+
+    finalAnswerCalledRef.current = false
+    setIsShowingFinalAnswer(false) // eslint-disable-line react-hooks/set-state-in-effect
 
     const cue = CUE_TYPES[currentCueLevel - 1]
     if (!cue) return
@@ -333,14 +368,11 @@ export function PersonalizedCueSystem({
   if (currentCueLevel > 7) {
     return (
       <div className="text-center max-w-2xl">
-        <p className="text-xl mb-6">The name has been provided.</p>
-        <button
-          className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
-          onClick={onContinue}
-          style={{ minHeight: '44px' }}
-        >
-          Continue to Next Person
-        </button>
+        {isShowingFinalAnswer ? (
+          <p className="text-xl text-gray-600 animate-pulse">Moving to next one...</p>
+        ) : (
+          <p className="text-xl mb-6">The name has been provided.</p>
+        )}
       </div>
     )
   }
@@ -373,7 +405,7 @@ export function PersonalizedCueSystem({
 
       {isShowingFinalAnswer && (
         <div className="text-center mt-6">
-          <p className="text-gray-600 text-xl">Moving to next person...</p>
+          <p className="text-gray-600 text-xl">Moving to next one...</p>
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Image from 'next/image'
 import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton'
-import { PersonalizedCueSystem } from '@/components/life-words/PersonalizedCueSystem'
+import { PersonalizedCueSystem, getItemPhrase } from '@/components/life-words/PersonalizedCueSystem'
 import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
 import { useVoicePreference } from '@/hooks/useVoicePreference'
 import { getRandomPositiveFeedback } from '@/lib/utils/positiveFeedback'
@@ -163,15 +163,17 @@ export default function LifeWordsSessionPage() {
 
       try {
         await waitForVoices()
-        // Say "This is [name]"
+        // Say "This is [name]" (with correct grammar for items)
         // Use pronunciation if available, otherwise use name
         const spokenName = currentContact.pronunciation || currentContact.name
+        const isItem = currentContact.relationship === 'item'
+        const phrase = isItem ? getItemPhrase(spokenName) : `This is ${spokenName}`
 
         // Retry speech up to 3 times if it fails
         let speechSuccess = false
         for (let attempt = 0; attempt < 3 && !speechSuccess; attempt++) {
           try {
-            await speak(`This is ${spokenName}`, { gender: voiceGender })
+            await speak(phrase, { gender: voiceGender })
             speechSuccess = true
           } catch (speechError) {
             console.warn(`Speech attempt ${attempt + 1} failed:`, speechError)
@@ -693,7 +695,9 @@ export default function LifeWordsSessionPage() {
                 {currentContact.name}
               </p>
               <p className="text-xl text-gray-600 mb-2">
-                {currentContact.relationship}
+                {currentContact.relationship === 'item'
+                  ? (currentContact.category || 'item')
+                  : currentContact.relationship}
               </p>
               <p className="text-lg text-gray-500 animate-pulse">
                 Learning names... {currentIndex + 1} of {contacts.length}
@@ -774,9 +778,6 @@ export default function LifeWordsSessionPage() {
                   cuesUsed={cuesUsed}
                   onAnswer={handleCueAnswer}
                   onFinalAnswer={handleFinalAnswer}
-                  onContinue={() => {
-                    setIsAnswering(true)
-                  }}
                   voiceGender={voiceGender}
                 />
               )}

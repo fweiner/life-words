@@ -92,7 +92,9 @@ async def test_get_status_with_contacts_and_items(mock_db):
     service = LifeWordsService(mock_db)
     result = await service.get_status("user-123")
 
-    assert result["contact_count"] == 3
+    assert result["contact_count"] == 2
+    assert result["item_count"] == 1
+    assert result["total_count"] == 3
     assert result["can_start_session"] is True
     assert result["min_contacts_required"] == 2
 
@@ -111,6 +113,8 @@ async def test_get_status_empty(mock_db):
     result = await service.get_status("user-123")
 
     assert result["contact_count"] == 0
+    assert result["item_count"] == 0
+    assert result["total_count"] == 0
     assert result["can_start_session"] is False
 
 
@@ -128,6 +132,8 @@ async def test_get_status_below_minimum(mock_db):
     result = await service.get_status("user-123")
 
     assert result["contact_count"] == 1
+    assert result["item_count"] == 0
+    assert result["total_count"] == 1
     assert result["can_start_session"] is False
 
 

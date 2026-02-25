@@ -74,6 +74,8 @@ class QuickAddContactCreate(BaseModel):
 class LifeWordsStatusResponse(BaseModel):
     """Life words status response."""
     contact_count: int
+    item_count: int
+    total_count: int
     can_start_session: bool
     min_contacts_required: int = 2
 

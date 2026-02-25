@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic'
 
 interface LifeWordsStatus {
   contact_count: number
+  item_count: number
+  total_count: number
   can_start_session: boolean
   min_contacts_required: number
 }
@@ -117,6 +119,15 @@ export default function LifeWordsPage() {
 
   const needsSetup = !status?.can_start_session
 
+  const formatEntrySummary = () => {
+    const people = status?.contact_count || 0
+    const items = status?.item_count || 0
+    const parts: string[] = []
+    if (people > 0) parts.push(`${people} ${people === 1 ? 'person' : 'people'}`)
+    if (items > 0) parts.push(`${items} ${items === 1 ? 'item' : 'items'}`)
+    return parts.join(' and ') || '0 entries'
+  }
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-md p-8">
@@ -130,7 +141,7 @@ export default function LifeWordsPage() {
         {needsSetup ? (
           // Setup flow - user needs to add contacts first
           <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-8 mb-6">
-            {status?.contact_count === 0 ? (
+            {(status?.total_count || 0) === 0 ? (
               // First-time user - show welcome guide
               <>
                 <div className="text-6xl mb-4">👋</div>
@@ -202,8 +213,8 @@ export default function LifeWordsPage() {
                 </p>
 
                 <p className="text-lg text-amber-700 mb-6">
-                  You currently have {status?.contact_count} contact{status?.contact_count !== 1 ? 's' : ''}.
-                  Add {(status?.min_contacts_required || 2) - (status?.contact_count || 0)} more to begin!
+                  You currently have {formatEntrySummary()}.
+                  Add {(status?.min_contacts_required || 2) - (status?.total_count || 0)} more to begin!
                 </p>
 
                 <div className="bg-white rounded-lg p-6 mb-6 text-left">
@@ -267,7 +278,7 @@ export default function LifeWordsPage() {
               Ready to Practice!
             </h2>
             <p className="text-lg text-gray-700 mb-6">
-              You have {status?.contact_count} contact{status?.contact_count !== 1 ? 's' : ''} ready.
+              You have {formatEntrySummary()} ready.
               Start a session to practice naming them!
             </p>
 
