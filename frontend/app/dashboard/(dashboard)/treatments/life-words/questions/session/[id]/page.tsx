@@ -30,7 +30,9 @@ interface GeneratedQuestion {
   contact_photo_url: string
   question_type: number
   question_text: string
+  spoken_question_text: string  // TTS version with pronunciation substituted
   expected_answer: string
+  spoken_expected_answer: string  // TTS version with pronunciation substituted
   acceptable_answers: string[]
 }
 
@@ -233,15 +235,11 @@ export default function LifeWordsQuestionSessionPage() {
   const hasSpokenForCurrentQuestionRef = useRef(false)
   const hasSpokenFirstStudyRef = useRef(false)
   const voiceGenderRef = useRef(voiceGender)
-  const contactsRef = useRef<PersonalContact[]>([])
 
-  // Keep refs in sync without re-triggering effects
+  // Keep voiceGender ref in sync without re-triggering effects
   useEffect(() => {
     voiceGenderRef.current = voiceGender
   }, [voiceGender])
-  useEffect(() => {
-    contactsRef.current = contacts
-  }, [contacts])
 
   const initializeSession = useCallback(async () => {
     try {
@@ -317,6 +315,10 @@ export default function LifeWordsQuestionSessionPage() {
     const c1 = shuffled[0]
     const c2 = shuffled[1] || shuffled[0]
 
+    // Use pronunciation for TTS if available, display name otherwise
+    const c1Spoken = c1.pronunciation || c1.name
+    const c2Spoken = c2.pronunciation || c2.name
+
     // Question 1: Relationship
     generated.push({
       contact_id: c1.id,
@@ -324,7 +326,9 @@ export default function LifeWordsQuestionSessionPage() {
       contact_photo_url: c1.photo_url,
       question_type: 1,
       question_text: `What is ${c1.name}'s relationship to you?`,
+      spoken_question_text: `What is ${c1Spoken}'s relationship to you?`,
       expected_answer: c1.relationship,
+      spoken_expected_answer: c1.relationship,
       acceptable_answers: [c1.relationship.toLowerCase(), c1.relationship]
     })
 
@@ -336,7 +340,9 @@ export default function LifeWordsQuestionSessionPage() {
       contact_photo_url: c2.photo_url,
       question_type: 2,
       question_text: `Where do you usually see ${c2.name}?`,
+      spoken_question_text: `Where do you usually see ${c2Spoken}?`,
       expected_answer: location,
+      spoken_expected_answer: location,
       acceptable_answers: [location.toLowerCase()]
     })
 
@@ -348,7 +354,9 @@ export default function LifeWordsQuestionSessionPage() {
       contact_photo_url: c1.photo_url,
       question_type: 3,
       question_text: `What does ${c1.name} enjoy doing?`,
+      spoken_question_text: `What does ${c1Spoken} enjoy doing?`,
       expected_answer: interests,
+      spoken_expected_answer: interests,
       acceptable_answers: [interests.toLowerCase()]
     })
 
@@ -360,7 +368,9 @@ export default function LifeWordsQuestionSessionPage() {
       contact_photo_url: c2.photo_url,
       question_type: 4,
       question_text: `How would you describe ${c2.name}'s personality?`,
+      spoken_question_text: `How would you describe ${c2Spoken}'s personality?`,
       expected_answer: personality,
+      spoken_expected_answer: personality,
       acceptable_answers: [personality.toLowerCase()]
     })
 
@@ -381,7 +391,9 @@ export default function LifeWordsQuestionSessionPage() {
       contact_photo_url: c1.photo_url,
       question_type: 5,
       question_text: q5Text,
+      spoken_question_text: q5Text,  // No name in this question
       expected_answer: c1.name,
+      spoken_expected_answer: c1Spoken,
       acceptable_answers: [
         c1.name.toLowerCase(),
         c1.name.split(' ')[0].toLowerCase(),
@@ -394,28 +406,15 @@ export default function LifeWordsQuestionSessionPage() {
 
   // ==================== STUDY PHASE ====================
 
-  // Get TTS-friendly text for a question, substituting pronunciation for contact names
-  const getSpokenText = (question: GeneratedQuestion, text: string) => {
-    // Use ref to always get latest contacts (avoids stale closure in effects/callbacks)
-    const allContacts = contactsRef.current.length > 0 ? contactsRef.current : contacts
-    const contact = allContacts.find(c => c.id === question.contact_id)
-    if (contact?.pronunciation) {
-      return text.replaceAll(contact.name, contact.pronunciation)
-    }
-    return text
-  }
-
   const handleStudyNext = async () => {
     if (studyIndex < questions.length - 1) {
       const nextIndex = studyIndex + 1
       setStudyIndex(nextIndex)
 
-      // Speak the next answer
+      // Speak the next answer (using pre-built spoken text with pronunciation)
       const nextQ = questions[nextIndex]
       try {
-        const spokenQuestion = getSpokenText(nextQ, nextQ.question_text)
-        const spokenAnswer = getSpokenText(nextQ, nextQ.expected_answer)
-        await speak(`${spokenQuestion} The answer is: ${spokenAnswer}`, { gender: voiceGender })
+        await speak(`${nextQ.spoken_question_text} The answer is: ${nextQ.spoken_expected_answer}`, { gender: voiceGender })
       } catch (e) {
         console.warn('TTS failed:', e)
       }
@@ -452,9 +451,7 @@ export default function LifeWordsQuestionSessionPage() {
         try {
           await waitForVoices()
           const q = questions[0]
-          const spokenQuestion = getSpokenText(q, q.question_text)
-          const spokenAnswer = getSpokenText(q, q.expected_answer)
-          await speak(`${spokenQuestion} The answer is: ${spokenAnswer}`, { gender: voiceGenderRef.current })
+          await speak(`${q.spoken_question_text} The answer is: ${q.spoken_expected_answer}`, { gender: voiceGenderRef.current })
         } catch (e) {
           console.warn('TTS failed:', e)
         }
@@ -545,8 +542,7 @@ export default function LifeWordsQuestionSessionPage() {
           setCurrentCue(null)
 
           saveResponse(currentQ, transcript, evaluation, responseTime, cuesUsedForQuestion)
-          const spokenAnswer = getSpokenText(currentQ, currentQ.expected_answer)
-          await speak(`The answer was ${spokenAnswer}`, { gender: voiceGender })
+          await speak(`The answer was ${currentQ.spoken_expected_answer}`, { gender: voiceGender })
 
           // Move to next after delay
           setTimeout(() => {
@@ -979,7 +975,7 @@ export default function LifeWordsQuestionSessionPage() {
                     hasSpokenForCurrentQuestionRef.current = true
                     try {
                       const currentQ = currentQuestionRef.current
-                      const questionText = currentQ ? getSpokenText(currentQ, currentQ.question_text) : ''
+                      const questionText = currentQ?.spoken_question_text || ''
                       const isFirstQuestion = currentIndexRef.current === 0
                       const prompt = isFirstQuestion
                         ? "Now let's see what you remember. " + questionText
