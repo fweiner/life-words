@@ -386,10 +386,10 @@ export default function LifeWordsPage() {
               <Link
                 href="/dashboard/treatments/life-words/quick-add"
                 title="Quickly add photos of people and things"
-                className="flex flex-col items-center justify-center p-3 rounded-lg bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] border-2 border-[var(--color-primary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] min-h-[90px]"
+                className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">📸</span>
-                <span className="text-xs sm:text-sm font-semibold text-white text-center leading-tight">Quick Add</span>
+                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">Quick Add</span>
               </Link>
 
               <Link
