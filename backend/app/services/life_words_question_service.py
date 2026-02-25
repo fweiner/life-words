@@ -350,14 +350,14 @@ class LifeWordsQuestionService:
             contacts = await self.db.query(
                 "personal_contacts",
                 select="*",
-                filters={"user_id": user_id, "is_active": True}
+                filters={"user_id": user_id, "is_active": True, "is_complete": True}
             )
             contacts = [c for c in contacts if c["id"] in session_data.contact_ids]
         else:
             contacts = await self.db.query(
                 "personal_contacts",
                 select="*",
-                filters={"user_id": user_id, "is_active": True}
+                filters={"user_id": user_id, "is_active": True, "is_complete": True}
             )
 
         if not contacts or len(contacts) < MIN_CONTACTS_REQUIRED:
@@ -405,7 +405,7 @@ class LifeWordsQuestionService:
         contacts = await self.db.query(
             "personal_contacts",
             select="*",
-            filters={"user_id": user_id}
+            filters={"user_id": user_id, "is_active": True, "is_complete": True}
         )
         session_contacts = [c for c in contacts if c["id"] in session["contact_ids"]]
 

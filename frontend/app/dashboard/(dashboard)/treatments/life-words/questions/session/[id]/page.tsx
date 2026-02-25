@@ -309,9 +309,11 @@ export default function LifeWordsQuestionSessionPage() {
   ): Promise<GeneratedQuestion[]> => {
     const generated: GeneratedQuestion[] = []
 
-    if (contactList.length < 2) return generated
+    // Filter out incomplete contacts (e.g., quick-add drafts with no name)
+    const completeContacts = contactList.filter(c => c.name && c.name.trim() !== '')
+    if (completeContacts.length < 2) return generated
 
-    const shuffled = [...contactList].sort(() => Math.random() - 0.5)
+    const shuffled = [...completeContacts].sort(() => Math.random() - 0.5)
     const c1 = shuffled[0]
     const c2 = shuffled[1] || shuffled[0]
 
