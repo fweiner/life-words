@@ -61,7 +61,7 @@ function getCueTypes(question: GeneratedQuestion) {
   cues.push({
     level: 3,
     name: 'First Letter',
-    getText: () => `The answer starts with the letter '${answer[0].toUpperCase()}'`
+    getText: () => `The answer starts with the letter ${answer[0].toUpperCase()}`
   })
 
   // Level 4: Word count / length hint
@@ -71,9 +71,9 @@ function getCueTypes(question: GeneratedQuestion) {
     name: 'Length Hint',
     getText: () => {
       if (wordCount > 1) {
-        return `The answer has ${wordCount} words. It starts with '${answer[0].toUpperCase()}'`
+        return `The answer has ${wordCount} words. It starts with the letter ${answer[0].toUpperCase()}`
       } else {
-        return `The answer is one word with ${answer.length} letters, starting with '${answer[0].toUpperCase()}'`
+        return `The answer is one word with ${answer.length} letters, starting with the letter ${answer[0].toUpperCase()}`
       }
     }
   })
@@ -85,10 +85,10 @@ function getCueTypes(question: GeneratedQuestion) {
     getText: () => {
       if (wordCount > 1) {
         const firstWord = answer.split(' ')[0]
-        return `The answer starts with '${firstWord}...'`
+        return `The answer starts with "${firstWord}"`
       } else {
         const halfLength = Math.ceil(answer.length / 2)
-        return `The answer starts with '${answer.substring(0, halfLength)}...'`
+        return `The answer starts with "${answer.substring(0, halfLength)}"`
       }
     }
   })
@@ -104,7 +104,7 @@ function getCueTypes(question: GeneratedQuestion) {
   cues.push({
     level: 7,
     name: 'Say Together',
-    getText: () => `Say the answer with me: ${answer}`
+    getText: () => `Repeat after me: ${answer}`
   })
 
   return cues
@@ -160,14 +160,12 @@ export function QuestionCueSystem({
     setIsShowingFinalAnswer(true)
     setHasSpoken(false)
 
-    try {
-      await speak(`The answer is: ${question.expected_answer}`)
-    } catch (error) {
-      console.warn('Failed to speak final answer:', error)
-    }
+    // No need to speak the answer again — Level 6 ("The answer is: X")
+    // and Level 7 ("Repeat after me: X") already revealed it.
+    await new Promise(resolve => setTimeout(resolve, 2000))
 
     onFinalAnswer()
-  }, [question.expected_answer, onFinalAnswer])
+  }, [onFinalAnswer])
 
   useEffect(() => {
     finalAnswerCalledRef.current = false

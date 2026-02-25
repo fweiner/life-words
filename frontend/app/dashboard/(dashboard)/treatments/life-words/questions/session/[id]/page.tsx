@@ -118,7 +118,9 @@ function generateCue(
   // Question Type 2: Association/Location - "Where do you usually see X?"
   if (questionType === 2) {
     if (cueLevel === 1) {
-      return `Think about where you spend time with your ${contact?.relationship || 'loved one'}`
+      const rel = contact?.relationship
+      const relLabel = rel && rel !== 'other' ? rel : 'loved one'
+      return `Think about where you spend time with your ${relLabel}`
     }
     if (cueLevel === 2) {
       if (contact?.interests) {
@@ -171,7 +173,7 @@ function generateCue(
       }
       // Give first letter hint for names
       const firstLetter = question.expected_answer.charAt(0).toUpperCase()
-      return `Their name starts with "${firstLetter}"`
+      return `The name starts with the letter ${firstLetter}`
     }
   }
 
@@ -350,12 +352,20 @@ export default function LifeWordsQuestionSessionPage() {
 
     // Question 5: Name from description
     const hint = c1.interests || c1.personality || 'is special to you'
+    let q5Text: string
+    if (c1.relationship === 'other') {
+      q5Text = `Who is someone special to you who ${hint}?`
+    } else if (c1.relationship === 'pet') {
+      q5Text = `What is the name of your pet that ${hint}?`
+    } else {
+      q5Text = `Who is your ${c1.relationship} who ${hint}?`
+    }
     generated.push({
       contact_id: c1.id,
       contact_name: c1.name,
       contact_photo_url: c1.photo_url,
       question_type: 5,
-      question_text: `Who is your ${c1.relationship} who ${hint}?`,
+      question_text: q5Text,
       expected_answer: c1.name,
       acceptable_answers: [
         c1.name.toLowerCase(),
