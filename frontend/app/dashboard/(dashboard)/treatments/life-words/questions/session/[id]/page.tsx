@@ -229,6 +229,7 @@ export default function LifeWordsQuestionSessionPage() {
   const currentIndexRef = useRef(0)
   const questionStartTimeRef = useRef(0)
   const pendingSavesRef = useRef<Promise<void>[]>([])
+  const hasSpokenForCurrentQuestionRef = useRef(false)
 
   const initializeSession = useCallback(async () => {
     try {
@@ -398,7 +399,7 @@ export default function LifeWordsQuestionSessionPage() {
     }
   }
 
-  const startQuizPhase = async () => {
+  const startQuizPhase = () => {
     setPhase('quiz')
     setCurrentIndex(0)
     currentIndexRef.current = 0
@@ -407,16 +408,11 @@ export default function LifeWordsQuestionSessionPage() {
     setCurrentQuestion(firstQuestion)
     currentQuestionRef.current = firstQuestion
     setIsAnswering(true)
+    hasSpokenForCurrentQuestionRef.current = false
 
     const startTime = Date.now()
     setQuestionStartTime(startTime)
     questionStartTimeRef.current = startTime
-
-    try {
-      await speak("Now let's see what you remember. " + firstQuestion.question_text, { gender: voiceGender })
-    } catch (e) {
-      console.warn('TTS failed:', e)
-    }
   }
 
   // Speak study item when it changes
@@ -586,7 +582,7 @@ export default function LifeWordsQuestionSessionPage() {
     })
   }
 
-  const moveToNext = async () => {
+  const moveToNext = () => {
     const currentIdx = currentIndexRef.current
     const nextIndex = currentIdx + 1
 
@@ -600,6 +596,7 @@ export default function LifeWordsQuestionSessionPage() {
     currentIndexRef.current = nextIndex
     currentQuestionRef.current = nextQuestion
     isProcessingAnswerRef.current = false
+    hasSpokenForCurrentQuestionRef.current = false
 
     const startTime = Date.now()
     questionStartTimeRef.current = startTime
@@ -609,13 +606,6 @@ export default function LifeWordsQuestionSessionPage() {
     setQuestionStartTime(startTime)
     setIsProcessingAnswer(false)
     setIsAnswering(true)
-
-    try {
-      await speak(nextQuestion.question_text, { gender: voiceGender })
-    } catch (speakError: unknown) {
-      const msg = speakError instanceof Error ? speakError.message : speakError
-      console.warn('Text-to-speech failed:', msg)
-    }
   }
 
   const completeSession = async () => {
@@ -944,13 +934,29 @@ export default function LifeWordsQuestionSessionPage() {
           {/* Speech input or waiting */}
           {isAnswering && !showFeedback ? (
             <div className="flex flex-col items-center gap-4">
-              <p className="text-lg text-gray-600 mb-2">Take your time, then click the microphone to answer</p>
+              <p className="text-lg text-gray-600 mb-2">Listen to the question, then speak your answer</p>
               <SpeechRecognitionButton
-                key={`speech-${currentIndex}`}
+                key={`speech-${currentIndex}-${cueLevel}`}
                 onResult={handleAnswer}
                 disabled={isProcessingAnswer}
                 resetTrigger={currentIndex}
-                autoStart={false}
+                autoStart={true}
+                onStartListening={async () => {
+                  if (!hasSpokenForCurrentQuestionRef.current) {
+                    hasSpokenForCurrentQuestionRef.current = true
+                    try {
+                      const questionText = currentQuestionRef.current?.question_text || ''
+                      const isFirstQuestion = currentIndexRef.current === 0
+                      const prompt = isFirstQuestion
+                        ? "Now let's see what you remember. " + questionText
+                        : questionText
+                      await speak(prompt, { gender: voiceGender })
+                      await new Promise(resolve => setTimeout(resolve, 1000))
+                    } catch (error) {
+                      console.warn('Failed to speak question:', error)
+                    }
+                  }
+                }}
               />
             </div>
           ) : !showFeedback && (
