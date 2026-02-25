@@ -3,7 +3,7 @@ import "./globals.css";
 import { DisableRightClick } from "@/components/shared/DisableRightClick";
 
 export const metadata: Metadata = {
-  title: "Parrot Software - Treatment for people with aphasia, brain damage, and memory problems",
+  title: "Life Words - Treatment for people with aphasia, brain damage, and memory problems",
   description: "Accessible treatment applications for people with aphasia, brain damage, and memory problems",
 };
 

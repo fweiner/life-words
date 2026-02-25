@@ -49,13 +49,13 @@ export default function DashboardLayout({
             <Link href="/dashboard" className="flex items-center space-x-2 sm:space-x-3 min-w-0">
               <Image
                 src="/header.jpg"
-                alt="Parrot Software Logo"
+                alt="Life Words Logo"
                 width={50}
                 height={50}
                 className="object-contain flex-shrink-0 w-10 h-10 sm:w-[50px] sm:h-[50px]"
               />
               <div className="text-xl sm:text-3xl font-bold text-[var(--color-primary)] truncate">
-                Parrot Software
+                Life Words
               </div>
             </Link>
 

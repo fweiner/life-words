@@ -18,6 +18,7 @@ export interface SpeechOptions {
 // By reusing the same element, we keep it "unlocked" after the first user-initiated play.
 let audioElement: HTMLAudioElement | null = null
 let currentAudioUrl: string | null = null
+let currentAbortController: AbortController | null = null
 
 /**
  * Checks if text-to-speech is supported
@@ -59,8 +60,11 @@ export async function speak(
     return
   }
 
-  // Stop any ongoing speech
+  // Stop any ongoing speech and cancel in-flight requests
   stopSpeaking()
+
+  const abortController = new AbortController()
+  currentAbortController = abortController
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
@@ -74,7 +78,13 @@ export async function speak(
         text: text,
         gender: options.gender || 'neutral',
       }),
+      signal: abortController.signal,
     })
+
+    // Check if this request was superseded by a newer one
+    if (currentAbortController !== abortController) {
+      return
+    }
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -149,7 +159,14 @@ export async function speak(
  * Stops any ongoing speech
  */
 export function stopSpeaking(): void {
+  // Abort any in-flight TTS fetch request
+  if (currentAbortController) {
+    currentAbortController.abort()
+    currentAbortController = null
+  }
   if (audioElement) {
+    audioElement.onended = null
+    audioElement.onerror = null
     audioElement.pause()
     audioElement.currentTime = 0
     // Don't null out audioElement - keep it for reuse to maintain iOS unlock state

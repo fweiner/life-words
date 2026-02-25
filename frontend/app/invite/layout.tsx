@@ -25,7 +25,7 @@ export default function InviteLayout({
       </main>
       <footer className="bg-gray-50 border-t border-gray-200 mt-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 text-center text-gray-500 text-sm">
-          <p>Life Words by Parrot Software</p>
+          <p>Life Words</p>
           <p className="mt-1">Helping people recover, one memory at a time.</p>
         </div>
       </footer>
