@@ -718,7 +718,7 @@ export default function LifeWordsSessionPage() {
                 </div>
               ) : showTryAgain ? (
                 <div className="text-center space-y-4">
-                  <p className="text-xl text-gray-600">That&apos;s not quite right. Want to try again?</p>
+                  <p className="text-xl text-gray-600">Almost! Want to try again?</p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
                     <button
                       onClick={() => {

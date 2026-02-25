@@ -569,7 +569,7 @@ export default function InformationPracticeSessionPage() {
           setPhase('hint')
           phaseRef.current = 'hint'
 
-          await speak(`Not quite. Here's a hint: ${currentItemVal.hint_text}. Try again.`, { gender: voiceGender })
+          await speak(`Almost! Here's a hint: ${currentItemVal.hint_text}. Give it another try.`, { gender: voiceGender })
 
           // Allow retry
           setTimeout(() => {
@@ -924,7 +924,7 @@ export default function InformationPracticeSessionPage() {
                       <span className={`font-bold ${
                         r.is_correct ? 'text-green-600' : r.timed_out ? 'text-red-600' : 'text-amber-600'
                       }`}>
-                        {r.is_correct ? 'Correct' : r.timed_out ? 'Timed Out' : 'Incorrect'}
+                        {r.is_correct ? 'Correct' : r.timed_out ? 'Timed Out' : 'Needs Practice'}
                         {r.used_hint && !r.is_correct && ' (with hint)'}
                       </span>
                     </div>
@@ -957,7 +957,7 @@ export default function InformationPracticeSessionPage() {
             ? 'bg-red-100 text-red-800'
             : 'bg-blue-100 text-blue-800'
         }`}>
-          {phase === 'hint' ? 'Hint Given - Try Again' :
+          {phase === 'hint' ? 'Almost! Here\'s a Hint' :
            phase === 'reveal' ? 'Answer Revealed' :
            'Quiz Phase - Answer the Questions'}
         </span>
@@ -1031,7 +1031,7 @@ export default function InformationPracticeSessionPage() {
                     <p className="text-lg mt-3 italic bg-amber-100 p-3 rounded-lg">
                       {currentItem.hint_text}
                     </p>
-                    <p className="text-base mt-4 text-gray-600">Try again!</p>
+                    <p className="text-base mt-4 text-gray-600">Give it another try!</p>
                   </div>
                 ) : (
                   <div className="text-amber-800">
@@ -1053,7 +1053,7 @@ export default function InformationPracticeSessionPage() {
           {isAnswering && !showFeedback ? (
             <div className="flex flex-col items-center gap-4">
               <p className="text-lg text-gray-600 mb-2">
-                {phase === 'hint' ? 'Try again - listening for your answer...' : 'Listening for your answer...'}
+                {phase === 'hint' ? 'Give it another try - listening for your answer...' : 'Listening for your answer...'}
               </p>
               <SpeechRecognitionButton
                 key={`speech-${currentIndex}-${phase}`}

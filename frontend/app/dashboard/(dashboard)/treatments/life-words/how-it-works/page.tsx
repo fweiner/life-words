@@ -154,7 +154,7 @@ export default function HowItWorksPage() {
                 <li><span className="font-bold text-[var(--color-primary)]">2.</span> Click the microphone button</li>
                 <li><span className="font-bold text-[var(--color-primary)]">3.</span> Say the person&apos;s name out loud</li>
                 <li><span className="font-bold text-[var(--color-primary)]">4.</span> The app will tell you if you&apos;re correct</li>
-                <li><span className="font-bold text-[var(--color-primary)]">5.</span> If wrong, you can get a hint or try again</li>
+                <li><span className="font-bold text-[var(--color-primary)]">5.</span> If you need help, you&apos;ll get a hint to try again</li>
               </ol>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function HowItWorksPage() {
           </h2>
           <div className="bg-amber-50 rounded-lg p-6 ml-12">
             <p className="text-lg text-gray-700 mb-4">
-              If you answer incorrectly, the app gives you hints to help you remember:
+              If you need a little help, the app gives you hints to help you remember:
             </p>
 
             <div className="bg-white border border-amber-200 rounded-lg p-4 mb-4">
@@ -241,14 +241,14 @@ export default function HowItWorksPage() {
                 <div className="flex items-start">
                   <span className="bg-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 font-bold">1</span>
                   <div>
-                    <p className="font-bold text-gray-900">First wrong answer → First hint</p>
+                    <p className="font-bold text-gray-900">First try → First hint</p>
                     <p className="text-gray-600 text-sm">A contextual clue based on the question type</p>
                   </div>
                 </div>
                 <div className="flex items-start">
                   <span className="bg-amber-500 text-white rounded-full w-8 h-8 flex items-center justify-center mr-3 flex-shrink-0 font-bold">2</span>
                   <div>
-                    <p className="font-bold text-gray-900">Second wrong answer → Second hint</p>
+                    <p className="font-bold text-gray-900">Second try → Another hint</p>
                     <p className="text-gray-600 text-sm">Another helpful detail from their profile</p>
                   </div>
                 </div>

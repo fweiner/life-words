@@ -178,7 +178,7 @@ function generateCue(
   }
 
   // Default fallback
-  return "Take another look and try again"
+  return "Take another look and give it another try"
 }
 
 export default function LifeWordsQuestionSessionPage() {
@@ -501,7 +501,7 @@ export default function LifeWordsQuestionSessionPage() {
           setShowCue(true)
           setCuesUsedForQuestion(nextCueLevel)
 
-          await speak(`Not quite. Here's a hint: ${cue}`, { gender: voiceGender })
+          await speak(`Almost! Here's a hint: ${cue}`, { gender: voiceGender })
 
           // Allow retry - keep feedback showing but re-enable answering after delay
           setTimeout(() => {
