@@ -1,6 +1,7 @@
 """Unit tests for profile service."""
 import pytest
 from datetime import datetime, timezone
+from unittest.mock import ANY
 
 
 SAMPLE_PROFILE = {
@@ -43,7 +44,13 @@ async def test_get_or_create_profile_creates_new(mock_db):
     assert result["full_name"] is None
     mock_db.insert.assert_called_once_with(
         "profiles",
-        {"id": "user-123", "email": "test@example.com", "full_name": None}
+        {
+            "id": "user-123",
+            "email": "test@example.com",
+            "full_name": None,
+            "account_status": "trial",
+            "trial_ends_at": ANY,
+        }
     )
 
 

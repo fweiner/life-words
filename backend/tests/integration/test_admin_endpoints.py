@@ -151,3 +151,87 @@ def test_delete_user_not_found(app, client, mock_db, mocker):
     )
 
     assert response.status_code == 404
+
+
+def test_update_account_status_success(app, client, mock_db):
+    """Test admin can update a user's account status."""
+    from app.core.auth import require_admin
+    from app.core.dependencies import get_db
+
+    async def override_require_admin():
+        return SAMPLE_ADMIN_USER
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[require_admin] = override_require_admin
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    mock_db.update.return_value = {"account_status": "paid", "trial_ends_at": None}
+
+    response = client.patch(
+        "/api/admin/users/user-1/account-status",
+        json={"account_status": "paid"},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["account_status"] == "paid"
+    assert data["trial_ends_at"] is None
+
+
+def test_update_account_status_unauthorized(client):
+    """Test updating account status requires authentication."""
+    response = client.patch(
+        "/api/admin/users/user-1/account-status",
+        json={"account_status": "paid"},
+    )
+    assert response.status_code == 401
+
+
+def test_list_error_logs_success(app, client, mock_db):
+    """Test admin can list error logs."""
+    from app.core.auth import require_admin
+    from app.core.dependencies import get_db
+
+    async def override_require_admin():
+        return SAMPLE_ADMIN_USER
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[require_admin] = override_require_admin
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = [
+        {
+            "id": "log-1",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "endpoint": "/api/test",
+            "method": "GET",
+            "status_code": 500,
+            "error_message": "Test error",
+            "traceback": None,
+            "user_id": None,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    ]
+
+    response = client.get(
+        "/api/admin/error-logs",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["endpoint"] == "/api/test"
+
+
+def test_list_error_logs_unauthorized(client):
+    """Test listing error logs requires authentication."""
+    response = client.get("/api/admin/error-logs")
+    assert response.status_code == 401

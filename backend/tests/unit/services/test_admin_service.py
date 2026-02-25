@@ -133,3 +133,125 @@ async def test_delete_user_api_error(mock_db, mocker):
 
     assert exc_info.value.status_code == 500
     assert "Failed to delete user" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_update_account_status_to_paid(mock_db):
+    """Test setting account status to paid clears trial_ends_at."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    mock_db.update.return_value = {"account_status": "paid", "trial_ends_at": None}
+
+    service = AdminService(mock_db)
+    result = await service.update_account_status("user-1", "paid")
+
+    assert result["account_status"] == "paid"
+    assert result["trial_ends_at"] is None
+    mock_db.update.assert_called_once_with(
+        "profiles",
+        filters={"id": "user-1"},
+        data={"account_status": "paid", "trial_ends_at": None},
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_account_status_to_trial(mock_db):
+    """Test setting account status to trial with end date."""
+    from datetime import datetime, timezone
+
+    trial_end = datetime(2026, 3, 15, tzinfo=timezone.utc)
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "paid"}]
+    mock_db.update.return_value = {
+        "account_status": "trial",
+        "trial_ends_at": trial_end.isoformat(),
+    }
+
+    service = AdminService(mock_db)
+    result = await service.update_account_status("user-1", "trial", trial_end)
+
+    assert result["account_status"] == "trial"
+    mock_db.update.assert_called_once_with(
+        "profiles",
+        filters={"id": "user-1"},
+        data={"account_status": "trial", "trial_ends_at": trial_end.isoformat()},
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_account_status_invalid(mock_db):
+    """Test rejecting an invalid account status."""
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.update_account_status("user-1", "premium")
+
+    assert exc_info.value.status_code == 400
+    assert "Invalid account status" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_update_account_status_trial_without_end_date(mock_db):
+    """Test trial status requires trial_ends_at."""
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.update_account_status("user-1", "trial")
+
+    assert exc_info.value.status_code == 400
+    assert "trial_ends_at is required" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_update_account_status_user_not_found(mock_db):
+    """Test updating status for nonexistent user raises 404."""
+    mock_db.query.return_value = []
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.update_account_status("nonexistent", "paid")
+
+    assert exc_info.value.status_code == 404
+    assert "User not found" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_list_error_logs(mock_db):
+    """Test listing error logs queries with correct params."""
+    mock_db.query.return_value = [
+        {
+            "id": "log-1",
+            "timestamp": "2026-02-25T00:00:00Z",
+            "endpoint": "/api/test",
+            "method": "GET",
+            "status_code": 500,
+            "error_message": "Test error",
+            "traceback": "Traceback ...",
+            "user_id": None,
+        }
+    ]
+
+    service = AdminService(mock_db)
+    result = await service.list_error_logs(limit=25)
+
+    assert len(result) == 1
+    assert result[0]["endpoint"] == "/api/test"
+    mock_db.query.assert_called_once_with(
+        "error_logs",
+        order_by="timestamp",
+        order_desc=True,
+        limit=25,
+    )
+
+
+@pytest.mark.asyncio
+async def test_list_error_logs_empty(mock_db):
+    """Test listing error logs returns empty list when none exist."""
+    mock_db.query.return_value = []
+
+    service = AdminService(mock_db)
+    result = await service.list_error_logs()
+
+    assert result == []
+    mock_db.query.assert_called_once_with(
+        "error_logs",
+        order_by="timestamp",
+        order_desc=True,
+        limit=50,
+    )

@@ -1,4 +1,5 @@
 """Profile service for managing user profiles."""
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 from app.core.database import SupabaseClient
 from app.models.profile import ProfileUpdate
@@ -20,12 +21,15 @@ class ProfileService:
         if profiles:
             return profiles[0]
 
+        trial_end = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
         new_profile = await self.db.insert(
             "profiles",
             {
                 "id": user_id,
                 "email": email,
-                "full_name": None
+                "full_name": None,
+                "account_status": "trial",
+                "trial_ends_at": trial_end,
             }
         )
         return new_profile[0] if isinstance(new_profile, list) else new_profile

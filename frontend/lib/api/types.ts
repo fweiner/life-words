@@ -125,6 +125,19 @@ export interface AdminUserStats {
   item_count: number
   session_count: number
   last_active_at: string | null
+  account_status: string
+  trial_ends_at: string | null
+}
+
+export interface ErrorLogEntry {
+  id: string
+  timestamp: string
+  endpoint: string
+  method: string
+  status_code: number
+  error_message: string
+  traceback: string | null
+  user_id: string | null
 }
 
 // Items
