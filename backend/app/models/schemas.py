@@ -109,6 +109,12 @@ from app.models.matching import (  # noqa: F401
     ExtractAnswerResponse,
 )
 
+# Admin
+from app.models.admin import (  # noqa: F401
+    AdminUserStats,
+    AdminDeleteResponse,
+)
+
 # STM
 from app.models.stm import (  # noqa: F401
     STMGroceryItemResponse,

@@ -59,3 +59,6 @@ app.include_router(speech.router, prefix="/api/speech", tags=["speech"])
 
 from app.routers import matching
 app.include_router(matching.router, prefix="/api/matching", tags=["matching"])
+
+from app.routers import admin
+app.include_router(admin.router, prefix="/api/admin", tags=["admin"])

@@ -115,6 +115,18 @@ export interface TreatmentSessionResponse {
   [key: string]: unknown
 }
 
+// Admin
+export interface AdminUserStats {
+  id: string
+  email: string
+  full_name: string | null
+  created_at: string
+  contact_count: number
+  item_count: number
+  session_count: number
+  last_active_at: string | null
+}
+
 // Items
 export interface PersonalItemResponse {
   id: string

@@ -76,3 +76,16 @@ async def get_current_user_id(
     """Get current user ID from JWT token."""
     user = await get_current_user(credentials)
     return user["id"]
+
+
+ADMIN_EMAILS = {"weiner@parrotsoftware.com"}
+
+
+async def require_admin(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+) -> Dict[str, Any]:
+    """Require admin access. Returns user if admin, raises 403 otherwise."""
+    user = await get_current_user(credentials)
+    if user["email"] not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
