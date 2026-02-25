@@ -84,6 +84,41 @@ async def list_user_entities(
     return results or []
 
 
+async def verify_can_practice(db, user_id: str) -> None:
+    """Verify user can start a practice session. Raises 403 if expired/cancelled."""
+    from datetime import datetime, timezone
+
+    profiles = await db.query(
+        "profiles",
+        select="account_status,trial_ends_at",
+        filters={"id": user_id},
+    )
+    if not profiles:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profile = profiles[0]
+    account_status = profile.get("account_status", "trial")
+
+    if account_status == "paid":
+        return
+
+    if account_status == "trial":
+        trial_ends_at = profile.get("trial_ends_at")
+        if trial_ends_at:
+            trial_end = (
+                datetime.fromisoformat(trial_ends_at.replace("Z", "+00:00"))
+                if isinstance(trial_ends_at, str)
+                else trial_ends_at
+            )
+            if trial_end > datetime.now(timezone.utc):
+                return
+
+    raise HTTPException(
+        status_code=403,
+        detail="Your trial has expired. Please subscribe to continue practicing.",
+    )
+
+
 async def upload_to_storage(
     content: bytes, content_type: str, folder: str, file_ext: str
 ) -> str:

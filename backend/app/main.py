@@ -66,3 +66,6 @@ app.include_router(matching.router, prefix="/api/matching", tags=["matching"])
 
 from app.routers import admin
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
+
+from app.routers import stripe
+app.include_router(stripe.router, prefix="/api/stripe", tags=["stripe"])

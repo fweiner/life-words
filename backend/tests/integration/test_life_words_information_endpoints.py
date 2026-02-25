@@ -306,10 +306,12 @@ def test_create_information_session_unauthorized(client):
     assert response.status_code == 401
 
 
-def test_create_information_session_success(app, client, mock_user_id, mock_db):
+def test_create_information_session_success(app, client, mock_user_id, mock_db, mocker):
     """Test creating an information session successfully."""
     from app.core.auth import get_current_user_id
     from app.core.dependencies import get_db
+
+    mocker.patch("app.services.life_words_information_service.verify_can_practice")
 
     async def override_get_current_user_id():
         return mock_user_id
@@ -354,10 +356,12 @@ def test_create_information_session_success(app, client, mock_user_id, mock_db):
     assert len(data["items"]) == 5
 
 
-def test_create_information_session_no_profile(app, client, mock_user_id, mock_db):
+def test_create_information_session_no_profile(app, client, mock_user_id, mock_db, mocker):
     """Test creating information session with no profile."""
     from app.core.auth import get_current_user_id
     from app.core.dependencies import get_db
+
+    mocker.patch("app.services.life_words_information_service.verify_can_practice")
 
     async def override_get_current_user_id():
         return mock_user_id
@@ -380,10 +384,12 @@ def test_create_information_session_no_profile(app, client, mock_user_id, mock_d
     assert "Profile not found" in response.json()["detail"]
 
 
-def test_create_information_session_insufficient_fields(app, client, mock_user_id, mock_db):
+def test_create_information_session_insufficient_fields(app, client, mock_user_id, mock_db, mocker):
     """Test creating information session with insufficient profile fields."""
     from app.core.auth import get_current_user_id
     from app.core.dependencies import get_db
+
+    mocker.patch("app.services.life_words_information_service.verify_can_practice")
 
     async def override_get_current_user_id():
         return mock_user_id

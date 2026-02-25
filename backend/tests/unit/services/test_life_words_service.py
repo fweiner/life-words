@@ -4,6 +4,12 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 
 
+@pytest.fixture(autouse=True)
+def _bypass_subscription_check(mocker):
+    """Bypass verify_can_practice for all tests in this module."""
+    mocker.patch("app.services.life_words_service.verify_can_practice")
+
+
 SAMPLE_CONTACT = {
     "id": "contact-123",
     "user_id": "user-123",

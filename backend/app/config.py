@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     aws_secret_access_key: str | None = None
     aws_region: str = "us-east-1"
 
+    # Stripe
+    stripe_secret_key: str | None = None
+    stripe_webhook_secret: str | None = None
+    stripe_monthly_price_id: str | None = None
+    stripe_yearly_price_id: str | None = None
+
     # Application
     environment: str = "development"
     allowed_origins: str = "http://localhost:3000"

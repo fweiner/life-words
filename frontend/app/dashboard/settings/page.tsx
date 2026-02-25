@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
+import { useSubscription } from '@/lib/hooks/useSubscription'
 
 interface AccommodationSettings {
   match_acceptable_alternatives: boolean
@@ -63,9 +65,45 @@ export default function SettingsPage() {
   const [accommodations, setAccommodations] = useState<AccommodationSettings>(DEFAULT_ACCOMMODATIONS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [portalLoading, setPortalLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const supabase = createClient()
+  const searchParams = useSearchParams()
+  const { subscription, refresh: refreshSubscription } = useSubscription()
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+
+  // Show success banner if redirected from Stripe checkout
+  useEffect(() => {
+    if (searchParams.get('subscription') === 'success') {
+      setSuccess('Subscription activated successfully! Thank you.')
+      refreshSubscription()
+    }
+  }, [searchParams, refreshSubscription])
+
+  const handleSubscribe = async (plan: string) => {
+    setCheckoutLoading(true)
+    try {
+      const data = await apiClient.post<{ checkout_url: string }>('/api/stripe/checkout', { plan })
+      window.location.href = data.checkout_url
+    } catch (err) {
+      console.error('Error creating checkout:', err)
+      setError(err instanceof Error ? err.message : 'Failed to start checkout')
+      setCheckoutLoading(false)
+    }
+  }
+
+  const handleManageSubscription = async () => {
+    setPortalLoading(true)
+    try {
+      const data = await apiClient.post<{ portal_url: string }>('/api/stripe/portal')
+      window.location.href = data.portal_url
+    } catch (err) {
+      console.error('Error opening portal:', err)
+      setError(err instanceof Error ? err.message : 'Failed to open subscription management')
+      setPortalLoading(false)
+    }
+  }
 
   const loadProfile = useCallback(async () => {
     try {
@@ -166,6 +204,115 @@ export default function SettingsPage() {
           role="alert"
         >
           <p>{success}</p>
+        </div>
+      )}
+
+      {/* Subscription Section */}
+      {subscription && (
+        <div className="mb-8 p-6 border-2 border-gray-200 rounded-lg">
+          <h2 className="text-xl font-bold mb-4 text-gray-900">Subscription</h2>
+
+          {subscription.is_paid && (
+            <div>
+              <p className="text-lg text-gray-700 mb-1">
+                <span className="font-semibold text-green-700">Active</span> &mdash;{' '}
+                {subscription.subscription_plan === 'yearly' ? 'Yearly' : 'Monthly'} plan
+              </p>
+              {subscription.subscription_current_period_end && (
+                <p className="text-base text-gray-500 mb-4">
+                  Next billing date: {new Date(subscription.subscription_current_period_end).toLocaleDateString()}
+                </p>
+              )}
+              <button
+                onClick={handleManageSubscription}
+                disabled={portalLoading}
+                className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-colors focus:outline-none focus:ring-4 focus:ring-gray-300 focus:ring-offset-2"
+                style={{ minHeight: '44px' }}
+              >
+                {portalLoading ? 'Opening...' : 'Manage Subscription'}
+              </button>
+            </div>
+          )}
+
+          {subscription.is_trial_active && !subscription.is_paid && (
+            <div>
+              <p className="text-lg text-gray-700 mb-1">
+                <span className="font-semibold text-blue-700">Free Trial</span>
+                {subscription.trial_ends_at && (
+                  <> &mdash; {Math.max(0, Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days remaining</>
+                )}
+              </p>
+              <p className="text-base text-gray-500 mb-4">
+                Subscribe now to continue practicing after your trial ends.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => handleSubscribe('monthly')}
+                  disabled={checkoutLoading}
+                  className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                  style={{ minHeight: '44px' }}
+                >
+                  {checkoutLoading ? 'Loading...' : 'Monthly ($9.95/mo)'}
+                </button>
+                <button
+                  onClick={() => handleSubscribe('yearly')}
+                  disabled={checkoutLoading}
+                  className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                  style={{ minHeight: '44px' }}
+                >
+                  {checkoutLoading ? 'Loading...' : 'Yearly ($99.95/yr)'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!subscription.is_paid && !subscription.is_trial_active && (
+            <div>
+              <p className="text-lg text-gray-700 mb-1">
+                <span className="font-semibold text-amber-700">
+                  {subscription.account_status === 'cancelled' ? 'Cancelled' :
+                   subscription.account_status === 'past_due' ? 'Payment Failed' :
+                   'Trial Ended'}
+                </span>
+              </p>
+              <p className="text-base text-gray-500 mb-4">
+                {subscription.account_status === 'past_due'
+                  ? 'Please update your payment method to continue practicing.'
+                  : 'Subscribe to access practice sessions.'}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                {subscription.has_subscription && subscription.account_status === 'past_due' ? (
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-colors focus:outline-none focus:ring-4 focus:ring-amber-300 focus:ring-offset-2"
+                    style={{ minHeight: '44px' }}
+                  >
+                    {portalLoading ? 'Opening...' : 'Update Payment Method'}
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleSubscribe('monthly')}
+                      disabled={checkoutLoading}
+                      className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                      style={{ minHeight: '44px' }}
+                    >
+                      {checkoutLoading ? 'Loading...' : 'Monthly ($9.95/mo)'}
+                    </button>
+                    <button
+                      onClick={() => handleSubscribe('yearly')}
+                      disabled={checkoutLoading}
+                      className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                      style={{ minHeight: '44px' }}
+                    >
+                      {checkoutLoading ? 'Loading...' : 'Yearly ($99.95/yr)'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

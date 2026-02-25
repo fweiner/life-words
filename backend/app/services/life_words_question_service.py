@@ -3,7 +3,7 @@ import random
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from app.core.database import SupabaseClient
-from app.services.utils import verify_session
+from app.services.utils import verify_session, verify_can_practice
 from app.models.life_words_questions import (
     GeneratedQuestion,
     QuestionType,
@@ -346,6 +346,8 @@ class LifeWordsQuestionService:
         self, user_id: str, session_data: LifeWordsQuestionSessionCreate
     ) -> Dict[str, Any]:
         """Create a new question-based session and generate questions."""
+        await verify_can_practice(self.db, user_id)
+
         if session_data.contact_ids:
             contacts = await self.db.query(
                 "personal_contacts",

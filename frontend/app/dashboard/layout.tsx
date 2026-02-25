@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useSubscription } from '@/lib/hooks/useSubscription'
+import { TrialBanner } from '@/components/subscription/TrialBanner'
 
 export default function DashboardLayout({
   children,
@@ -15,6 +17,7 @@ export default function DashboardLayout({
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
+  const { subscription } = useSubscription()
 
   useEffect(() => {
     const getUser = async () => {
@@ -77,6 +80,16 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {subscription && !subscription.is_paid && (
+          <TrialBanner
+            accountStatus={subscription.account_status}
+            trialEndsAt={subscription.trial_ends_at}
+            isTrialActive={subscription.is_trial_active}
+            isPaid={subscription.is_paid}
+            canPractice={subscription.can_practice}
+            hasSubscription={subscription.has_subscription}
+          />
+        )}
         <main id="main-content">
           {children}
         </main>

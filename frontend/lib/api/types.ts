@@ -140,6 +140,19 @@ export interface ErrorLogEntry {
   user_id: string | null
 }
 
+// Subscription
+export interface SubscriptionStatus {
+  account_status: string
+  trial_ends_at: string | null
+  is_trial_active: boolean
+  is_paid: boolean
+  can_practice: boolean
+  subscription_plan: string | null
+  subscription_current_period_end: string | null
+  has_stripe_customer: boolean
+  has_subscription: boolean
+}
+
 // Items
 export interface PersonalItemResponse {
   id: string

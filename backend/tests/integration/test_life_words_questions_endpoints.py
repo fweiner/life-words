@@ -66,10 +66,12 @@ def test_create_question_session_unauthorized(client):
     assert response.status_code == 401
 
 
-def test_create_question_session_success(app, client, mock_user_id, mock_db):
+def test_create_question_session_success(app, client, mock_user_id, mock_db, mocker):
     """Test successfully creating a question session."""
     from app.core.auth import get_current_user_id
     from app.core.dependencies import get_db
+
+    mocker.patch("app.services.life_words_question_service.verify_can_practice")
 
     async def override_get_current_user_id():
         return mock_user_id
@@ -97,10 +99,12 @@ def test_create_question_session_success(app, client, mock_user_id, mock_db):
     assert len(data["questions"]) == 5
 
 
-def test_create_question_session_not_enough_contacts(app, client, mock_user_id, mock_db):
+def test_create_question_session_not_enough_contacts(app, client, mock_user_id, mock_db, mocker):
     """Test that creating a question session requires at least 2 contacts."""
     from app.core.auth import get_current_user_id
     from app.core.dependencies import get_db
+
+    mocker.patch("app.services.life_words_question_service.verify_can_practice")
 
     async def override_get_current_user_id():
         return mock_user_id
@@ -375,10 +379,12 @@ def test_complete_question_session_no_responses(app, client, mock_user_id, mock_
     assert response.status_code == 200
 
 
-def test_generate_questions_produces_5_questions(app, client, mock_user_id, mock_db):
+def test_generate_questions_produces_5_questions(app, client, mock_user_id, mock_db, mocker):
     """Test that 5 questions are generated for a session."""
     from app.core.auth import get_current_user_id
     from app.core.dependencies import get_db
+
+    mocker.patch("app.services.life_words_question_service.verify_can_practice")
 
     async def override_get_current_user_id():
         return mock_user_id

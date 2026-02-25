@@ -14,6 +14,7 @@ from app.services.utils import (
     empty_to_none,
     verify_ownership,
     verify_session,
+    verify_can_practice,
     build_update_data,
     soft_delete_entity,
     list_user_entities,
@@ -165,6 +166,8 @@ class LifeWordsService:
         self, user_id: str, session_data: LifeWordsSessionCreate
     ) -> Dict[str, Any]:
         """Create a new life words session including contacts and items."""
+        await verify_can_practice(self.db, user_id)
+
         category = session_data.category
         contacts: List[Dict[str, Any]] = []
         items_as_contacts: List[Dict[str, Any]] = []

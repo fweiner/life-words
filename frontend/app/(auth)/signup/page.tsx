@@ -50,6 +50,7 @@ export default function SignupPage() {
           </h1>
           <p className="text-lg mb-6">
             Please check your email to confirm your account.
+            Your 7-day free trial starts now!
           </p>
           <p className="text-base text-gray-600 mb-8">
             We sent a confirmation link to <strong>{email}</strong>
@@ -71,6 +72,15 @@ export default function SignupPage() {
       <h1 className="text-3xl font-bold text-center mb-8 text-[var(--color-primary)]">
         Create Account
       </h1>
+
+      <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded-lg text-center">
+        <p className="text-green-800 text-lg font-semibold">
+          Start your 7-day free trial
+        </p>
+        <p className="text-green-700 text-base">
+          No credit card required. Full access to all practice features.
+        </p>
+      </div>
 
       {error && (
         <div

@@ -66,5 +66,8 @@ class ProfileResponse(BaseModel):
     match_stop_word_filtering: Optional[bool] = True
     match_synonyms: Optional[bool] = True
     match_first_name_only: Optional[bool] = True
+    # Account status
+    account_status: Optional[str] = "trial"
+    trial_ends_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime

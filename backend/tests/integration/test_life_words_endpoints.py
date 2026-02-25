@@ -3,6 +3,12 @@ import pytest
 from datetime import datetime
 
 
+@pytest.fixture(autouse=True)
+def _bypass_subscription_check(mocker):
+    """Bypass verify_can_practice for all tests in this module."""
+    mocker.patch("app.services.life_words_service.verify_can_practice")
+
+
 # ============== Status Tests ==============
 
 def test_get_status_unauthorized(client):

@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from app.config import settings
 from app.core.database import SupabaseClient
 
-VALID_ACCOUNT_STATUSES = {"trial", "paid"}
+VALID_ACCOUNT_STATUSES = {"trial", "paid", "cancelled", "past_due"}
 
 
 class AdminService:

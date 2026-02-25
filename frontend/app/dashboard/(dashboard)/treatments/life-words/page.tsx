@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 import { UnreadBadge } from '@/components/messaging/UnreadBadge'
+import { useSubscription } from '@/lib/hooks/useSubscription'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,6 +31,8 @@ export default function LifeWordsPage() {
   const [status, setStatus] = useState<LifeWordsStatus | null>(null)
   const [infoStatus, setInfoStatus] = useState<InformationStatus | null>(null)
   const [showCategoryChoice, setShowCategoryChoice] = useState(false)
+  const { subscription } = useSubscription()
+  const canPractice = subscription?.can_practice !== false
 
   useEffect(() => {
     loadStatus()
@@ -337,12 +340,28 @@ export default function LifeWordsPage() {
               </div>
             )}
 
+            {/* Subscription gate */}
+            {!canPractice && (
+              <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <p className="text-amber-800 text-lg font-semibold">
+                  Subscribe to start practicing
+                </p>
+                <Link
+                  href="/pricing"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-3 px-6 rounded-lg text-lg transition-colors whitespace-nowrap"
+                  style={{ minHeight: '44px' }}
+                >
+                  View Plans
+                </Link>
+              </div>
+            )}
+
             {/* Primary Practice Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center flex-wrap">
               <button
                 onClick={handleStartSession}
-                disabled={isStarting}
-                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                disabled={isStarting || !canPractice}
+                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                 style={{ minHeight: '44px' }}
               >
                 {isStarting ? 'Starting...' : 'Name Practice'}
@@ -350,8 +369,8 @@ export default function LifeWordsPage() {
 
               <button
                 onClick={handleStartQuestionSession}
-                disabled={isStarting}
-                className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-purple-300 focus:ring-offset-2"
+                disabled={isStarting || !canPractice}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-purple-300 focus:ring-offset-2"
                 style={{ minHeight: '44px' }}
               >
                 {isStarting ? 'Starting...' : 'Question Practice'}
@@ -359,8 +378,8 @@ export default function LifeWordsPage() {
 
               <button
                 onClick={handleStartInformationSession}
-                disabled={isStarting || !infoStatus?.can_start_session}
-                title={!infoStatus?.can_start_session ? `Fill in at least ${infoStatus?.min_fields_required || 5} fields in "My Info" to practice` : 'Practice recalling your personal information'}
+                disabled={isStarting || !canPractice || !infoStatus?.can_start_session}
+                title={!canPractice ? 'Subscribe to access practice sessions' : !infoStatus?.can_start_session ? `Fill in at least ${infoStatus?.min_fields_required || 5} fields in "My Info" to practice` : 'Practice recalling your personal information'}
                 className="bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-teal-300 focus:ring-offset-2"
                 style={{ minHeight: '44px' }}
               >

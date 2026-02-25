@@ -3,7 +3,7 @@ import random
 from typing import List, Dict, Any
 from fastapi import HTTPException
 from app.core.database import SupabaseClient
-from app.services.utils import verify_session
+from app.services.utils import verify_session, verify_can_practice
 from app.models.life_words_information import (
     InformationItem,
     LifeWordsInformationResponseCreate,
@@ -259,6 +259,8 @@ class LifeWordsInformationService:
 
     async def create_session(self, user_id: str) -> Dict[str, Any]:
         """Create a new information practice session with up to 5 random items."""
+        await verify_can_practice(self.db, user_id)
+
         profiles = await self.db.query(
             "profiles", select="*", filters={"id": user_id}
         )
