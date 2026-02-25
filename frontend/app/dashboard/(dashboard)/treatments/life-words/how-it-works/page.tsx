@@ -340,7 +340,7 @@ export default function HowItWorksPage() {
                     <span className="inline-flex items-center bg-gray-100 border border-gray-300 rounded px-2 py-1 mx-1">
                       <span className="text-lg mr-1">⚙️</span> Settings
                     </span>
-                    <span> in the sidebar menu</span>
+                    <span> on the Life Words home page</span>
                   </div>
                 </li>
                 <li className="flex items-start">
