@@ -33,9 +33,18 @@ interface PersonalizedCueSystemProps {
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   spouse: 'your spouse',
+  partner: 'your partner',
+  son: 'your son',
+  daughter: 'your daughter',
   child: 'your child',
+  grandson: 'your grandson',
+  granddaughter: 'your granddaughter',
   grandchild: 'your grandchild',
+  mother: 'your mother',
+  father: 'your father',
   parent: 'your parent',
+  brother: 'your brother',
+  sister: 'your sister',
   sibling: 'your sibling',
   friend: 'your friend',
   pet: 'your pet',
@@ -87,10 +96,11 @@ function getCueTypes(contact: PersonalContact) {
   const relationshipLabel = RELATIONSHIP_LABELS[contact.relationship] || contact.relationship
 
   // Level 1: First letter (always available)
+  const firstLetter = contact.first_letter || contact.name[0].toUpperCase()
   cues.push({
     level: 1,
     name: 'First Letter',
-    getText: () => `The name starts with '${contact.first_letter || contact.name[0].toUpperCase()}'`
+    getText: () => `The name starts with the letter ${firstLetter}`
   })
 
   // Level 2: Relationship (always available)
@@ -131,11 +141,11 @@ function getCueTypes(contact: PersonalContact) {
   }
 
   // Level 4: Phonemic cue (first syllable approximation)
-  const firstTwoLetters = contact.name.substring(0, Math.min(3, contact.name.length))
+  const firstSyllable = contact.name.substring(0, Math.min(3, contact.name.length))
   cues.push({
     level: 4,
     name: 'Phonemic',
-    getText: () => `The name sounds like '${firstTwoLetters}...'`
+    getText: () => `The name starts with "${firstSyllable}"`
   })
 
   // Level 5: Association, Interests, Social Behavior, or Location (meaningful memory cues)
@@ -190,7 +200,7 @@ function getCueTypes(contact: PersonalContact) {
   cues.push({
     level: 7,
     name: 'Say Together',
-    getText: () => `Say the name with me: ${contact.name}`
+    getText: () => `Repeat after me: ${contact.name}`
   })
 
   return cues
@@ -246,16 +256,13 @@ export function PersonalizedCueSystem({
     setIsShowingFinalAnswer(true)
     setHasSpoken(false)
 
-    try {
-      const isItem = contact.relationship === 'item'
-      const phrase = isItem ? getItemPhrase(contact.name) : `This is ${contact.name}`
-      await speak(phrase, { gender: voiceGender })
-    } catch (error) {
-      console.warn('Failed to speak final answer:', error)
-    }
+    // No need to speak the name again — Level 6 ("The name is: X")
+    // and Level 7 ("Repeat after me: X") already revealed it.
+    // Just pause briefly before moving on.
+    await new Promise(resolve => setTimeout(resolve, 2000))
 
     onFinalAnswer()
-  }, [contact.name, contact.relationship, voiceGender, onFinalAnswer])
+  }, [onFinalAnswer])
 
   useEffect(() => {
     if (currentCueLevel > 7) {
