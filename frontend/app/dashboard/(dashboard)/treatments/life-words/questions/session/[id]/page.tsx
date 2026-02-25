@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Image from 'next/image'
 import SpeechRecognitionButton from '@/components/shared/SpeechRecognitionButton'
-import { speak, waitForVoices } from '@/lib/utils/textToSpeech'
+import { speak, stopSpeaking, waitForVoices } from '@/lib/utils/textToSpeech'
 import { useVoicePreference } from '@/hooks/useVoicePreference'
 import { getRandomPositiveFeedback } from '@/lib/utils/positiveFeedback'
 import { evaluateQuestionAnswer } from '@/lib/api/matching'
@@ -15,6 +15,7 @@ interface PersonalContact {
   id: string
   name: string
   nickname?: string
+  pronunciation?: string
   relationship: string
   photo_url: string
   interests?: string
@@ -230,6 +231,13 @@ export default function LifeWordsQuestionSessionPage() {
   const questionStartTimeRef = useRef(0)
   const pendingSavesRef = useRef<Promise<void>[]>([])
   const hasSpokenForCurrentQuestionRef = useRef(false)
+  const hasSpokenFirstStudyRef = useRef(false)
+  const voiceGenderRef = useRef(voiceGender)
+
+  // Keep voiceGender ref in sync without re-triggering effects
+  useEffect(() => {
+    voiceGenderRef.current = voiceGender
+  }, [voiceGender])
 
   const initializeSession = useCallback(async () => {
     try {
@@ -381,6 +389,15 @@ export default function LifeWordsQuestionSessionPage() {
 
   // ==================== STUDY PHASE ====================
 
+  // Get TTS-friendly text for a question, substituting pronunciation for contact names
+  const getSpokenText = (question: GeneratedQuestion, text: string) => {
+    const contact = contacts.find(c => c.id === question.contact_id)
+    if (contact?.pronunciation) {
+      return text.replaceAll(contact.name, contact.pronunciation)
+    }
+    return text
+  }
+
   const handleStudyNext = async () => {
     if (studyIndex < questions.length - 1) {
       const nextIndex = studyIndex + 1
@@ -389,7 +406,9 @@ export default function LifeWordsQuestionSessionPage() {
       // Speak the next answer
       const nextQ = questions[nextIndex]
       try {
-        await speak(`${nextQ.question_text} The answer is: ${nextQ.expected_answer}`, { gender: voiceGender })
+        const spokenQuestion = getSpokenText(nextQ, nextQ.question_text)
+        const spokenAnswer = getSpokenText(nextQ, nextQ.expected_answer)
+        await speak(`${spokenQuestion} The answer is: ${spokenAnswer}`, { gender: voiceGender })
       } catch (e) {
         console.warn('TTS failed:', e)
       }
@@ -400,6 +419,9 @@ export default function LifeWordsQuestionSessionPage() {
   }
 
   const startQuizPhase = () => {
+    // Stop any lingering study phase TTS before quiz begins
+    stopSpeaking()
+
     setPhase('quiz')
     setCurrentIndex(0)
     currentIndexRef.current = 0
@@ -415,21 +437,24 @@ export default function LifeWordsQuestionSessionPage() {
     questionStartTimeRef.current = startTime
   }
 
-  // Speak study item when it changes
+  // Speak first study item when study phase begins (uses ref to avoid double-fire)
   useEffect(() => {
-    if (phase === 'study' && questions.length > 0 && studyIndex === 0) {
+    if (phase === 'study' && questions.length > 0 && studyIndex === 0 && !hasSpokenFirstStudyRef.current) {
+      hasSpokenFirstStudyRef.current = true
       const speakFirst = async () => {
         try {
           await waitForVoices()
           const q = questions[0]
-          await speak(`${q.question_text} The answer is: ${q.expected_answer}`, { gender: voiceGender })
+          const spokenQuestion = getSpokenText(q, q.question_text)
+          const spokenAnswer = getSpokenText(q, q.expected_answer)
+          await speak(`${spokenQuestion} The answer is: ${spokenAnswer}`, { gender: voiceGenderRef.current })
         } catch (e) {
           console.warn('TTS failed:', e)
         }
       }
       speakFirst()
     }
-  }, [phase, questions, studyIndex, voiceGender])
+  }, [phase, questions, studyIndex])
 
   // ==================== QUIZ PHASE ====================
 
@@ -513,7 +538,8 @@ export default function LifeWordsQuestionSessionPage() {
           setCurrentCue(null)
 
           saveResponse(currentQ, transcript, evaluation, responseTime, cuesUsedForQuestion)
-          await speak(`The answer was ${currentQ.expected_answer}`, { gender: voiceGender })
+          const spokenAnswer = getSpokenText(currentQ, currentQ.expected_answer)
+          await speak(`The answer was ${spokenAnswer}`, { gender: voiceGender })
 
           // Move to next after delay
           setTimeout(() => {
@@ -945,7 +971,8 @@ export default function LifeWordsQuestionSessionPage() {
                   if (!hasSpokenForCurrentQuestionRef.current) {
                     hasSpokenForCurrentQuestionRef.current = true
                     try {
-                      const questionText = currentQuestionRef.current?.question_text || ''
+                      const currentQ = currentQuestionRef.current
+                      const questionText = currentQ ? getSpokenText(currentQ, currentQ.question_text) : ''
                       const isFirstQuestion = currentIndexRef.current === 0
                       const prompt = isFirstQuestion
                         ? "Now let's see what you remember. " + questionText
