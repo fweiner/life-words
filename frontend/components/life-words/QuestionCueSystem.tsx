@@ -85,10 +85,10 @@ function getCueTypes(question: GeneratedQuestion) {
     getText: () => {
       if (wordCount > 1) {
         const firstWord = answer.split(' ')[0]
-        return `The answer starts with "${firstWord}"`
+        return `The answer starts with ${firstWord}`
       } else {
         const halfLength = Math.ceil(answer.length / 2)
-        return `The answer starts with "${answer.substring(0, halfLength)}"`
+        return `The answer starts with ${answer.substring(0, halfLength)}`
       }
     }
   })

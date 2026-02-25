@@ -160,9 +160,9 @@ export default function InformationPracticeSessionPage() {
       address_zip: { label: 'zip code', teachTemplate: 'Your zip code is {value}', question: 'What is your zip code?', hintType: 'first_digit' },
       date_of_birth: { label: 'birthday', teachTemplate: 'Your birthday is {value}', question: 'When is your birthday?', hintType: 'first_letter' },
       full_name: { label: 'full name', teachTemplate: 'Your full name is {value}', question: 'What is your full name?', hintType: 'first_letter' },
-      job: { label: 'job', teachTemplate: 'Your job is {value}', question: 'What is your job?', hintType: 'first_letter' },
-      marital_status: { label: 'marital status', teachTemplate: 'Your marital status is {value}', question: 'What is your marital status?', hintType: 'first_letter' },
-      number_of_children: { label: 'number of children', teachTemplate: 'You have {value} children', question: 'How many children do you have?', hintType: 'first_digit' },
+      job: { label: 'job', teachTemplate: 'Your job is: {value}', question: 'What is your job?', hintType: 'first_letter' },
+      marital_status: { label: 'marital status', teachTemplate: 'You are {value}', question: 'What is your marital status?', hintType: 'first_letter' },
+      number_of_children: { label: 'number of children', teachTemplate: 'You have {value}', question: 'How many children do you have?', hintType: 'first_digit' },
       favorite_food: { label: 'favorite food', teachTemplate: 'Your favorite food is {value}', question: 'What is your favorite food?', hintType: 'first_letter' },
       favorite_music: { label: 'favorite music', teachTemplate: 'Your favorite music is {value}', question: 'What is your favorite music?', hintType: 'first_letter' },
       hair_color: { label: 'hair color', teachTemplate: 'Your hair color is {value}', question: 'What is your hair color?', hintType: 'first_letter' },
@@ -242,7 +242,7 @@ export default function InformationPracticeSessionPage() {
     const shuffled = filledFields.sort(() => Math.random() - 0.5).slice(0, 5)
 
     return shuffled.map(({ fieldName, config, value }) => {
-      const displayValue = fieldName === 'date_of_birth' ? formatDate(value) : String(value)
+      let displayValue = fieldName === 'date_of_birth' ? formatDate(value) : String(value)
       // Format for TTS (spoken version - digits read individually, abbreviations expanded)
       let ttsValue = displayValue
       if (fieldName === 'phone_number') {
@@ -257,6 +257,12 @@ export default function InformationPracticeSessionPage() {
         if (pronunciation && String(pronunciation).trim()) {
           ttsValue = String(pronunciation)
         }
+      } else if (fieldName === 'number_of_children') {
+        const count = parseInt(String(value), 10)
+        const childWord = isNaN(count) || count !== 1 ? 'children' : 'child'
+        const formatted = `${isNaN(count) ? String(value) : count} ${childWord}`
+        displayValue = formatted
+        ttsValue = formatted
       }
       const hintValue = fieldName === 'date_of_birth' ? displayValue.split(' ')[0] || displayValue : displayValue
       return {

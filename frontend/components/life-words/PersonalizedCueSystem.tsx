@@ -145,7 +145,7 @@ function getCueTypes(contact: PersonalContact) {
   cues.push({
     level: 4,
     name: 'Phonemic',
-    getText: () => `The name starts with "${firstSyllable}"`
+    getText: () => `The name sounds like ${firstSyllable}`
   })
 
   // Level 5: Association, Interests, Social Behavior, or Location (meaningful memory cues)
