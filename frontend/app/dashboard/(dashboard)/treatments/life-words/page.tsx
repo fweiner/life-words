@@ -29,6 +29,7 @@ export default function LifeWordsPage() {
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<LifeWordsStatus | null>(null)
   const [infoStatus, setInfoStatus] = useState<InformationStatus | null>(null)
+  const [showCategoryChoice, setShowCategoryChoice] = useState(false)
 
   useEffect(() => {
     loadStatus()
@@ -55,12 +56,27 @@ export default function LifeWordsPage() {
     }
   }
 
-  const handleStartSession = async () => {
+  const handleStartSession = () => {
+    setError(null)
+    const hasPeople = (status?.contact_count || 0) > 0
+    const hasStuff = (status?.item_count || 0) > 0
+
+    if (hasPeople && hasStuff) {
+      setShowCategoryChoice(true)
+    } else if (hasPeople) {
+      startSessionWithCategory('people')
+    } else {
+      startSessionWithCategory('items')
+    }
+  }
+
+  const startSessionWithCategory = async (category: string) => {
     setIsStarting(true)
+    setShowCategoryChoice(false)
     setError(null)
 
     try {
-      const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/sessions', {})
+      const sessionData = await apiClient.post<{ session: { id: string } }>('/api/life-words/sessions', { category })
       router.push(`/dashboard/treatments/life-words/session/${sessionData.session.id}`)
 
     } catch (err: unknown) {
@@ -285,6 +301,39 @@ export default function LifeWordsPage() {
             {error && (
               <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 mb-6">
                 <p className="text-red-700 text-lg font-semibold">Error: {error}</p>
+              </div>
+            )}
+
+            {/* Category Choice Dialog */}
+            {showCategoryChoice && (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
+                <h3 className="text-2xl font-bold mb-4 text-gray-900 text-center">
+                  What would you like to practice?
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => startSessionWithCategory('people')}
+                    disabled={isStarting}
+                    className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
+                    style={{ minHeight: '44px' }}
+                  >
+                    People ({status?.contact_count})
+                  </button>
+                  <button
+                    onClick={() => startSessionWithCategory('items')}
+                    disabled={isStarting}
+                    className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-bold py-6 px-12 rounded-lg text-2xl transition-colors focus:outline-none focus:ring-4 focus:ring-orange-300 focus:ring-offset-2"
+                    style={{ minHeight: '44px' }}
+                  >
+                    Stuff ({status?.item_count})
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowCategoryChoice(false)}
+                  className="mt-4 text-gray-500 hover:text-gray-700 text-lg underline mx-auto block"
+                >
+                  Cancel
+                </button>
               </div>
             )}
 

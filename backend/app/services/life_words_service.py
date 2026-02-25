@@ -1,4 +1,5 @@
 """Life Words service for managing contacts, items, sessions, and progress."""
+import random
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from app.core.database import SupabaseClient
@@ -19,6 +20,7 @@ from app.services.utils import (
 )
 
 MIN_CONTACTS_REQUIRED = 2
+MAX_SESSION_ENTRIES = 6
 CONTACTS_TABLE = "personal_contacts"
 ITEMS_TABLE = "personal_items"
 SESSIONS_TABLE = "life_words_sessions"
@@ -163,34 +165,46 @@ class LifeWordsService:
         self, user_id: str, session_data: LifeWordsSessionCreate
     ) -> Dict[str, Any]:
         """Create a new life words session including contacts and items."""
-        if session_data.contact_ids:
-            contacts = await self.db.query(
-                CONTACTS_TABLE,
+        category = session_data.category
+        contacts: List[Dict[str, Any]] = []
+        items_as_contacts: List[Dict[str, Any]] = []
+
+        # Fetch contacts unless filtering to items only
+        if category != "items":
+            if session_data.contact_ids:
+                contacts = await self.db.query(
+                    CONTACTS_TABLE,
+                    select="*",
+                    filters={"user_id": user_id, "is_active": True, "is_complete": True}
+                )
+                contacts = [c for c in contacts if c["id"] in session_data.contact_ids]
+            else:
+                contacts = await self.db.query(
+                    CONTACTS_TABLE,
+                    select="*",
+                    filters={"user_id": user_id, "is_active": True, "is_complete": True}
+                )
+            contacts = contacts or []
+
+        # Fetch items unless filtering to people only
+        if category != "people":
+            items = await self.db.query(
+                ITEMS_TABLE,
                 select="*",
                 filters={"user_id": user_id, "is_active": True, "is_complete": True}
             )
-            contacts = [c for c in contacts if c["id"] in session_data.contact_ids]
-        else:
-            contacts = await self.db.query(
-                CONTACTS_TABLE,
-                select="*",
-                filters={"user_id": user_id, "is_active": True, "is_complete": True}
-            )
+            items_as_contacts = convert_items_to_contacts(items or [])
 
-        items = await self.db.query(
-            ITEMS_TABLE,
-            select="*",
-            filters={"user_id": user_id, "is_active": True, "is_complete": True}
-        )
-
-        items_as_contacts = convert_items_to_contacts(items or [])
-        all_entries = (contacts or []) + items_as_contacts
+        all_entries = contacts + items_as_contacts
 
         if not all_entries or len(all_entries) < MIN_CONTACTS_REQUIRED:
             raise HTTPException(
                 status_code=400,
                 detail=f"At least {MIN_CONTACTS_REQUIRED} contacts or items required to start a session"
             )
+
+        random.shuffle(all_entries)
+        all_entries = all_entries[:MAX_SESSION_ENTRIES]
 
         contact_ids = [c["id"] for c in all_entries]
 

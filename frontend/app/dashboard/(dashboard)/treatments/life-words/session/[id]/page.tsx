@@ -526,6 +526,14 @@ export default function LifeWordsSessionPage() {
           >
             Start Session
           </button>
+          <div className="mt-6">
+            <button
+              onClick={() => router.push('/dashboard/treatments/life-words')}
+              className="text-gray-500 hover:text-gray-700 underline text-lg"
+            >
+              ← Back
+            </button>
+          </div>
         </div>
       </div>
     )

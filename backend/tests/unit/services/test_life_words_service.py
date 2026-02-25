@@ -460,6 +460,118 @@ async def test_create_session_not_enough_entries(mock_db):
     assert "At least" in exc_info.value.detail
 
 
+@pytest.mark.asyncio
+async def test_create_session_category_people(mock_db):
+    """Test creating a session with category='people' only fetches contacts."""
+    from app.services.life_words_service import LifeWordsService
+    from app.models.life_words import LifeWordsSessionCreate
+
+    contact2 = {**SAMPLE_CONTACT, "id": "contact-456", "name": "Jane"}
+    mock_db.query.side_effect = [
+        [SAMPLE_CONTACT, contact2],  # contacts query
+        # no items query — should not be called
+    ]
+    mock_db.insert.return_value = [SAMPLE_SESSION]
+
+    service = LifeWordsService(mock_db)
+    result = await service.create_session(
+        "user-123",
+        LifeWordsSessionCreate(category="people")
+    )
+
+    assert "session" in result
+    # Only contacts, no items
+    assert len(result["contacts"]) == 2
+    for entry in result["contacts"]:
+        assert entry["relationship"] != "item"
+    # Items table should not have been queried
+    assert mock_db.query.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_create_session_category_items(mock_db):
+    """Test creating a session with category='items' only fetches items."""
+    from app.services.life_words_service import LifeWordsService
+    from app.models.life_words import LifeWordsSessionCreate
+
+    item2 = {**SAMPLE_ITEM, "id": "item-789", "name": "Wallet"}
+    mock_db.query.side_effect = [
+        [SAMPLE_ITEM, item2],  # items query
+        # no contacts query — should not be called
+    ]
+    mock_db.insert.return_value = [SAMPLE_SESSION]
+
+    service = LifeWordsService(mock_db)
+    result = await service.create_session(
+        "user-123",
+        LifeWordsSessionCreate(category="items")
+    )
+
+    assert "session" in result
+    # Only items (converted to contact format), no contacts
+    assert len(result["contacts"]) == 2
+    for entry in result["contacts"]:
+        assert entry["relationship"] == "item"
+    # Contacts table should not have been queried
+    assert mock_db.query.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_create_session_limits_to_six_entries(mock_db):
+    """Test creating a session limits entries to 6."""
+    from app.services.life_words_service import LifeWordsService
+    from app.models.life_words import LifeWordsSessionCreate
+
+    # Create 10 contacts
+    contacts = [
+        {**SAMPLE_CONTACT, "id": f"contact-{i}", "name": f"Person {i}"}
+        for i in range(10)
+    ]
+    mock_db.query.side_effect = [
+        contacts,  # contacts query
+        [],        # items query
+    ]
+    mock_db.insert.return_value = [SAMPLE_SESSION]
+
+    service = LifeWordsService(mock_db)
+    result = await service.create_session(
+        "user-123",
+        LifeWordsSessionCreate()
+    )
+
+    assert len(result["contacts"]) == 6
+    # Verify the IDs in the insert call are also limited to 6
+    insert_data = mock_db.insert.call_args.args[1]
+    assert len(insert_data["contact_ids"]) == 6
+
+
+@pytest.mark.asyncio
+async def test_create_session_shuffles_entries(mock_db, mocker):
+    """Test creating a session shuffles entries."""
+    from app.services.life_words_service import LifeWordsService
+    from app.models.life_words import LifeWordsSessionCreate
+
+    contacts = [
+        {**SAMPLE_CONTACT, "id": f"contact-{i}", "name": f"Person {i}"}
+        for i in range(3)
+    ]
+    mock_db.query.side_effect = [
+        contacts,  # contacts query
+        [],        # items query
+    ]
+    mock_db.insert.return_value = [SAMPLE_SESSION]
+
+    mock_shuffle = mocker.patch("app.services.life_words_service.random.shuffle")
+
+    service = LifeWordsService(mock_db)
+    await service.create_session(
+        "user-123",
+        LifeWordsSessionCreate()
+    )
+
+    mock_shuffle.assert_called_once()
+
+
 # ---- get_session ----
 
 

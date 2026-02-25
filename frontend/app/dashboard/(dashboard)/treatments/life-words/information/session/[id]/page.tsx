@@ -793,7 +793,7 @@ export default function InformationPracticeSessionPage() {
               onClick={handleDone}
               className="text-gray-500 hover:text-gray-700 underline text-lg"
             >
-              Done for now
+              ← Back
             </button>
           </div>
         </div>

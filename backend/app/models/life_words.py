@@ -83,6 +83,7 @@ class LifeWordsStatusResponse(BaseModel):
 class LifeWordsSessionCreate(BaseModel):
     """Create life words session request."""
     contact_ids: Optional[list[str]] = None  # None = use all active contacts
+    category: Optional[str] = None  # "people", "items", or None for all
 
 
 class LifeWordsSessionResponse(BaseModel):
