@@ -703,20 +703,18 @@ async def test_complete_session(mock_db):
 
 @pytest.mark.asyncio
 async def test_complete_session_no_responses(mock_db):
-    """Test completing a session with no responses raises 400."""
+    """Test completing a session with no responses still succeeds with zero stats."""
     from app.services.life_words_service import LifeWordsService
 
     mock_db.query.side_effect = [
         [SAMPLE_SESSION],  # session found
         [],                 # no responses
     ]
+    mock_db.update.return_value = {**SAMPLE_SESSION, "is_completed": True}
 
     service = LifeWordsService(mock_db)
-    with pytest.raises(HTTPException) as exc_info:
-        await service.complete_session("session-789", "user-123")
-
-    assert exc_info.value.status_code == 400
-    assert "No responses" in exc_info.value.detail
+    result = await service.complete_session("session-789", "user-123")
+    assert "session" in result
 
 
 @pytest.mark.asyncio

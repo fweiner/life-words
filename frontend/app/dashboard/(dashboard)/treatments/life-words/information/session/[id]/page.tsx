@@ -81,6 +81,7 @@ export default function InformationPracticeSessionPage() {
   const isTeachingSpeakingRef = useRef(false)
   const currentItemRef = useRef<InformationItem | null>(null)
   const currentIndexRef = useRef(0)
+  const pendingSavesRef = useRef<Promise<void>[]>([])
   const questionStartTimeRef = useRef(0)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const phaseRef = useRef<SessionPhase>('teach')
@@ -646,7 +647,11 @@ export default function InformationPracticeSessionPage() {
         }
       }
     }
-    trySave(0)
+    const savePromise = trySave(0)
+    pendingSavesRef.current.push(savePromise)
+    savePromise.finally(() => {
+      pendingSavesRef.current = pendingSavesRef.current.filter(p => p !== savePromise)
+    })
   }
 
   const moveToNext = async () => {
@@ -730,6 +735,11 @@ export default function InformationPracticeSessionPage() {
     setPhase('completed')
     phaseRef.current = 'completed'
     setIsAnswering(false)
+
+    // Wait for any in-flight response saves to finish
+    if (pendingSavesRef.current.length > 0) {
+      await Promise.allSettled(pendingSavesRef.current)
+    }
 
     try {
       await apiClient.put(`/api/life-words/information-sessions/${session.id}/complete`)

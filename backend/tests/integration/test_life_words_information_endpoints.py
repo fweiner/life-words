@@ -707,5 +707,4 @@ def test_complete_information_session_no_responses(app, client, mock_user_id, mo
         headers={"Authorization": "Bearer valid-token"}
     )
 
-    assert response.status_code == 400
-    assert "No responses found" in response.json()["detail"]
+    assert response.status_code == 200

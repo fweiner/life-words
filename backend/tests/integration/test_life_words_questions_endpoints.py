@@ -372,8 +372,7 @@ def test_complete_question_session_no_responses(app, client, mock_user_id, mock_
         headers={"Authorization": "Bearer test-token"}
     )
 
-    assert response.status_code == 400
-    assert "No responses found" in response.json()["detail"]
+    assert response.status_code == 200
 
 
 def test_generate_questions_produces_5_questions(app, client, mock_user_id, mock_db):

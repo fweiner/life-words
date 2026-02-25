@@ -454,26 +454,23 @@ class LifeWordsQuestionService:
             select="*",
             filters={"session_id": session_id}
         )
-        if not responses:
-            raise HTTPException(status_code=400, detail="No responses found")
+        total_correct = sum(1 for r in responses if r["is_correct"]) if responses else 0
+        total_partial = sum(1 for r in responses if r["is_partial"] and not r["is_correct"]) if responses else 0
 
-        total_correct = sum(1 for r in responses if r["is_correct"])
-        total_partial = sum(1 for r in responses if r["is_partial"] and not r["is_correct"])
-
-        response_times = [r["response_time"] for r in responses if r["response_time"]]
+        response_times = [r["response_time"] for r in responses if r["response_time"]] if responses else []
         avg_response_time = sum(response_times) / len(response_times) if response_times else 0
 
-        clarity_scores = [r["clarity_score"] for r in responses if r["clarity_score"] is not None]
+        clarity_scores = [r["clarity_score"] for r in responses if r["clarity_score"] is not None] if responses else []
         avg_clarity = sum(clarity_scores) / len(clarity_scores) if clarity_scores else 0
 
-        correctness_scores = [r["correctness_score"] for r in responses if r["correctness_score"] is not None]
+        correctness_scores = [r["correctness_score"] for r in responses if r["correctness_score"] is not None] if responses else []
         avg_correctness = sum(correctness_scores) / len(correctness_scores) if correctness_scores else 0
 
         statistics = {
-            "total_questions": len(responses),
+            "total_questions": len(responses) if responses else 0,
             "total_correct": total_correct,
             "total_partial": total_partial,
-            "accuracy_percentage": round((total_correct / len(responses)) * 100, 1),
+            "accuracy_percentage": round((total_correct / len(responses)) * 100, 1) if responses else 0,
             "average_response_time_ms": round(avg_response_time, 0),
             "average_clarity_score": round(avg_clarity, 2),
             "average_correctness_score": round(avg_correctness, 2),

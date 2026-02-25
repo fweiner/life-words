@@ -353,18 +353,15 @@ class LifeWordsInformationService:
             select="*",
             filters={"session_id": session_id}
         )
-        if not responses:
-            raise HTTPException(status_code=400, detail="No responses found")
-
-        total_correct = sum(1 for r in responses if r["is_correct"])
-        total_hints_used = sum(1 for r in responses if r["used_hint"])
-        total_timeouts = sum(1 for r in responses if r["timed_out"])
+        total_correct = sum(1 for r in responses if r["is_correct"]) if responses else 0
+        total_hints_used = sum(1 for r in responses if r["used_hint"]) if responses else 0
+        total_timeouts = sum(1 for r in responses if r["timed_out"]) if responses else 0
 
         response_times = [r["response_time"] for r in responses if r["response_time"]]
         avg_response_time = sum(response_times) / len(response_times) if response_times else 0
 
         statistics = {
-            "total_items": len(responses),
+            "total_items": len(responses) if responses else 0,
             "total_correct": total_correct,
             "total_hints_used": total_hints_used,
             "total_timeouts": total_timeouts,

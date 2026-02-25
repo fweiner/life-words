@@ -281,17 +281,15 @@ class LifeWordsService:
             select="*",
             filters={"session_id": session_id}
         )
-        if not responses:
-            raise HTTPException(status_code=400, detail="No responses found")
 
-        total_correct = sum(1 for r in responses if r["is_correct"])
-        total_incorrect = len(responses) - total_correct
-        avg_cues = sum(r["cues_used"] for r in responses) / len(responses)
-        avg_time = sum(float(r["response_time"] or 0) for r in responses) / len(responses)
+        total_correct = sum(1 for r in responses if r["is_correct"]) if responses else 0
+        total_incorrect = (len(responses) - total_correct) if responses else 0
+        avg_cues = (sum(r["cues_used"] for r in responses) / len(responses)) if responses else 0
+        avg_time = (sum(float(r["response_time"] or 0) for r in responses) / len(responses)) if responses else 0
 
         statistics = {
             "responses_count": len(responses),
-            "accuracy_percentage": round((total_correct / len(responses)) * 100, 1),
+            "accuracy_percentage": round((total_correct / len(responses)) * 100, 1) if responses else 0,
             "by_contact": {}
         }
         for r in responses:

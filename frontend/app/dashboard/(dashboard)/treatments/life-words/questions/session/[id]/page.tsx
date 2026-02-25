@@ -228,6 +228,7 @@ export default function LifeWordsQuestionSessionPage() {
   const currentQuestionRef = useRef<GeneratedQuestion | null>(null)
   const currentIndexRef = useRef(0)
   const questionStartTimeRef = useRef(0)
+  const pendingSavesRef = useRef<Promise<void>[]>([])
 
   const initializeSession = useCallback(async () => {
     try {
@@ -578,7 +579,11 @@ export default function LifeWordsQuestionSessionPage() {
         }
       }
     }
-    trySave(0)
+    const savePromise = trySave(0)
+    pendingSavesRef.current.push(savePromise)
+    savePromise.finally(() => {
+      pendingSavesRef.current = pendingSavesRef.current.filter(p => p !== savePromise)
+    })
   }
 
   const moveToNext = async () => {
@@ -618,6 +623,11 @@ export default function LifeWordsQuestionSessionPage() {
 
     setPhase('completed')
     setIsAnswering(false)
+
+    // Wait for any in-flight response saves to finish
+    if (pendingSavesRef.current.length > 0) {
+      await Promise.allSettled(pendingSavesRef.current)
+    }
 
     try {
       const data = await apiClient.put<Record<string, unknown>>(

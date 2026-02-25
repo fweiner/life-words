@@ -84,6 +84,7 @@ export default function LifeWordsSessionPage() {
   const currentIndexRef = useRef(0)
   const hasSpokenFirstPromptRef = useRef(false)
   const isTeachingSpeakingRef = useRef(false)
+  const pendingSavesRef = useRef<Promise<void>[]>([])
 
   // Request microphone permission first, before loading session
   useEffect(() => {
@@ -459,11 +460,15 @@ export default function LifeWordsSessionPage() {
           await new Promise(r => setTimeout(r, 1000))
           await trySave(attempt + 1)
         } else {
-          console.warn('Could not save response after retries — will be counted in session completion')
+          console.warn('Could not save response after retries')
         }
       }
     }
-    trySave(0)
+    const savePromise = trySave(0)
+    pendingSavesRef.current.push(savePromise)
+    savePromise.finally(() => {
+      pendingSavesRef.current = pendingSavesRef.current.filter(p => p !== savePromise)
+    })
   }
 
   const moveToNext = async () => {
@@ -501,6 +506,11 @@ export default function LifeWordsSessionPage() {
 
     setIsCompleted(true)
     setIsAnswering(false)
+
+    // Wait for any in-flight response saves to finish
+    if (pendingSavesRef.current.length > 0) {
+      await Promise.allSettled(pendingSavesRef.current)
+    }
 
     try {
       await apiClient.put(`/api/life-words/sessions/${session.id}/complete`)
