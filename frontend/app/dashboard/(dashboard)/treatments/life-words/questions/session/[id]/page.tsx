@@ -233,11 +233,15 @@ export default function LifeWordsQuestionSessionPage() {
   const hasSpokenForCurrentQuestionRef = useRef(false)
   const hasSpokenFirstStudyRef = useRef(false)
   const voiceGenderRef = useRef(voiceGender)
+  const contactsRef = useRef<PersonalContact[]>([])
 
-  // Keep voiceGender ref in sync without re-triggering effects
+  // Keep refs in sync without re-triggering effects
   useEffect(() => {
     voiceGenderRef.current = voiceGender
   }, [voiceGender])
+  useEffect(() => {
+    contactsRef.current = contacts
+  }, [contacts])
 
   const initializeSession = useCallback(async () => {
     try {
@@ -361,7 +365,8 @@ export default function LifeWordsQuestionSessionPage() {
     })
 
     // Question 5: Name from description
-    const hint = c1.interests || c1.personality || 'is special to you'
+    // Interests work as-is ("enjoys cooking"), but personality needs "is" ("is friendly")
+    const hint = c1.interests || (c1.personality ? `is ${c1.personality}` : 'is special to you')
     let q5Text: string
     if (c1.relationship === 'other') {
       q5Text = `Who is someone special to you who ${hint}?`
@@ -391,7 +396,9 @@ export default function LifeWordsQuestionSessionPage() {
 
   // Get TTS-friendly text for a question, substituting pronunciation for contact names
   const getSpokenText = (question: GeneratedQuestion, text: string) => {
-    const contact = contacts.find(c => c.id === question.contact_id)
+    // Use ref to always get latest contacts (avoids stale closure in effects/callbacks)
+    const allContacts = contactsRef.current.length > 0 ? contactsRef.current : contacts
+    const contact = allContacts.find(c => c.id === question.contact_id)
     if (contact?.pronunciation) {
       return text.replaceAll(contact.name, contact.pronunciation)
     }
