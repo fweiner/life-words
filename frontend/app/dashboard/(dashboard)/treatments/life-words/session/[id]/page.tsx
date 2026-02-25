@@ -338,7 +338,7 @@ export default function LifeWordsSessionPage() {
         : prev.confidenceScores,
     }))
 
-    await saveResponse(true, userAnswer, undefined, responseTime, confidence)
+    saveResponse(true, userAnswer, undefined, responseTime, confidence)
 
     try {
       const feedbackMessage = getRandomPositiveFeedback()
@@ -373,7 +373,7 @@ export default function LifeWordsSessionPage() {
           : prev.confidenceScores,
       }))
 
-      await saveResponse(true, userAnswer, totalCues, responseTime, confidence)
+      saveResponse(true, userAnswer, totalCues, responseTime, confidence)
       try {
         const feedbackMessage = getRandomPositiveFeedback()
         await speak(feedbackMessage, { gender: voiceGender })
@@ -405,7 +405,7 @@ export default function LifeWordsSessionPage() {
       responseTimes: [...prev.responseTimes, responseTime],
     }))
 
-    await saveResponse(false, null, 7, responseTime)
+    saveResponse(false, null, 7, responseTime)
     moveToNext()
   }
 
@@ -423,12 +423,12 @@ export default function LifeWordsSessionPage() {
       responseTimes: [...prev.responseTimes, responseTime],
     }))
 
-    await saveResponse(false, null, 0, responseTime)
+    saveResponse(false, null, 0, responseTime)
     // Move directly to next item without showing hints or try again
     moveToNext()
   }
 
-  const saveResponse = async (
+  const saveResponse = (
     isCorrect: boolean,
     userAnswer: string | null,
     cuesUsedOverride?: number,
@@ -440,19 +440,30 @@ export default function LifeWordsSessionPage() {
 
     const actualCuesUsed = cuesUsedOverride !== undefined ? cuesUsedOverride : cuesUsed
 
-    try {
-      await apiClient.post(`/api/life-words/sessions/${session.id}/responses`, {
-        contact_id: currentCont.id,
-        is_correct: isCorrect,
-        cues_used: actualCuesUsed,
-        response_time: responseTime ?? null,
-        user_answer: userAnswer,
-        correct_answer: currentCont.name,
-        speech_confidence: confidence ?? null,
-      })
-    } catch (error) {
-      console.error('Error saving response:', error)
+    const payload = {
+      contact_id: currentCont.id,
+      is_correct: isCorrect,
+      cues_used: actualCuesUsed,
+      response_time: responseTime ?? null,
+      user_answer: userAnswer,
+      correct_answer: currentCont.name,
+      speech_confidence: confidence ?? null,
     }
+
+    // Fire-and-forget with retry — don't block the UX
+    const trySave = async (attempt: number) => {
+      try {
+        await apiClient.post(`/api/life-words/sessions/${session.id}/responses`, payload)
+      } catch {
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 1000))
+          await trySave(attempt + 1)
+        } else {
+          console.warn('Could not save response after retries — will be counted in session completion')
+        }
+      }
+    }
+    trySave(0)
   }
 
   const moveToNext = async () => {

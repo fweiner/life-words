@@ -475,7 +475,7 @@ export default function LifeWordsQuestionSessionPage() {
 
       if (evaluation.is_correct) {
         // Correct answer - save and move on
-        await saveResponse(currentQ, transcript, evaluation, responseTime, cuesUsedForQuestion)
+        saveResponse(currentQ, transcript, evaluation, responseTime, cuesUsedForQuestion)
         const feedback = getRandomPositiveFeedback()
         await speak(feedback, { gender: voiceGender })
 
@@ -515,7 +515,7 @@ export default function LifeWordsQuestionSessionPage() {
           setShowCue(false)
           setCurrentCue(null)
 
-          await saveResponse(currentQ, transcript, evaluation, responseTime, cuesUsedForQuestion)
+          saveResponse(currentQ, transcript, evaluation, responseTime, cuesUsedForQuestion)
           await speak(`The answer was ${currentQ.expected_answer}`, { gender: voiceGender })
 
           // Move to next after delay
@@ -534,7 +534,7 @@ export default function LifeWordsQuestionSessionPage() {
     }
   }
 
-  const saveResponse = async (
+  const saveResponse = (
     question: GeneratedQuestion,
     userAnswer: string,
     evaluation: { is_correct: boolean; is_partial: boolean; score: number },
@@ -543,35 +543,42 @@ export default function LifeWordsQuestionSessionPage() {
   ) => {
     if (!session) return
 
-    try {
-      await apiClient.post(
-        `/api/life-words/question-sessions/${session.id}/responses`,
-        {
-          contact_id: question.contact_id,
-          question_type: question.question_type,
-          question_text: question.question_text,
-          expected_answer: question.expected_answer,
-          user_answer: userAnswer,
-          is_correct: evaluation.is_correct,
-          is_partial: evaluation.is_partial,
-          response_time: responseTime,
-          clarity_score: 0.8,
-          correctness_score: evaluation.score,
-          cues_used: cuesUsed,
-        }
-      )
+    // Track locally immediately
+    setResponses(prev => [...prev, {
+      question_type: question.question_type,
+      is_correct: evaluation.is_correct,
+      is_partial: evaluation.is_partial,
+      response_time: responseTime,
+      correctness_score: evaluation.score
+    }])
 
-      // Track locally
-      setResponses(prev => [...prev, {
-        question_type: question.question_type,
-        is_correct: evaluation.is_correct,
-        is_partial: evaluation.is_partial,
-        response_time: responseTime,
-        correctness_score: evaluation.score
-      }])
-    } catch (error) {
-      console.error('Error saving response:', error)
+    // Fire-and-forget with retry — don't block the UX
+    const payload = {
+      contact_id: question.contact_id,
+      question_type: question.question_type,
+      question_text: question.question_text,
+      expected_answer: question.expected_answer,
+      user_answer: userAnswer,
+      is_correct: evaluation.is_correct,
+      is_partial: evaluation.is_partial,
+      response_time: responseTime,
+      clarity_score: 0.8,
+      correctness_score: evaluation.score,
+      cues_used: cuesUsed,
     }
+    const trySave = async (attempt: number) => {
+      try {
+        await apiClient.post(`/api/life-words/question-sessions/${session.id}/responses`, payload)
+      } catch {
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 1000))
+          await trySave(attempt + 1)
+        } else {
+          console.warn('Could not save response after retries')
+        }
+      }
+    }
+    trySave(0)
   }
 
   const moveToNext = async () => {

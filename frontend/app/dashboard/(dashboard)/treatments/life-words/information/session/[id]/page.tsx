@@ -552,7 +552,7 @@ export default function InformationPracticeSessionPage() {
 
       if (result.is_correct) {
         // Correct answer - save and move on
-        await saveResponse(currentItemVal, transcript, true, responseTime, usedHintForCurrent, false)
+        saveResponse(currentItemVal, transcript, true, responseTime, usedHintForCurrent, false)
         const feedback = getRandomPositiveFeedback()
         await speak(feedback, { gender: voiceGender })
 
@@ -584,7 +584,7 @@ export default function InformationPracticeSessionPage() {
           setPhase('reveal')
           phaseRef.current = 'reveal'
 
-          await saveResponse(currentItemVal, transcript, false, responseTime, true, false)
+          saveResponse(currentItemVal, transcript, false, responseTime, true, false)
           await speak(`The answer was ${currentItemVal.expected_answer}`, { gender: voiceGender })
 
           // Move to next after delay
@@ -601,7 +601,7 @@ export default function InformationPracticeSessionPage() {
     }
   }
 
-  const saveResponse = async (
+  const saveResponse = (
     item: InformationItem,
     userAnswer: string,
     isCorrect: boolean,
@@ -611,35 +611,42 @@ export default function InformationPracticeSessionPage() {
   ) => {
     if (!session) return
 
-    try {
-      await apiClient.post(
-        `/api/life-words/information-sessions/${session.id}/responses`,
-        {
-          field_name: item.field_name,
-          field_label: item.field_label,
-          teach_text: item.teach_text,
-          question_text: item.question_text,
-          expected_answer: item.expected_answer,
-          hint_text: item.hint_text,
-          user_answer: userAnswer,
-          is_correct: isCorrect,
-          used_hint: usedHint,
-          timed_out: timedOut,
-          response_time: responseTime,
-        }
-      )
+    // Track locally immediately
+    setResponses(prev => [...prev, {
+      field_name: item.field_name,
+      is_correct: isCorrect,
+      used_hint: usedHint,
+      timed_out: timedOut,
+      response_time: responseTime
+    }])
 
-      // Track locally
-      setResponses(prev => [...prev, {
-        field_name: item.field_name,
-        is_correct: isCorrect,
-        used_hint: usedHint,
-        timed_out: timedOut,
-        response_time: responseTime
-      }])
-    } catch (error) {
-      console.error('Error saving response:', error)
+    // Fire-and-forget with retry — don't block the UX
+    const payload = {
+      field_name: item.field_name,
+      field_label: item.field_label,
+      teach_text: item.teach_text,
+      question_text: item.question_text,
+      expected_answer: item.expected_answer,
+      hint_text: item.hint_text,
+      user_answer: userAnswer,
+      is_correct: isCorrect,
+      used_hint: usedHint,
+      timed_out: timedOut,
+      response_time: responseTime,
     }
+    const trySave = async (attempt: number) => {
+      try {
+        await apiClient.post(`/api/life-words/information-sessions/${session.id}/responses`, payload)
+      } catch {
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 1000))
+          await trySave(attempt + 1)
+        } else {
+          console.warn('Could not save response after retries')
+        }
+      }
+    }
+    trySave(0)
   }
 
   const moveToNext = async () => {
@@ -687,7 +694,7 @@ export default function InformationPracticeSessionPage() {
     setTimedOutForCurrent(true)
     setIsAnswering(false)
 
-    await saveResponse(currentItemVal, '', false, TIMEOUT_MS, usedHintForCurrent, true)
+    saveResponse(currentItemVal, '', false, TIMEOUT_MS, usedHintForCurrent, true)
 
     try {
       await speak(`Time's up. ${currentItemVal.teach_text}`, { gender: voiceGender })
