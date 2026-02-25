@@ -140,12 +140,13 @@ function getCueTypes(contact: PersonalContact) {
     })
   }
 
-  // Level 4: Phonemic cue (first syllable approximation)
-  const firstSyllable = contact.name.substring(0, Math.min(3, contact.name.length))
+  // Level 4: Phonemic cue (first few letters spelled out)
+  const firstLetters = contact.name.substring(0, Math.min(3, contact.name.length))
+  const spelledOut = firstLetters.split('').map(c => c.toUpperCase()).join(', ')
   cues.push({
     level: 4,
     name: 'Phonemic',
-    getText: () => `The name sounds like ${firstSyllable}`
+    getText: () => `The name starts with the letters ${spelledOut}`
   })
 
   // Level 5: Association, Interests, Social Behavior, or Location (meaningful memory cues)
