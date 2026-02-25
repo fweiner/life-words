@@ -66,7 +66,7 @@ test.describe('Life Words Home Page', () => {
 
     await expect(page.getByText('Quick Add')).toBeVisible()
     await expect(page.getByText('Instructions')).toBeVisible()
-    await expect(page.getByText('Progress')).toBeVisible()
+    await expect(page.getByText('Progress', { exact: true })).toBeVisible()
     await expect(page.getByText('My People')).toBeVisible()
     await expect(page.getByText('My Info')).toBeVisible()
     await expect(page.getByText('My Stuff')).toBeVisible()

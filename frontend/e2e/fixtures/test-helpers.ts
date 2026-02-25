@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page } from '@playwright/test'
 
 /**
  * Block all backend API calls with empty 200 responses.
@@ -11,21 +11,18 @@ export async function blockBackendApis(page: Page): Promise<void> {
       contentType: 'application/json',
       body: '[]',
     }),
-  );
+  )
 }
 
 /**
- * Mock Supabase authentication for E2E tests.
- * Sets up fake JWT cookie and intercepts Supabase auth API calls.
- * Must be called BEFORE page.goto().
+ * Build the fake session object and JWT for auth mocking.
  */
-export async function mockAuth(page: Page): Promise<void> {
-  // Build a fake JWT with future expiry
+function buildMockSession() {
   const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
     .replace(/=/g, '')
     .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-  const now = Math.floor(Date.now() / 1000);
+    .replace(/\//g, '_')
+  const now = Math.floor(Date.now() / 1000)
   const payload = btoa(
     JSON.stringify({
       sub: 'e2e-test-user-id',
@@ -40,10 +37,10 @@ export async function mockAuth(page: Page): Promise<void> {
   )
     .replace(/=/g, '')
     .replace(/\+/g, '-')
-    .replace(/\//g, '_');
-  const fakeJwt = `${header}.${payload}.e2e-test-signature`;
+    .replace(/\//g, '_')
+  const fakeJwt = `${header}.${payload}.e2e-test-signature`
 
-  const session = {
+  return {
     access_token: fakeJwt,
     token_type: 'bearer',
     expires_in: 3600,
@@ -60,50 +57,67 @@ export async function mockAuth(page: Page): Promise<void> {
       created_at: '2024-01-01T00:00:00Z',
       updated_at: '2024-01-01T00:00:00Z',
     },
-  };
+  }
+}
 
-  const sessionJson = JSON.stringify(session);
+/**
+ * Mock Supabase authentication for E2E tests.
+ *
+ * Sets HTTP cookies (via context.addCookies) so the Next.js middleware
+ * reads them server-side and passes auth checks via the mock auth server.
+ * Also intercepts browser-side Supabase auth API calls.
+ *
+ * Must be called BEFORE page.goto().
+ */
+export async function mockAuth(page: Page): Promise<void> {
+  const session = buildMockSession()
+  const sessionJson = JSON.stringify(session)
 
-  // Seed the Supabase session cookie in the correct chunked format
-  // Life-Words Supabase project ID: nnvqtxwobvyitqbsdskc
-  const storageKey = 'sb-nnvqtxwobvyitqbsdskc-auth-token';
-  await page.addInitScript(
-    (args: { key: string; session: string }) => {
-      // Split into chunks of 3180 chars (Supabase SSR default)
-      const chunks: string[] = [];
-      for (let i = 0; i < args.session.length; i += 3180) {
-        chunks.push(args.session.slice(i, i + 3180));
-      }
-      chunks.forEach((chunk, i) => {
-        document.cookie = `${args.key}.${i}=${encodeURIComponent(chunk)}; path=/; max-age=3600`;
-      });
-    },
-    { key: storageKey, session: sessionJson },
-  );
+  // Set HTTP cookies so the Next.js middleware can read them server-side.
+  // Supabase SSR stores sessions as chunked cookies.
+  // Key format: sb-{project-ref}-auth-token.{chunk-index}
+  // When using the mock server, the project ref comes from the mock URL.
+  // The Supabase SSR library derives the storage key from the URL.
+  // For http://localhost:54321, the key is: sb-localhost-auth-token
+  const storageKey = 'sb-localhost-auth-token'
+  const chunks: string[] = []
+  for (let i = 0; i < sessionJson.length; i += 3180) {
+    chunks.push(sessionJson.slice(i, i + 3180))
+  }
 
-  // Intercept Supabase auth API calls
+  const cookies = chunks.map((chunk, i) => ({
+    name: `${storageKey}.${i}`,
+    value: encodeURIComponent(chunk),
+    domain: 'localhost',
+    path: '/',
+    expires: Math.floor(Date.now() / 1000) + 3600,
+  }))
+
+  await page.context().addCookies(cookies)
+
+  // Also intercept browser-side Supabase auth API calls
   await page.route('**/auth/v1/**', (route) => {
-    const url = route.request().url();
+    const url = route.request().url()
     if (url.includes('/token')) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: sessionJson,
-      });
+      })
     }
     if (url.includes('/user')) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(session.user),
-      });
+      })
     }
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: '{}',
-    });
-  });
+    })
+  })
 }
 
 /**
@@ -112,35 +126,28 @@ export async function mockAuth(page: Page): Promise<void> {
  * Must be called BEFORE page.goto().
  */
 export async function mockAuthAndApis(page: Page): Promise<void> {
-  await mockAuth(page);
+  await mockAuth(page)
 
-  // Mock life-words status endpoint
-  await page.route('**/api/life-words/status**', (route) =>
+  // IMPORTANT: In Playwright, the LAST registered route takes priority.
+  // Register the catch-all FIRST, then specific routes override it.
+
+  // Catch-all for any API calls (registered first = lowest priority)
+  await page.route('**/api/**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        contact_count: 3,
-        item_count: 2,
-        total_count: 5,
-        can_start_session: true,
-        min_contacts_required: 2,
-      }),
+      body: '[]',
     }),
-  );
+  )
 
-  // Mock life-words information-status endpoint
-  await page.route('**/api/life-words/information-status**', (route) =>
+  // Mock sessions endpoint
+  await page.route('**/api/life-words/sessions**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        can_start_session: true,
-        filled_fields_count: 8,
-        min_fields_required: 5,
-      }),
+      body: JSON.stringify([]),
     }),
-  );
+  )
 
   // Mock profile endpoint
   await page.route('**/api/profile**', (route) =>
@@ -154,23 +161,33 @@ export async function mockAuthAndApis(page: Page): Promise<void> {
         role: 'patient',
       }),
     }),
-  );
+  )
 
-  // Mock sessions endpoint
-  await page.route('**/api/life-words/sessions**', (route) =>
+  // Mock life-words information-status endpoint
+  await page.route('**/api/life-words/information-status**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify([]),
+      body: JSON.stringify({
+        can_start_session: true,
+        filled_fields_count: 8,
+        min_fields_required: 5,
+      }),
     }),
-  );
+  )
 
-  // Catch-all for any other API calls
-  await page.route('**/api/**', (route) =>
+  // Mock life-words status endpoint (registered last = highest priority)
+  await page.route('**/api/life-words/status**', (route) =>
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: '[]',
+      body: JSON.stringify({
+        contact_count: 3,
+        item_count: 2,
+        total_count: 5,
+        can_start_session: true,
+        min_contacts_required: 2,
+      }),
     }),
-  );
+  )
 }
