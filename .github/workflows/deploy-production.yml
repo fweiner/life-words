@@ -86,6 +86,10 @@ jobs:
           SECRETS="$SECRETS,RESEND_API_KEY=resend-api-key:latest"
           SECRETS="$SECRETS,AWS_ACCESS_KEY_ID=aws-access-key-id:latest"
           SECRETS="$SECRETS,AWS_SECRET_ACCESS_KEY=aws-secret-access-key:latest"
+          SECRETS="$SECRETS,STRIPE_SECRET_KEY=stripe-secret-key:latest"
+          SECRETS="$SECRETS,STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest"
+          SECRETS="$SECRETS,STRIPE_MONTHLY_PRICE_ID=stripe-monthly-price-id:latest"
+          SECRETS="$SECRETS,STRIPE_YEARLY_PRICE_ID=stripe-yearly-price-id:latest"
           gcloud run deploy treatment-api \
             --image $REGISTRY/$GCP_PROJECT_ID/gcr.io/treatment-api:latest \
             --platform managed \
