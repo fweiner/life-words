@@ -49,21 +49,12 @@ export default function HomePage() {
                 Life Words
               </div>
             </Link>
-            <div className="flex items-center space-x-3">
-              <Link
-                href="/login"
-                className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-semibold text-lg"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold py-2 px-5 rounded-lg text-lg transition-colors"
-                style={{ minHeight: '44px' }}
-              >
-                Get Started
-              </Link>
-            </div>
+            <Link
+              href="/login"
+              className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-semibold text-lg"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
       </header>
@@ -82,23 +73,20 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/signup"
+              href="/dashboard"
               className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ minHeight: '44px' }}
             >
-              Start Your Free Trial
+              Go to My Treatment
             </Link>
-            <a
-              href="#who-its-for"
+            <Link
+              href="/signup"
               className="border-2 border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-blue-50 font-bold py-4 px-8 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ minHeight: '44px' }}
             >
-              Learn More
-            </a>
+              Create an Account
+            </Link>
           </div>
-          <p className="mt-6 text-gray-500 text-lg">
-            7-day free trial. No credit card required.
-          </p>
         </div>
       </section>
 
@@ -319,12 +307,8 @@ export default function HomePage() {
               <Link href="/pricing" className="text-gray-300 hover:text-white text-lg transition-colors">
                 Pricing
               </Link>
-              <Link
-                href="/signup"
-                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold py-2 px-5 rounded-lg text-lg transition-colors"
-                style={{ minHeight: '44px' }}
-              >
-                Get Started
+              <Link href="/signup" className="text-gray-300 hover:text-white text-lg transition-colors">
+                Create an Account
               </Link>
             </nav>
           </div>
