@@ -57,7 +57,6 @@ export default function PricingPage() {
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Personalized aphasia therapy tools designed for everyday practice.
-            Start with a free 7-day trial.
           </p>
         </div>
 
@@ -79,11 +78,11 @@ export default function PricingPage() {
               ))}
             </ul>
             <Link
-              href="/signup"
+              href="/dashboard/subscribe"
               className="block w-full text-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ minHeight: '44px' }}
             >
-              Start Free Trial
+              Purchase Subscription
             </Link>
           </div>
 
@@ -107,22 +106,18 @@ export default function PricingPage() {
               ))}
             </ul>
             <Link
-              href="/signup"
+              href="/dashboard/subscribe"
               className="block w-full text-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ minHeight: '44px' }}
             >
-              Start Free Trial
+              Purchase Subscription
             </Link>
           </div>
         </div>
 
         {/* Footer note */}
         <div className="text-center text-gray-500 text-lg">
-          <p>
-            Every account starts with a <strong>free 7-day trial</strong>.
-            No credit card required to sign up.
-          </p>
-          <p className="mt-2">Cancel anytime from your account settings.</p>
+          <p>Secure payment powered by Stripe. Cancel anytime from your account settings.</p>
         </div>
       </div>
     </div>
