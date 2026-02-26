@@ -127,6 +127,46 @@ export interface AdminUserStats {
   last_active_at: string | null
   account_status: string
   trial_ends_at: string | null
+  stripe_customer_id: string | null
+  subscription_plan: string | null
+  subscription_current_period_end: string | null
+}
+
+export interface AdminCreateUserRequest {
+  email: string
+  password: string
+  full_name?: string
+  account_status?: string
+  subscription_plan?: string
+  trial_days?: number
+}
+
+export interface AdminCreateUserResponse {
+  success: boolean
+  message: string
+  user_id: string
+}
+
+export interface AdminUpdateUserRequest {
+  email?: string
+  password?: string
+  full_name?: string
+  account_status?: string
+  subscription_plan?: string
+  trial_ends_at?: string
+}
+
+export interface AdminUpdateUserResponse {
+  success: boolean
+  message: string
+  user: AdminUserStats
+}
+
+export interface AdminToggleUserResponse {
+  success: boolean
+  message: string
+  user_id: string
+  new_status: string
 }
 
 export interface ErrorLogEntry {

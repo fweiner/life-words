@@ -1,5 +1,6 @@
 """Unit tests for admin service."""
 import pytest
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 from fastapi import HTTPException
 
@@ -16,6 +17,11 @@ SAMPLE_USER_STATS = [
         "item_count": 3,
         "session_count": 10,
         "last_active_at": "2024-06-01T00:00:00Z",
+        "account_status": "trial",
+        "trial_ends_at": "2026-06-01T00:00:00Z",
+        "stripe_customer_id": None,
+        "subscription_plan": None,
+        "subscription_current_period_end": None,
     },
     {
         "id": "user-2",
@@ -26,9 +32,33 @@ SAMPLE_USER_STATS = [
         "item_count": 0,
         "session_count": 0,
         "last_active_at": None,
+        "account_status": "paid",
+        "trial_ends_at": None,
+        "stripe_customer_id": "cus_abc",
+        "subscription_plan": "monthly",
+        "subscription_current_period_end": "2026-03-01T00:00:00Z",
     },
 ]
 
+
+def _mock_httpx_client(mocker, method="delete", status_code=200, json_data=None, text=""):
+    """Helper to create a mock httpx AsyncClient."""
+    mock_response = MagicMock()
+    mock_response.status_code = status_code
+    mock_response.text = text
+    if json_data is not None:
+        mock_response.json.return_value = json_data
+
+    mock_client = mocker.AsyncMock()
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+    setattr(mock_client, method, mocker.AsyncMock(return_value=mock_response))
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+    return mock_client
+
+
+# --- list_users_with_stats ---
 
 @pytest.mark.asyncio
 async def test_list_users_with_stats(mock_db):
@@ -54,18 +84,12 @@ async def test_list_users_empty(mock_db):
     mock_db.rpc.assert_called_once_with("get_admin_user_stats")
 
 
+# --- delete_user ---
+
 @pytest.mark.asyncio
 async def test_delete_user_success(mock_db, mocker):
     """Test successful user deletion."""
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-
-    mock_client = mocker.AsyncMock()
-    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
-    mock_client.delete.return_value = mock_response
-
-    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+    mock_client = _mock_httpx_client(mocker, "delete", 200)
 
     service = AdminService(mock_db)
     await service.delete_user("user-1")
@@ -76,15 +100,7 @@ async def test_delete_user_success(mock_db, mocker):
 @pytest.mark.asyncio
 async def test_delete_user_204_success(mock_db, mocker):
     """Test successful user deletion with 204 No Content response."""
-    mock_response = MagicMock()
-    mock_response.status_code = 204
-
-    mock_client = mocker.AsyncMock()
-    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
-    mock_client.delete.return_value = mock_response
-
-    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+    mock_client = _mock_httpx_client(mocker, "delete", 204)
 
     service = AdminService(mock_db)
     await service.delete_user("user-1")
@@ -95,15 +111,7 @@ async def test_delete_user_204_success(mock_db, mocker):
 @pytest.mark.asyncio
 async def test_delete_user_not_found(mock_db, mocker):
     """Test deleting a nonexistent user raises 404."""
-    mock_response = MagicMock()
-    mock_response.status_code = 404
-
-    mock_client = mocker.AsyncMock()
-    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
-    mock_client.delete.return_value = mock_response
-
-    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+    _mock_httpx_client(mocker, "delete", 404)
 
     service = AdminService(mock_db)
     with pytest.raises(HTTPException) as exc_info:
@@ -116,16 +124,7 @@ async def test_delete_user_not_found(mock_db, mocker):
 @pytest.mark.asyncio
 async def test_delete_user_api_error(mock_db, mocker):
     """Test API error during deletion raises 500."""
-    mock_response = MagicMock()
-    mock_response.status_code = 500
-    mock_response.text = "Internal Server Error"
-
-    mock_client = mocker.AsyncMock()
-    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
-    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
-    mock_client.delete.return_value = mock_response
-
-    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+    _mock_httpx_client(mocker, "delete", 500, text="Internal Server Error")
 
     service = AdminService(mock_db)
     with pytest.raises(HTTPException) as exc_info:
@@ -135,81 +134,358 @@ async def test_delete_user_api_error(mock_db, mocker):
     assert "Failed to delete user" in exc_info.value.detail
 
 
+# --- create_user ---
+
 @pytest.mark.asyncio
-async def test_update_account_status_to_paid(mock_db):
-    """Test setting account status to paid clears trial_ends_at."""
-    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
-    mock_db.update.return_value = {"account_status": "paid", "trial_ends_at": None}
-
-    service = AdminService(mock_db)
-    result = await service.update_account_status("user-1", "paid")
-
-    assert result["account_status"] == "paid"
-    assert result["trial_ends_at"] is None
-    mock_db.update.assert_called_once_with(
-        "profiles",
-        filters={"id": "user-1"},
-        data={"account_status": "paid", "trial_ends_at": None},
+async def test_create_user_success(mock_db, mocker):
+    """Test successful user creation."""
+    mock_client = _mock_httpx_client(
+        mocker, "post", 200, json_data={"id": "new-user-1"}
     )
 
-
-@pytest.mark.asyncio
-async def test_update_account_status_to_trial(mock_db):
-    """Test setting account status to trial with end date."""
-    from datetime import datetime, timezone
-
-    trial_end = datetime(2026, 3, 15, tzinfo=timezone.utc)
-    mock_db.query.return_value = [{"id": "user-1", "account_status": "paid"}]
-    mock_db.update.return_value = {
-        "account_status": "trial",
-        "trial_ends_at": trial_end.isoformat(),
-    }
-
     service = AdminService(mock_db)
-    result = await service.update_account_status("user-1", "trial", trial_end)
-
-    assert result["account_status"] == "trial"
-    mock_db.update.assert_called_once_with(
-        "profiles",
-        filters={"id": "user-1"},
-        data={"account_status": "trial", "trial_ends_at": trial_end.isoformat()},
+    user_id = await service.create_user(
+        email="new@example.com",
+        password="password123",
+        full_name="New User",
+        account_status="trial",
+        trial_days=30,
     )
 
+    assert user_id == "new-user-1"
+    mock_client.post.assert_called_once()
+    mock_db.update.assert_called_once()
+
+    # Verify profile update includes trial_ends_at
+    update_call = mock_db.update.call_args
+    assert update_call.kwargs["filters"] == {"id": "new-user-1"}
+    data = update_call.kwargs["data"]
+    assert data["account_status"] == "trial"
+    assert data["full_name"] == "New User"
+    assert "trial_ends_at" in data
+
 
 @pytest.mark.asyncio
-async def test_update_account_status_invalid(mock_db):
-    """Test rejecting an invalid account status."""
+async def test_create_user_paid_status(mock_db, mocker):
+    """Test creating user with paid status clears trial_ends_at."""
+    _mock_httpx_client(mocker, "post", 200, json_data={"id": "new-user-2"})
+
+    service = AdminService(mock_db)
+    user_id = await service.create_user(
+        email="paid@example.com",
+        password="password123",
+        account_status="paid",
+    )
+
+    assert user_id == "new-user-2"
+    update_call = mock_db.update.call_args
+    data = update_call.kwargs["data"]
+    assert data["account_status"] == "paid"
+    assert data["trial_ends_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_user_with_subscription_plan(mock_db, mocker):
+    """Test creating user with subscription plan."""
+    _mock_httpx_client(mocker, "post", 200, json_data={"id": "new-user-3"})
+
+    service = AdminService(mock_db)
+    await service.create_user(
+        email="sub@example.com",
+        password="password123",
+        account_status="paid",
+        subscription_plan="monthly",
+    )
+
+    update_call = mock_db.update.call_args
+    data = update_call.kwargs["data"]
+    assert data["subscription_plan"] == "monthly"
+
+
+@pytest.mark.asyncio
+async def test_create_user_invalid_status(mock_db, mocker):
+    """Test creating user with invalid status raises 400."""
     service = AdminService(mock_db)
     with pytest.raises(HTTPException) as exc_info:
-        await service.update_account_status("user-1", "premium")
+        await service.create_user(
+            email="bad@example.com",
+            password="password123",
+            account_status="premium",
+        )
 
     assert exc_info.value.status_code == 400
     assert "Invalid account status" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
-async def test_update_account_status_trial_without_end_date(mock_db):
-    """Test trial status requires trial_ends_at."""
+async def test_create_user_duplicate_email(mock_db, mocker):
+    """Test creating user with existing email raises 400."""
+    _mock_httpx_client(mocker, "post", 422)
+
     service = AdminService(mock_db)
     with pytest.raises(HTTPException) as exc_info:
-        await service.update_account_status("user-1", "trial")
+        await service.create_user(
+            email="existing@example.com",
+            password="password123",
+        )
 
     assert exc_info.value.status_code == 400
-    assert "trial_ends_at is required" in exc_info.value.detail
+    assert "already exists" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
-async def test_update_account_status_user_not_found(mock_db):
-    """Test updating status for nonexistent user raises 404."""
+async def test_create_user_api_error(mock_db, mocker):
+    """Test Auth API error during creation raises 500."""
+    _mock_httpx_client(mocker, "post", 500, text="Server error")
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.create_user(
+            email="err@example.com",
+            password="password123",
+        )
+
+    assert exc_info.value.status_code == 500
+    assert "Failed to create user" in exc_info.value.detail
+
+
+# --- update_user ---
+
+@pytest.mark.asyncio
+async def test_update_user_profile_only(mock_db, mocker):
+    """Test updating only profile fields (no auth changes)."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    mock_db.rpc.return_value = [SAMPLE_USER_STATS[0]]
+
+    service = AdminService(mock_db)
+    result = await service.update_user(
+        user_id="user-1",
+        full_name="Updated Name",
+        account_status="paid",
+    )
+
+    assert result["id"] == "user-1"
+    mock_db.update.assert_called_once()
+    update_data = mock_db.update.call_args.kwargs["data"]
+    assert update_data["full_name"] == "Updated Name"
+    assert update_data["account_status"] == "paid"
+    assert update_data["trial_ends_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_user_with_auth_changes(mock_db, mocker):
+    """Test updating email and password via Auth Admin API."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    mock_db.rpc.return_value = [SAMPLE_USER_STATS[0]]
+    mock_client = _mock_httpx_client(mocker, "put", 200)
+
+    service = AdminService(mock_db)
+    await service.update_user(
+        user_id="user-1",
+        email="newemail@example.com",
+        password="newpassword123",
+    )
+
+    mock_client.put.assert_called_once()
+    call_args = mock_client.put.call_args
+    body = call_args.kwargs["json"]
+    assert body["email"] == "newemail@example.com"
+    assert body["password"] == "newpassword123"
+
+
+@pytest.mark.asyncio
+async def test_update_user_email_only(mock_db, mocker):
+    """Test updating only email via Auth Admin API."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    mock_db.rpc.return_value = [SAMPLE_USER_STATS[0]]
+    mock_client = _mock_httpx_client(mocker, "put", 200)
+
+    service = AdminService(mock_db)
+    await service.update_user(user_id="user-1", email="new@example.com")
+
+    call_args = mock_client.put.call_args
+    body = call_args.kwargs["json"]
+    assert body["email"] == "new@example.com"
+    assert "password" not in body
+
+
+@pytest.mark.asyncio
+async def test_update_user_not_found(mock_db, mocker):
+    """Test updating nonexistent user raises 404."""
     mock_db.query.return_value = []
 
     service = AdminService(mock_db)
     with pytest.raises(HTTPException) as exc_info:
-        await service.update_account_status("nonexistent", "paid")
+        await service.update_user(user_id="nonexistent", full_name="Test")
 
     assert exc_info.value.status_code == 404
-    assert "User not found" in exc_info.value.detail
 
+
+@pytest.mark.asyncio
+async def test_update_user_invalid_status(mock_db, mocker):
+    """Test updating with invalid status raises 400."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.update_user(user_id="user-1", account_status="premium")
+
+    assert exc_info.value.status_code == 400
+    assert "Invalid account status" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_update_user_duplicate_email(mock_db, mocker):
+    """Test updating to an existing email raises 400."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    _mock_httpx_client(mocker, "put", 422)
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.update_user(user_id="user-1", email="taken@example.com")
+
+    assert exc_info.value.status_code == 400
+    assert "already in use" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_update_user_auth_api_error(mock_db, mocker):
+    """Test Auth API error during update raises 500."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    _mock_httpx_client(mocker, "put", 500, text="Server error")
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.update_user(user_id="user-1", email="err@example.com")
+
+    assert exc_info.value.status_code == 500
+    assert "Failed to update user auth" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_update_user_with_trial_ends_at(mock_db, mocker):
+    """Test updating trial_ends_at."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    trial_end = datetime(2026, 6, 15, tzinfo=timezone.utc)
+    mock_db.rpc.return_value = [SAMPLE_USER_STATS[0]]
+
+    service = AdminService(mock_db)
+    await service.update_user(
+        user_id="user-1",
+        account_status="trial",
+        trial_ends_at=trial_end,
+    )
+
+    update_data = mock_db.update.call_args.kwargs["data"]
+    assert update_data["trial_ends_at"] == trial_end.isoformat()
+    assert update_data["account_status"] == "trial"
+
+
+# --- toggle_user ---
+
+@pytest.mark.asyncio
+async def test_toggle_user_disable(mock_db, mocker):
+    """Test disabling an active user."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "paid"}]
+    mock_client = _mock_httpx_client(mocker, "put", 200)
+
+    service = AdminService(mock_db)
+    result = await service.toggle_user("user-1")
+
+    assert result["new_status"] == "admin_disabled"
+    assert result["user_id"] == "user-1"
+
+    # Verify ban was set
+    call_args = mock_client.put.call_args
+    assert call_args.kwargs["json"]["ban_duration"] == "876000h"
+
+    # Verify profile update saved previous status
+    update_data = mock_db.update.call_args.kwargs["data"]
+    assert update_data["account_status"] == "admin_disabled"
+    assert update_data["previous_status"] == "paid"
+
+
+@pytest.mark.asyncio
+async def test_toggle_user_enable(mock_db, mocker):
+    """Test re-enabling a disabled user."""
+    mock_db.query.return_value = [
+        {"id": "user-1", "account_status": "admin_disabled", "previous_status": "trial"}
+    ]
+    mock_client = _mock_httpx_client(mocker, "put", 200)
+
+    service = AdminService(mock_db)
+    result = await service.toggle_user("user-1")
+
+    assert result["new_status"] == "trial"
+    assert result["user_id"] == "user-1"
+
+    # Verify unban
+    call_args = mock_client.put.call_args
+    assert call_args.kwargs["json"]["ban_duration"] == "none"
+
+    # Verify profile restored
+    update_data = mock_db.update.call_args.kwargs["data"]
+    assert update_data["account_status"] == "trial"
+    assert update_data["previous_status"] is None
+
+
+@pytest.mark.asyncio
+async def test_toggle_user_enable_defaults_to_trial(mock_db, mocker):
+    """Test re-enabling defaults to trial when no previous_status."""
+    mock_db.query.return_value = [
+        {"id": "user-1", "account_status": "admin_disabled"}
+    ]
+    _mock_httpx_client(mocker, "put", 200)
+
+    service = AdminService(mock_db)
+    result = await service.toggle_user("user-1")
+
+    assert result["new_status"] == "trial"
+
+
+@pytest.mark.asyncio
+async def test_toggle_user_not_found(mock_db, mocker):
+    """Test toggling a nonexistent user raises 404."""
+    mock_db.query.return_value = []
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.toggle_user("nonexistent")
+
+    assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_toggle_user_ban_api_error(mock_db, mocker):
+    """Test Auth API error during ban raises 500."""
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "paid"}]
+    _mock_httpx_client(mocker, "put", 500, text="Server error")
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.toggle_user("user-1")
+
+    assert exc_info.value.status_code == 500
+    assert "Failed to ban user" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_toggle_user_unban_api_error(mock_db, mocker):
+    """Test Auth API error during unban raises 500."""
+    mock_db.query.return_value = [
+        {"id": "user-1", "account_status": "admin_disabled", "previous_status": "paid"}
+    ]
+    _mock_httpx_client(mocker, "put", 500, text="Server error")
+
+    service = AdminService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.toggle_user("user-1")
+
+    assert exc_info.value.status_code == 500
+    assert "Failed to unban user" in exc_info.value.detail
+
+
+# --- list_error_logs ---
 
 @pytest.mark.asyncio
 async def test_list_error_logs(mock_db, mocker):
@@ -332,6 +608,8 @@ async def test_list_error_logs_ignores_invalid_source(mock_db, mocker):
     params = call_args.kwargs.get("params", call_args[1].get("params", {}))
     assert "source" not in params
 
+
+# --- resolve/unresolve errors ---
 
 @pytest.mark.asyncio
 async def test_resolve_error(mock_db, mocker):

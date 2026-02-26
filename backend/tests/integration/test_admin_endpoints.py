@@ -20,9 +20,31 @@ SAMPLE_USER_STATS = [
         "item_count": 3,
         "session_count": 10,
         "last_active_at": datetime.now(timezone.utc).isoformat(),
+        "account_status": "trial",
+        "trial_ends_at": "2026-06-01T00:00:00+00:00",
+        "stripe_customer_id": None,
+        "subscription_plan": None,
+        "subscription_current_period_end": None,
     },
 ]
 
+
+def _setup_admin_overrides(app, mock_db):
+    """Helper to set up admin dependency overrides."""
+    from app.core.auth import require_admin
+    from app.core.dependencies import get_db
+
+    async def override_require_admin():
+        return SAMPLE_ADMIN_USER
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[require_admin] = override_require_admin
+    app.dependency_overrides[get_db] = override_get_db
+
+
+# --- List Users ---
 
 def test_list_users_unauthorized(client):
     """Test that listing users requires authentication."""
@@ -54,18 +76,7 @@ def test_list_users_non_admin(app, client, mock_db):
 
 def test_list_users_success(app, client, mock_db):
     """Test admin can list users successfully."""
-    from app.core.auth import require_admin
-    from app.core.dependencies import get_db
-
-    async def override_require_admin():
-        return SAMPLE_ADMIN_USER
-
-    async def override_get_db():
-        return mock_db
-
-    app.dependency_overrides[require_admin] = override_require_admin
-    app.dependency_overrides[get_db] = override_get_db
-
+    _setup_admin_overrides(app, mock_db)
     mock_db.rpc.return_value = SAMPLE_USER_STATS
 
     response = client.get(
@@ -80,6 +91,8 @@ def test_list_users_success(app, client, mock_db):
     assert data[0]["contact_count"] == 5
 
 
+# --- Delete User ---
+
 def test_delete_user_unauthorized(client):
     """Test that deleting a user requires authentication."""
     response = client.delete("/api/admin/users/some-user-id")
@@ -88,17 +101,7 @@ def test_delete_user_unauthorized(client):
 
 def test_delete_user_success(app, client, mock_db, mocker):
     """Test admin can delete a user successfully."""
-    from app.core.auth import require_admin
-    from app.core.dependencies import get_db
-
-    async def override_require_admin():
-        return SAMPLE_ADMIN_USER
-
-    async def override_get_db():
-        return mock_db
-
-    app.dependency_overrides[require_admin] = override_require_admin
-    app.dependency_overrides[get_db] = override_get_db
+    _setup_admin_overrides(app, mock_db)
 
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -123,17 +126,7 @@ def test_delete_user_success(app, client, mock_db, mocker):
 
 def test_delete_user_not_found(app, client, mock_db, mocker):
     """Test deleting a nonexistent user returns 404."""
-    from app.core.auth import require_admin
-    from app.core.dependencies import get_db
-
-    async def override_require_admin():
-        return SAMPLE_ADMIN_USER
-
-    async def override_get_db():
-        return mock_db
-
-    app.dependency_overrides[require_admin] = override_require_admin
-    app.dependency_overrides[get_db] = override_get_db
+    _setup_admin_overrides(app, mock_db)
 
     mock_response = MagicMock()
     mock_response.status_code = 404
@@ -153,44 +146,194 @@ def test_delete_user_not_found(app, client, mock_db, mocker):
     assert response.status_code == 404
 
 
-def test_update_account_status_success(app, client, mock_db):
-    """Test admin can update a user's account status."""
-    from app.core.auth import require_admin
-    from app.core.dependencies import get_db
+# --- Create User ---
 
-    async def override_require_admin():
-        return SAMPLE_ADMIN_USER
+def test_create_user_unauthorized(client):
+    """Test that creating a user requires authentication."""
+    response = client.post("/api/admin/users", json={
+        "email": "new@example.com",
+        "password": "password123",
+    })
+    assert response.status_code == 401
 
-    async def override_get_db():
-        return mock_db
 
-    app.dependency_overrides[require_admin] = override_require_admin
-    app.dependency_overrides[get_db] = override_get_db
+def test_create_user_success(app, client, mock_db, mocker):
+    """Test admin can create a user successfully."""
+    _setup_admin_overrides(app, mock_db)
 
-    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
-    mock_db.update.return_value = {"account_status": "paid", "trial_ends_at": None}
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {"id": "new-user-1"}
 
-    response = client.patch(
-        "/api/admin/users/user-1/account-status",
-        json={"account_status": "paid"},
+    mock_client = mocker.AsyncMock()
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+    mock_client.post.return_value = mock_response
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/users",
+        json={
+            "email": "new@example.com",
+            "password": "password123",
+            "full_name": "New User",
+            "account_status": "trial",
+            "trial_days": 30,
+        },
         headers={"Authorization": "Bearer test-token"},
     )
 
     assert response.status_code == 200
     data = response.json()
     assert data["success"] is True
-    assert data["account_status"] == "paid"
-    assert data["trial_ends_at"] is None
+    assert data["user_id"] == "new-user-1"
 
 
-def test_update_account_status_unauthorized(client):
-    """Test updating account status requires authentication."""
-    response = client.patch(
-        "/api/admin/users/user-1/account-status",
-        json={"account_status": "paid"},
+def test_create_user_duplicate_email(app, client, mock_db, mocker):
+    """Test creating user with existing email returns 400."""
+    _setup_admin_overrides(app, mock_db)
+
+    mock_response = MagicMock()
+    mock_response.status_code = 422
+
+    mock_client = mocker.AsyncMock()
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+    mock_client.post.return_value = mock_response
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/users",
+        json={
+            "email": "existing@example.com",
+            "password": "password123",
+        },
+        headers={"Authorization": "Bearer test-token"},
     )
+
+    assert response.status_code == 400
+
+
+# --- Update User ---
+
+def test_update_user_unauthorized(client):
+    """Test that updating a user requires authentication."""
+    response = client.put("/api/admin/users/user-1", json={"full_name": "Test"})
     assert response.status_code == 401
 
+
+def test_update_user_success(app, client, mock_db, mocker):
+    """Test admin can update a user successfully."""
+    _setup_admin_overrides(app, mock_db)
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "trial"}]
+    mock_db.rpc.return_value = SAMPLE_USER_STATS
+
+    response = client.put(
+        "/api/admin/users/user-1",
+        json={"full_name": "Updated Name", "account_status": "paid"},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["user"]["id"] == "user-1"
+
+
+def test_update_user_not_found(app, client, mock_db):
+    """Test updating a nonexistent user returns 404."""
+    _setup_admin_overrides(app, mock_db)
+    mock_db.query.return_value = []
+
+    response = client.put(
+        "/api/admin/users/nonexistent",
+        json={"full_name": "Test"},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 404
+
+
+# --- Toggle User ---
+
+def test_toggle_user_unauthorized(client):
+    """Test that toggling a user requires authentication."""
+    response = client.post("/api/admin/users/user-1/toggle")
+    assert response.status_code == 401
+
+
+def test_toggle_user_disable_success(app, client, mock_db, mocker):
+    """Test admin can disable a user."""
+    _setup_admin_overrides(app, mock_db)
+    mock_db.query.return_value = [{"id": "user-1", "account_status": "paid"}]
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+
+    mock_client = mocker.AsyncMock()
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+    mock_client.put.return_value = mock_response
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/users/user-1/toggle",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["new_status"] == "admin_disabled"
+    assert "disabled" in data["message"]
+
+
+def test_toggle_user_enable_success(app, client, mock_db, mocker):
+    """Test admin can re-enable a disabled user."""
+    _setup_admin_overrides(app, mock_db)
+    mock_db.query.return_value = [
+        {"id": "user-1", "account_status": "admin_disabled", "previous_status": "paid"}
+    ]
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+
+    mock_client = mocker.AsyncMock()
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+    mock_client.put.return_value = mock_response
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/users/user-1/toggle",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["new_status"] == "paid"
+    assert "enabled" in data["message"]
+
+
+def test_toggle_user_not_found(app, client, mock_db):
+    """Test toggling a nonexistent user returns 404."""
+    _setup_admin_overrides(app, mock_db)
+    mock_db.query.return_value = []
+
+    response = client.post(
+        "/api/admin/users/nonexistent/toggle",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 404
+
+
+# --- Error Logs ---
 
 def test_list_error_logs_success(app, client, mocker):
     """Test admin can list error logs."""

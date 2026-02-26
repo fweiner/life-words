@@ -5,8 +5,11 @@ from app.core.dependencies import AdminUser, Database
 from app.models.admin import (
     AdminUserStats,
     AdminDeleteResponse,
-    AdminUpdateAccountStatus,
-    AdminUpdateAccountStatusResponse,
+    AdminCreateUser,
+    AdminCreateUserResponse,
+    AdminUpdateUser,
+    AdminUpdateUserResponse,
+    AdminToggleUserResponse,
     ErrorLogListResponse,
     ResolveRequest,
 )
@@ -26,6 +29,72 @@ async def list_users(
     return await service.list_users_with_stats()
 
 
+@router.post("/users", response_model=AdminCreateUserResponse)
+async def create_user(
+    body: AdminCreateUser,
+    user: AdminUser,
+    db: Database,
+):
+    """Create a new user. Admin only."""
+    service = AdminService(db)
+    user_id = await service.create_user(
+        email=body.email,
+        password=body.password,
+        full_name=body.full_name,
+        account_status=body.account_status,
+        subscription_plan=body.subscription_plan,
+        trial_days=body.trial_days,
+    )
+    return AdminCreateUserResponse(
+        success=True,
+        message="User created successfully",
+        user_id=user_id,
+    )
+
+
+@router.put("/users/{user_id}", response_model=AdminUpdateUserResponse)
+async def update_user(
+    user_id: str,
+    body: AdminUpdateUser,
+    user: AdminUser,
+    db: Database,
+):
+    """Update a user's info. Admin only."""
+    service = AdminService(db)
+    user_stats = await service.update_user(
+        user_id=user_id,
+        email=body.email,
+        password=body.password,
+        full_name=body.full_name,
+        account_status=body.account_status,
+        subscription_plan=body.subscription_plan,
+        trial_ends_at=body.trial_ends_at,
+    )
+    return AdminUpdateUserResponse(
+        success=True,
+        message="User updated successfully",
+        user=AdminUserStats(**user_stats),
+    )
+
+
+@router.post("/users/{user_id}/toggle", response_model=AdminToggleUserResponse)
+async def toggle_user(
+    user_id: str,
+    user: AdminUser,
+    db: Database,
+):
+    """Toggle a user between enabled and disabled. Admin only."""
+    service = AdminService(db)
+    result = await service.toggle_user(user_id)
+    action = "enabled" if result["new_status"] != "admin_disabled" else "disabled"
+    return AdminToggleUserResponse(
+        success=True,
+        message=f"User {action} successfully",
+        user_id=result["user_id"],
+        new_status=result["new_status"],
+    )
+
+
 @router.delete("/users/{user_id}", response_model=AdminDeleteResponse)
 async def delete_user(
     user_id: str,
@@ -39,29 +108,6 @@ async def delete_user(
         success=True,
         message="User deleted successfully",
         deleted_user_id=user_id,
-    )
-
-
-@router.patch(
-    "/users/{user_id}/account-status",
-    response_model=AdminUpdateAccountStatusResponse,
-)
-async def update_account_status(
-    user_id: str,
-    body: AdminUpdateAccountStatus,
-    user: AdminUser,
-    db: Database,
-):
-    """Update a user's account status. Admin only."""
-    service = AdminService(db)
-    result = await service.update_account_status(
-        user_id, body.account_status, body.trial_ends_at
-    )
-    return AdminUpdateAccountStatusResponse(
-        success=True,
-        message=f"Account status updated to '{body.account_status}'",
-        account_status=result.get("account_status", body.account_status),
-        trial_ends_at=result.get("trial_ends_at"),
     )
 
 

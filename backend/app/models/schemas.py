@@ -113,8 +113,11 @@ from app.models.matching import (  # noqa: F401
 from app.models.admin import (  # noqa: F401
     AdminUserStats,
     AdminDeleteResponse,
-    AdminUpdateAccountStatus,
-    AdminUpdateAccountStatusResponse,
+    AdminCreateUser,
+    AdminCreateUserResponse,
+    AdminUpdateUser,
+    AdminUpdateUserResponse,
+    AdminToggleUserResponse,
     ErrorLogResponse,
     ErrorLogListResponse,
     ResolveRequest,

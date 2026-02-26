@@ -1,7 +1,7 @@
 """Admin-related Pydantic models."""
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class AdminUserStats(BaseModel):
@@ -16,6 +16,9 @@ class AdminUserStats(BaseModel):
     last_active_at: Optional[datetime] = None
     account_status: str = "trial"
     trial_ends_at: Optional[datetime] = None
+    stripe_customer_id: Optional[str] = None
+    subscription_plan: Optional[str] = None
+    subscription_current_period_end: Optional[datetime] = None
 
 
 class AdminDeleteResponse(BaseModel):
@@ -25,18 +28,46 @@ class AdminDeleteResponse(BaseModel):
     deleted_user_id: str
 
 
-class AdminUpdateAccountStatus(BaseModel):
-    """Request to update a user's account status."""
-    account_status: str
-    trial_ends_at: Optional[datetime] = None
+class AdminCreateUser(BaseModel):
+    """Request to create a new user via admin."""
+    email: EmailStr
+    password: str
+    full_name: Optional[str] = None
+    account_status: str = "trial"
+    subscription_plan: Optional[str] = None
+    trial_days: Optional[int] = 14
 
 
-class AdminUpdateAccountStatusResponse(BaseModel):
-    """Response for account status update."""
+class AdminCreateUserResponse(BaseModel):
+    """Response for admin user creation."""
     success: bool
     message: str
-    account_status: str
+    user_id: str
+
+
+class AdminUpdateUser(BaseModel):
+    """Request to update a user via admin."""
+    email: Optional[EmailStr] = None
+    password: Optional[str] = None
+    full_name: Optional[str] = None
+    account_status: Optional[str] = None
+    subscription_plan: Optional[str] = None
     trial_ends_at: Optional[datetime] = None
+
+
+class AdminUpdateUserResponse(BaseModel):
+    """Response for admin user update."""
+    success: bool
+    message: str
+    user: AdminUserStats
+
+
+class AdminToggleUserResponse(BaseModel):
+    """Response for admin user enable/disable toggle."""
+    success: bool
+    message: str
+    user_id: str
+    new_status: str
 
 
 class ErrorLogResponse(BaseModel):
