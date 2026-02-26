@@ -30,21 +30,12 @@ export default function PricingPage() {
                 Life Words
               </div>
             </Link>
-            <div className="flex items-center space-x-3">
-              <Link
-                href="/login"
-                className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-semibold text-lg"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-semibold py-2 px-5 rounded-lg text-lg transition-colors"
-                style={{ minHeight: '44px' }}
-              >
-                Get Started
-              </Link>
-            </div>
+            <Link
+              href="/login"
+              className="text-[var(--color-primary)] hover:text-[var(--color-primary-hover)] font-semibold text-lg"
+            >
+              Sign In
+            </Link>
           </div>
         </div>
       </header>
