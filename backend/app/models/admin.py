@@ -42,10 +42,35 @@ class AdminUpdateAccountStatusResponse(BaseModel):
 class ErrorLogResponse(BaseModel):
     """Response for an error log entry."""
     id: str
-    timestamp: datetime
-    endpoint: str
-    method: str
-    status_code: int
+    created_at: datetime
     error_message: str
-    traceback: Optional[str] = None
+    error_type: Optional[str] = None
+    stacktrace: Optional[str] = None
+    endpoint: Optional[str] = None
+    http_method: Optional[str] = None
+    request_body: Optional[dict] = None
+    query_params: Optional[dict] = None
+    status_code: Optional[int] = None
     user_id: Optional[str] = None
+    user_email: Optional[str] = None
+    source: str = "unhandled"
+    service_name: Optional[str] = None
+    function_name: Optional[str] = None
+    environment: Optional[str] = None
+    is_resolved: bool = False
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ErrorLogListResponse(BaseModel):
+    """Paginated error log list response."""
+    errors: list[ErrorLogResponse]
+    total: int
+    page: int
+    per_page: int
+
+
+class ResolveRequest(BaseModel):
+    """Request to resolve an error."""
+    notes: Optional[str] = None

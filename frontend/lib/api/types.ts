@@ -131,13 +131,32 @@ export interface AdminUserStats {
 
 export interface ErrorLogEntry {
   id: string
-  timestamp: string
-  endpoint: string
-  method: string
-  status_code: number
+  created_at: string
   error_message: string
-  traceback: string | null
+  error_type: string | null
+  stacktrace: string | null
+  endpoint: string | null
+  http_method: string | null
+  request_body: Record<string, unknown> | null
+  query_params: Record<string, unknown> | null
+  status_code: number | null
   user_id: string | null
+  user_email: string | null
+  source: string
+  service_name: string | null
+  function_name: string | null
+  environment: string | null
+  is_resolved: boolean
+  resolved_at: string | null
+  resolved_by: string | null
+  notes: string | null
+}
+
+export interface ErrorLogListResponse {
+  errors: ErrorLogEntry[]
+  total: number
+  page: number
+  per_page: number
 }
 
 // Subscription

@@ -192,7 +192,7 @@ def test_update_account_status_unauthorized(client):
     assert response.status_code == 401
 
 
-def test_list_error_logs_success(app, client, mock_db):
+def test_list_error_logs_success(app, client, mocker):
     """Test admin can list error logs."""
     from app.core.auth import require_admin
     from app.core.dependencies import get_db
@@ -200,38 +200,272 @@ def test_list_error_logs_success(app, client, mock_db):
     async def override_require_admin():
         return SAMPLE_ADMIN_USER
 
+    mock_db = mocker.AsyncMock()
     async def override_get_db():
         return mock_db
 
     app.dependency_overrides[require_admin] = override_require_admin
     app.dependency_overrides[get_db] = override_get_db
 
-    mock_db.query.return_value = [
-        {
-            "id": "log-1",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "endpoint": "/api/test",
-            "method": "GET",
-            "status_code": 500,
-            "error_message": "Test error",
-            "traceback": None,
-            "user_id": None,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
-    ]
+    sample_error = {
+        "id": "log-1",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "endpoint": "/api/test",
+        "http_method": "GET",
+        "status_code": 500,
+        "error_message": "Test error",
+        "error_type": "ValueError",
+        "stacktrace": None,
+        "request_body": None,
+        "query_params": None,
+        "user_id": None,
+        "user_email": None,
+        "source": "unhandled",
+        "service_name": None,
+        "function_name": None,
+        "environment": "test",
+        "is_resolved": False,
+        "resolved_at": None,
+        "resolved_by": None,
+        "notes": None,
+    }
+
+    # Mock the httpx calls used by AdminService.list_error_logs
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = [sample_error]
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_count_response = mocker.MagicMock()
+    mock_count_response.json.return_value = []
+    mock_count_response.headers = {"content-range": "0-0/1"}
+    mock_count_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.get = mocker.AsyncMock(side_effect=[mock_response, mock_count_response])
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
 
     response = client.get(
-        "/api/admin/error-logs",
+        "/api/admin/errors",
         headers={"Authorization": "Bearer test-token"},
     )
 
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["endpoint"] == "/api/test"
+    assert len(data["errors"]) == 1
+    assert data["errors"][0]["endpoint"] == "/api/test"
+    assert data["total"] == 1
 
 
 def test_list_error_logs_unauthorized(client):
     """Test listing error logs requires authentication."""
-    response = client.get("/api/admin/error-logs")
+    response = client.get("/api/admin/errors")
+    assert response.status_code == 401
+
+
+def test_resolve_error_success(app, client, mocker):
+    """Test admin can resolve an error."""
+    from app.core.auth import require_admin
+    from app.core.dependencies import get_db
+
+    async def override_require_admin():
+        return SAMPLE_ADMIN_USER
+
+    mock_db = mocker.AsyncMock()
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[require_admin] = override_require_admin
+    app.dependency_overrides[get_db] = override_get_db
+
+    resolved_error = {
+        "id": "log-1",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "error_message": "Test error",
+        "error_type": "ValueError",
+        "stacktrace": None,
+        "endpoint": "/api/test",
+        "http_method": "GET",
+        "request_body": None,
+        "query_params": None,
+        "status_code": 500,
+        "user_id": None,
+        "user_email": None,
+        "source": "unhandled",
+        "service_name": None,
+        "function_name": None,
+        "environment": "test",
+        "is_resolved": True,
+        "resolved_at": datetime.now(timezone.utc).isoformat(),
+        "resolved_by": "weiner@parrotsoftware.com",
+        "notes": "Fixed it",
+    }
+
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = [resolved_error]
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/errors/log-1/resolve",
+        json={"notes": "Fixed it"},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_resolved"] is True
+    assert data["resolved_by"] == "weiner@parrotsoftware.com"
+    assert data["notes"] == "Fixed it"
+
+
+def test_resolve_error_not_found(app, client, mocker):
+    """Test resolving a nonexistent error returns 404."""
+    from app.core.auth import require_admin
+    from app.core.dependencies import get_db
+
+    async def override_require_admin():
+        return SAMPLE_ADMIN_USER
+
+    mock_db = mocker.AsyncMock()
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[require_admin] = override_require_admin
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/errors/nonexistent/resolve",
+        json={"notes": "test"},
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 404
+
+
+def test_resolve_error_unauthorized(client):
+    """Test resolving an error requires authentication."""
+    response = client.post("/api/admin/errors/log-1/resolve", json={})
+    assert response.status_code == 401
+
+
+def test_unresolve_error_success(app, client, mocker):
+    """Test admin can unresolve an error."""
+    from app.core.auth import require_admin
+    from app.core.dependencies import get_db
+
+    async def override_require_admin():
+        return SAMPLE_ADMIN_USER
+
+    mock_db = mocker.AsyncMock()
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[require_admin] = override_require_admin
+    app.dependency_overrides[get_db] = override_get_db
+
+    unresolved_error = {
+        "id": "log-1",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "error_message": "Test error",
+        "error_type": "ValueError",
+        "stacktrace": None,
+        "endpoint": "/api/test",
+        "http_method": "GET",
+        "request_body": None,
+        "query_params": None,
+        "status_code": 500,
+        "user_id": None,
+        "user_email": None,
+        "source": "unhandled",
+        "service_name": None,
+        "function_name": None,
+        "environment": "test",
+        "is_resolved": False,
+        "resolved_at": None,
+        "resolved_by": None,
+        "notes": None,
+    }
+
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = [unresolved_error]
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/errors/log-1/unresolve",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["is_resolved"] is False
+
+
+def test_unresolve_error_not_found(app, client, mocker):
+    """Test unresolving a nonexistent error returns 404."""
+    from app.core.auth import require_admin
+    from app.core.dependencies import get_db
+
+    async def override_require_admin():
+        return SAMPLE_ADMIN_USER
+
+    mock_db = mocker.AsyncMock()
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[require_admin] = override_require_admin
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    response = client.post(
+        "/api/admin/errors/nonexistent/unresolve",
+        headers={"Authorization": "Bearer test-token"},
+    )
+
+    assert response.status_code == 404
+
+
+def test_unresolve_error_unauthorized(client):
+    """Test unresolving an error requires authentication."""
+    response = client.post("/api/admin/errors/log-1/unresolve")
     assert response.status_code == 401

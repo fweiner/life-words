@@ -1,8 +1,9 @@
 """Main FastAPI application."""
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from app.config import settings
-from app.core.error_handler import ErrorLoggingMiddleware
+from app.core.error_logger import log_error
 
 # Create FastAPI app
 app = FastAPI(
@@ -20,8 +21,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Error logging middleware
-app.add_middleware(ErrorLoggingMiddleware)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled exceptions, log them, and return a clean 500."""
+    try:
+        body = None
+        if request.method in ("POST", "PUT", "PATCH"):
+            try:
+                body = await request.json()
+            except Exception:
+                pass
+
+        query_params = dict(request.query_params) if request.query_params else None
+
+        log_error(
+            error=exc,
+            source="unhandled",
+            endpoint=str(request.url.path),
+            http_method=request.method,
+            request_body=body,
+            query_params=query_params,
+            status_code=500,
+        )
+    except Exception:
+        pass  # Handler itself must never crash
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
 
 
 @app.get("/")

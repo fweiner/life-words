@@ -1,13 +1,14 @@
 """Admin management endpoints."""
-from typing import List
-from fastapi import APIRouter, Query
+from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Query
 from app.core.dependencies import AdminUser, Database
 from app.models.admin import (
     AdminUserStats,
     AdminDeleteResponse,
     AdminUpdateAccountStatus,
     AdminUpdateAccountStatusResponse,
-    ErrorLogResponse,
+    ErrorLogListResponse,
+    ResolveRequest,
 )
 from app.services.admin_service import AdminService
 
@@ -64,12 +65,52 @@ async def update_account_status(
     )
 
 
-@router.get("/error-logs", response_model=List[ErrorLogResponse])
-async def list_error_logs(
+@router.get("/errors", response_model=ErrorLogListResponse)
+async def list_errors(
     user: AdminUser,
     db: Database,
-    limit: int = Query(default=50, ge=1, le=200),
+    search: Optional[str] = Query(None),
+    source: Optional[str] = Query(None),
+    resolved: Optional[bool] = Query(None),
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=100),
 ):
-    """List recent error logs. Admin only."""
+    """List error logs with search, filtering, and pagination. Admin only."""
     service = AdminService(db)
-    return await service.list_error_logs(limit=limit)
+    return await service.list_error_logs(
+        search=search,
+        source=source,
+        resolved=resolved,
+        page=page,
+        per_page=per_page,
+    )
+
+
+@router.post("/errors/{error_id}/resolve")
+async def resolve_error(
+    error_id: str,
+    body: ResolveRequest,
+    user: AdminUser,
+    db: Database,
+):
+    """Mark an error as resolved. Admin only."""
+    service = AdminService(db)
+    admin_email = user.get("email", "unknown")
+    result = await service.resolve_error(error_id, admin_email, body.notes)
+    if not result:
+        raise HTTPException(status_code=404, detail="Error not found")
+    return result
+
+
+@router.post("/errors/{error_id}/unresolve")
+async def unresolve_error(
+    error_id: str,
+    user: AdminUser,
+    db: Database,
+):
+    """Reopen a resolved error. Admin only."""
+    service = AdminService(db)
+    result = await service.unresolve_error(error_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Error not found")
+    return result

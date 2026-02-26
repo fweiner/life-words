@@ -116,6 +116,8 @@ from app.models.admin import (  # noqa: F401
     AdminUpdateAccountStatus,
     AdminUpdateAccountStatusResponse,
     ErrorLogResponse,
+    ErrorLogListResponse,
+    ResolveRequest,
 )
 
 # Stripe

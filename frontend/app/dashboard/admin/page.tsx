@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 import { apiClient } from '@/lib/api/client'
-import type { AdminUserStats, ErrorLogEntry } from '@/lib/api/types'
+import type { AdminUserStats, ErrorLogEntry, ErrorLogListResponse } from '@/lib/api/types'
 import Link from 'next/link'
 
 const ADMIN_EMAIL = 'weiner@parrotsoftware.com'
@@ -48,13 +48,22 @@ export default function AdminPage() {
 
   // Error logs state
   const [errorLogs, setErrorLogs] = useState<ErrorLogEntry[]>([])
+  const [errorLogsTotal, setErrorLogsTotal] = useState(0)
+  const [errorLogsPage, setErrorLogsPage] = useState(1)
   const [errorLogsLoading, setErrorLogsLoading] = useState(false)
   const [errorLogsError, setErrorLogsError] = useState<string | null>(null)
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null)
+  const [errorSearch, setErrorSearch] = useState('')
+  const [errorSourceFilter, setErrorSourceFilter] = useState('')
+  const [showResolved, setShowResolved] = useState(false)
+  const [resolveNotes, setResolveNotes] = useState('')
+  const [resolving, setResolving] = useState(false)
 
   // Trial date picker state
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [trialDate, setTrialDate] = useState('')
+
+  const perPage = 50
 
   useEffect(() => {
     const load = async () => {
@@ -82,18 +91,28 @@ export default function AdminPage() {
     load()
   }, [])
 
-  const loadErrorLogs = async () => {
+  const loadErrorLogs = useCallback(async (page = 1) => {
     setErrorLogsLoading(true)
     setErrorLogsError(null)
     try {
-      const data = await apiClient.get<ErrorLogEntry[]>('/api/admin/error-logs')
-      setErrorLogs(data)
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: perPage.toString(),
+      })
+      if (errorSearch) params.set('search', errorSearch)
+      if (errorSourceFilter) params.set('source', errorSourceFilter)
+      if (!showResolved) params.set('resolved', 'false')
+
+      const data = await apiClient.get<ErrorLogListResponse>(`/api/admin/errors?${params}`)
+      setErrorLogs(data.errors || [])
+      setErrorLogsTotal(data.total || 0)
+      setErrorLogsPage(page)
     } catch (err) {
       setErrorLogsError(err instanceof Error ? err.message : 'Failed to load error logs')
     } finally {
       setErrorLogsLoading(false)
     }
-  }
+  }, [errorSearch, errorSourceFilter, showResolved])
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab)
@@ -101,6 +120,75 @@ export default function AdminPage() {
       loadErrorLogs()
     }
   }
+
+  const handleErrorSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    loadErrorLogs(1)
+  }
+
+  const handleResolve = async (id: string) => {
+    setResolving(true)
+    try {
+      await apiClient.post(`/api/admin/errors/${id}/resolve`, { notes: resolveNotes || null })
+      setResolveNotes('')
+      loadErrorLogs(errorLogsPage)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to resolve error')
+    } finally {
+      setResolving(false)
+    }
+  }
+
+  const handleUnresolve = async (id: string) => {
+    try {
+      await apiClient.post(`/api/admin/errors/${id}/unresolve`, {})
+      loadErrorLogs(errorLogsPage)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to unresolve error')
+    }
+  }
+
+  const copyForAI = (err: ErrorLogEntry) => {
+    const text = `## Error Log #${err.id}
+- **Time:** ${new Date(err.created_at).toLocaleString()}
+- **Source:** ${err.source}
+- **Endpoint:** ${err.http_method} ${err.endpoint}
+- **Status:** ${err.status_code}
+- **Type:** ${err.error_type}
+- **Service:** ${err.service_name}${err.function_name ? '.' + err.function_name : ''}
+- **User:** ${err.user_email || 'N/A'} (${err.user_id || 'N/A'})
+
+### Error Message
+\`\`\`
+${err.error_message}
+\`\`\`
+
+### Request Body
+\`\`\`json
+${err.request_body ? JSON.stringify(err.request_body, null, 2) : 'N/A'}
+\`\`\`
+
+### Stacktrace
+\`\`\`
+${err.stacktrace || 'N/A'}
+\`\`\``
+    navigator.clipboard.writeText(text)
+  }
+
+  const sourceBadge = (source: string) => {
+    const colors: Record<string, string> = {
+      unhandled: 'bg-red-100 text-red-800',
+      swallowed: 'bg-yellow-100 text-yellow-800',
+      manual: 'bg-blue-100 text-blue-800',
+    }
+    return (
+      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${colors[source] || 'bg-gray-100 text-gray-800'}`}>
+        {source}
+      </span>
+    )
+  }
+
+  const totalPages = Math.ceil(errorLogsTotal / perPage)
 
   const handleDelete = async (userId: string, email: string) => {
     if (!window.confirm(`Are you sure you want to delete ${email}? This will permanently remove all their data.`)) {
@@ -341,15 +429,58 @@ export default function AdminPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-lg text-gray-600">
-              {errorLogs.length} error log{errorLogs.length !== 1 ? 's' : ''}
+              Error Logs ({errorLogsTotal})
             </p>
             <button
-              onClick={loadErrorLogs}
+              onClick={() => loadErrorLogs(errorLogsPage)}
               className="py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors text-base"
               style={{ minHeight: '44px' }}
             >
               Refresh
             </button>
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-3 mb-6 items-center flex-wrap">
+            <form onSubmit={handleErrorSearch} className="flex gap-2">
+              <input
+                type="text"
+                value={errorSearch}
+                onChange={(e) => setErrorSearch(e.target.value)}
+                placeholder="Search error messages..."
+                className="border border-gray-300 rounded-lg px-3 py-2 text-base w-64"
+                style={{ minHeight: '44px' }}
+              />
+              <button
+                type="submit"
+                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-4 py-2 rounded-lg text-base font-semibold"
+                style={{ minHeight: '44px' }}
+              >
+                Search
+              </button>
+            </form>
+
+            <select
+              value={errorSourceFilter}
+              onChange={(e) => { setErrorSourceFilter(e.target.value); setTimeout(() => loadErrorLogs(1), 0) }}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-base"
+              style={{ minHeight: '44px' }}
+            >
+              <option value="">All sources</option>
+              <option value="unhandled">Unhandled</option>
+              <option value="swallowed">Swallowed</option>
+              <option value="manual">Manual</option>
+            </select>
+
+            <label className="flex items-center gap-2 text-base cursor-pointer" style={{ minHeight: '44px' }}>
+              <input
+                type="checkbox"
+                checked={showResolved}
+                onChange={(e) => { setShowResolved(e.target.checked); setTimeout(() => loadErrorLogs(1), 0) }}
+                className="w-5 h-5"
+              />
+              Show resolved
+            </label>
           </div>
 
           {errorLogsError && (
@@ -364,61 +495,189 @@ export default function AdminPage() {
             </div>
           ) : errorLogs.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
-              <p className="text-xl text-gray-600">No error logs found.</p>
+              <p className="text-xl text-gray-600">No errors found.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {errorLogs.map(log => (
-                <div key={log.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={log.id} className="border border-gray-200 rounded-lg overflow-hidden">
                   <button
                     onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
-                    className="w-full text-left"
+                    className="w-full text-left p-4 hover:bg-gray-50 transition-colors"
                     style={{ minHeight: '44px' }}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="inline-block px-2 py-0.5 text-sm font-mono font-semibold rounded bg-red-100 text-red-800">
-                            {log.status_code}
-                          </span>
+                          {sourceBadge(log.source)}
+                          {log.status_code && (
+                            <span className="inline-block px-2 py-0.5 text-xs font-mono font-semibold rounded bg-gray-100 text-gray-800">
+                              {log.status_code}
+                            </span>
+                          )}
                           <span className="text-base font-semibold text-gray-900">
-                            {log.method} {log.endpoint}
+                            {log.http_method} {log.endpoint}
                           </span>
+                          {log.is_resolved && (
+                            <span className="text-green-600 text-xs font-medium">Resolved</span>
+                          )}
                         </div>
                         <p className="text-base text-gray-700 truncate">{log.error_message}</p>
                       </div>
                       <span className="text-sm text-gray-500 flex-shrink-0 whitespace-nowrap">
-                        {new Date(log.timestamp).toLocaleString()}
+                        {new Date(log.created_at).toLocaleString()}
                       </span>
                     </div>
                   </button>
 
+                  {/* Expanded detail */}
                   {expandedLogId === log.id && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <div className="space-y-2">
+                    <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-gray-50">
+                      <div className="space-y-4">
+                        {/* Error message */}
                         <div>
-                          <span className="text-sm text-gray-500">Error message:</span>
-                          <p className="text-base text-gray-800">{log.error_message}</p>
+                          <h4 className="font-semibold text-base mb-1">Error Message</h4>
+                          <pre className="bg-white border border-gray-200 rounded-lg p-3 text-sm whitespace-pre-wrap break-words">
+                            {log.error_message}
+                          </pre>
                         </div>
-                        {log.user_id && (
+
+                        {/* Context grid */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-base">
                           <div>
-                            <span className="text-sm text-gray-500">User ID:</span>
-                            <p className="text-base text-gray-800 font-mono">{log.user_id}</p>
+                            <span className="text-gray-500">Type:</span>{' '}
+                            <span className="font-medium">{log.error_type || 'N/A'}</span>
                           </div>
-                        )}
-                        {log.traceback && (
                           <div>
-                            <span className="text-sm text-gray-500">Traceback:</span>
-                            <pre className="mt-1 p-3 bg-gray-900 text-green-400 text-sm rounded-lg overflow-x-auto whitespace-pre-wrap break-words">
-                              {log.traceback}
+                            <span className="text-gray-500">Status Code:</span>{' '}
+                            <span className="font-medium">{log.status_code || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Service:</span>{' '}
+                            <span className="font-medium">{log.service_name || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Function:</span>{' '}
+                            <span className="font-medium">{log.function_name || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">User:</span>{' '}
+                            <span className="font-medium">{log.user_email || log.user_id || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">Environment:</span>{' '}
+                            <span className="font-medium">{log.environment || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        {/* Request body */}
+                        {log.request_body && (
+                          <div>
+                            <h4 className="font-semibold text-base mb-1">Request Body</h4>
+                            <pre className="bg-white border border-gray-200 rounded-lg p-3 text-sm whitespace-pre-wrap break-words overflow-x-auto">
+                              {JSON.stringify(log.request_body, null, 2)}
                             </pre>
                           </div>
                         )}
+
+                        {/* Query params */}
+                        {log.query_params && (
+                          <div>
+                            <h4 className="font-semibold text-base mb-1">Query Parameters</h4>
+                            <pre className="bg-white border border-gray-200 rounded-lg p-3 text-sm whitespace-pre-wrap break-words">
+                              {JSON.stringify(log.query_params, null, 2)}
+                            </pre>
+                          </div>
+                        )}
+
+                        {/* Stacktrace */}
+                        {log.stacktrace && (
+                          <div>
+                            <h4 className="font-semibold text-base mb-1">Stacktrace</h4>
+                            <pre className="bg-gray-900 text-green-400 rounded-lg p-4 text-sm whitespace-pre-wrap break-words overflow-x-auto">
+                              {log.stacktrace}
+                            </pre>
+                          </div>
+                        )}
+
+                        {/* Resolution info */}
+                        {log.is_resolved && (
+                          <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-base">
+                            <strong>Resolved by:</strong> {log.resolved_by} at{' '}
+                            {log.resolved_at && new Date(log.resolved_at).toLocaleString()}
+                            {log.notes && <p className="mt-1"><strong>Notes:</strong> {log.notes}</p>}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <button
+                            onClick={() => copyForAI(log)}
+                            className="py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition-colors text-base"
+                            style={{ minHeight: '44px' }}
+                          >
+                            Copy for AI
+                          </button>
+
+                          {log.is_resolved ? (
+                            <button
+                              onClick={() => handleUnresolve(log.id)}
+                              className="py-2 px-4 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition-colors text-base"
+                              style={{ minHeight: '44px' }}
+                            >
+                              Reopen
+                            </button>
+                          ) : (
+                            <>
+                              <input
+                                type="text"
+                                value={resolveNotes}
+                                onChange={(e) => setResolveNotes(e.target.value)}
+                                placeholder="Resolution notes (optional)"
+                                className="border border-gray-300 rounded-lg px-3 py-2 text-base w-64"
+                                style={{ minHeight: '44px' }}
+                              />
+                              <button
+                                onClick={() => handleResolve(log.id)}
+                                disabled={resolving}
+                                className="py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors text-base disabled:opacity-50"
+                                style={{ minHeight: '44px' }}
+                              >
+                                {resolving ? 'Resolving...' : 'Resolve'}
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-3 mt-6">
+              <button
+                onClick={() => loadErrorLogs(errorLogsPage - 1)}
+                disabled={errorLogsPage <= 1}
+                className="py-2 px-4 border border-gray-300 rounded-lg text-base font-semibold disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                style={{ minHeight: '44px' }}
+              >
+                Previous
+              </button>
+              <span className="text-base text-gray-600">
+                Page {errorLogsPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => loadErrorLogs(errorLogsPage + 1)}
+                disabled={errorLogsPage >= totalPages}
+                className="py-2 px-4 border border-gray-300 rounded-lg text-base font-semibold disabled:opacity-50 hover:bg-gray-50 transition-colors"
+                style={{ minHeight: '44px' }}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>

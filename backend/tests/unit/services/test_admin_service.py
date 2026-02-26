@@ -212,46 +212,234 @@ async def test_update_account_status_user_not_found(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_list_error_logs(mock_db):
-    """Test listing error logs queries with correct params."""
-    mock_db.query.return_value = [
-        {
-            "id": "log-1",
-            "timestamp": "2026-02-25T00:00:00Z",
-            "endpoint": "/api/test",
-            "method": "GET",
-            "status_code": 500,
-            "error_message": "Test error",
-            "traceback": "Traceback ...",
-            "user_id": None,
-        }
-    ]
+async def test_list_error_logs(mock_db, mocker):
+    """Test listing error logs with pagination."""
+    sample_error = {
+        "id": "log-1",
+        "created_at": "2026-02-25T00:00:00Z",
+        "endpoint": "/api/test",
+        "http_method": "GET",
+        "status_code": 500,
+        "error_message": "Test error",
+        "source": "unhandled",
+    }
+
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = [sample_error]
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_count_response = mocker.MagicMock()
+    mock_count_response.json.return_value = []
+    mock_count_response.headers = {"content-range": "0-0/1"}
+    mock_count_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.get = mocker.AsyncMock(side_effect=[mock_response, mock_count_response])
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
 
     service = AdminService(mock_db)
-    result = await service.list_error_logs(limit=25)
+    result = await service.list_error_logs(page=1, per_page=25)
 
-    assert len(result) == 1
-    assert result[0]["endpoint"] == "/api/test"
-    mock_db.query.assert_called_once_with(
-        "error_logs",
-        order_by="timestamp",
-        order_desc=True,
-        limit=25,
-    )
+    assert len(result["errors"]) == 1
+    assert result["errors"][0]["endpoint"] == "/api/test"
+    assert result["total"] == 1
+    assert result["page"] == 1
+    assert result["per_page"] == 25
 
 
 @pytest.mark.asyncio
-async def test_list_error_logs_empty(mock_db):
+async def test_list_error_logs_empty(mock_db, mocker):
     """Test listing error logs returns empty list when none exist."""
-    mock_db.query.return_value = []
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_count_response = mocker.MagicMock()
+    mock_count_response.json.return_value = []
+    mock_count_response.headers = {"content-range": "0-0/0"}
+    mock_count_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.get = mocker.AsyncMock(side_effect=[mock_response, mock_count_response])
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
 
     service = AdminService(mock_db)
     result = await service.list_error_logs()
 
-    assert result == []
-    mock_db.query.assert_called_once_with(
-        "error_logs",
-        order_by="timestamp",
-        order_desc=True,
-        limit=50,
-    )
+    assert result["errors"] == []
+    assert result["total"] == 0
+
+
+@pytest.mark.asyncio
+async def test_list_error_logs_with_search_filter(mock_db, mocker):
+    """Test listing error logs with search filter passes ilike param."""
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_count_response = mocker.MagicMock()
+    mock_count_response.json.return_value = []
+    mock_count_response.headers = {"content-range": "0-0/0"}
+    mock_count_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.get = mocker.AsyncMock(side_effect=[mock_response, mock_count_response])
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    service = AdminService(mock_db)
+    await service.list_error_logs(search="connection", source="unhandled", resolved=False)
+
+    # Verify the GET call included filter params
+    call_args = mock_client.get.call_args_list[0]
+    params = call_args.kwargs.get("params", call_args[1].get("params", {}))
+    assert params["error_message"] == "ilike.*connection*"
+    assert params["source"] == "eq.unhandled"
+    assert params["is_resolved"] == "eq.false"
+
+
+@pytest.mark.asyncio
+async def test_list_error_logs_ignores_invalid_source(mock_db, mocker):
+    """Test listing error logs ignores an invalid source filter."""
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_count_response = mocker.MagicMock()
+    mock_count_response.json.return_value = []
+    mock_count_response.headers = {"content-range": "0-0/0"}
+    mock_count_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.get = mocker.AsyncMock(side_effect=[mock_response, mock_count_response])
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    service = AdminService(mock_db)
+    await service.list_error_logs(source="invalid_source")
+
+    call_args = mock_client.get.call_args_list[0]
+    params = call_args.kwargs.get("params", call_args[1].get("params", {}))
+    assert "source" not in params
+
+
+@pytest.mark.asyncio
+async def test_resolve_error(mock_db, mocker):
+    """Test resolving an error log."""
+    resolved_error = {
+        "id": "log-1",
+        "error_message": "Test error",
+        "is_resolved": True,
+        "resolved_by": "admin@example.com",
+        "notes": "Fixed in deploy",
+    }
+
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = [resolved_error]
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    service = AdminService(mock_db)
+    result = await service.resolve_error("log-1", "admin@example.com", "Fixed in deploy")
+
+    assert result["is_resolved"] is True
+    assert result["resolved_by"] == "admin@example.com"
+    assert result["notes"] == "Fixed in deploy"
+
+    call_args = mock_client.patch.call_args
+    assert call_args.kwargs["params"]["id"] == "eq.log-1"
+    body = call_args.kwargs["json"]
+    assert body["is_resolved"] is True
+    assert body["resolved_by"] == "admin@example.com"
+
+
+@pytest.mark.asyncio
+async def test_resolve_error_not_found(mock_db, mocker):
+    """Test resolving a nonexistent error returns None."""
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    service = AdminService(mock_db)
+    result = await service.resolve_error("nonexistent", "admin@example.com")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_unresolve_error(mock_db, mocker):
+    """Test unresolving an error log."""
+    unresolved_error = {
+        "id": "log-1",
+        "error_message": "Test error",
+        "is_resolved": False,
+        "resolved_at": None,
+        "resolved_by": None,
+        "notes": None,
+    }
+
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = [unresolved_error]
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    service = AdminService(mock_db)
+    result = await service.unresolve_error("log-1")
+
+    assert result["is_resolved"] is False
+    assert result["resolved_by"] is None
+    assert result["notes"] is None
+
+    call_args = mock_client.patch.call_args
+    body = call_args.kwargs["json"]
+    assert body["is_resolved"] is False
+    assert body["resolved_at"] is None
+
+
+@pytest.mark.asyncio
+async def test_unresolve_error_not_found(mock_db, mocker):
+    """Test unresolving a nonexistent error returns None."""
+    mock_response = mocker.MagicMock()
+    mock_response.json.return_value = []
+    mock_response.raise_for_status = mocker.MagicMock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.patch = mocker.AsyncMock(return_value=mock_response)
+    mock_client.__aenter__ = mocker.AsyncMock(return_value=mock_client)
+    mock_client.__aexit__ = mocker.AsyncMock(return_value=False)
+
+    mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
+
+    service = AdminService(mock_db)
+    result = await service.unresolve_error("nonexistent")
+
+    assert result is None

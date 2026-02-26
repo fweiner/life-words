@@ -1,4 +1,4 @@
-"""Admin service for user management."""
+"""Admin service for user management and error log management."""
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
@@ -9,6 +9,7 @@ from app.config import settings
 from app.core.database import SupabaseClient
 
 VALID_ACCOUNT_STATUSES = {"trial", "paid", "cancelled", "past_due"}
+VALID_ERROR_SOURCES = {"unhandled", "swallowed", "manual"}
 
 
 class AdminService:
@@ -77,11 +78,117 @@ class AdminService:
         result = await self.db.update("profiles", filters={"id": user_id}, data=update_data)
         return result
 
-    async def list_error_logs(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """List recent error logs."""
-        return await self.db.query(
-            "error_logs",
-            order_by="timestamp",
-            order_desc=True,
-            limit=limit,
-        )
+    async def list_error_logs(
+        self,
+        search: Optional[str] = None,
+        source: Optional[str] = None,
+        resolved: Optional[bool] = None,
+        page: int = 1,
+        per_page: int = 50,
+    ) -> Dict[str, Any]:
+        """List error logs with search, filtering, and pagination."""
+        params: Dict[str, str] = {
+            "select": "*",
+            "order": "created_at.desc",
+            "limit": str(per_page),
+            "offset": str((page - 1) * per_page),
+        }
+
+        if search:
+            params["error_message"] = f"ilike.*{search}*"
+        if source and source in VALID_ERROR_SOURCES:
+            params["source"] = f"eq.{source}"
+        if resolved is not None:
+            params["is_resolved"] = f"eq.{str(resolved).lower()}"
+
+        url = f"{settings.supabase_url}/rest/v1/error_logs"
+        headers = {
+            "apikey": settings.supabase_secret_key,
+            "Authorization": f"Bearer {settings.supabase_secret_key}",
+        }
+
+        async with httpx.AsyncClient() as client:
+            # Fetch errors
+            resp = await client.get(url, headers=headers, params=params)
+            resp.raise_for_status()
+            errors = resp.json()
+
+            # Fetch total count for pagination
+            count_params = {
+                k: v
+                for k, v in params.items()
+                if k not in ("order", "limit", "offset", "select")
+            }
+            count_params["select"] = "id"
+            count_resp = await client.get(
+                url,
+                headers={
+                    **headers,
+                    "Prefer": "count=exact",
+                },
+                params=count_params,
+            )
+            total = int(
+                count_resp.headers.get("content-range", "0/0").split("/")[-1]
+            )
+
+        return {
+            "errors": errors,
+            "total": total,
+            "page": page,
+            "per_page": per_page,
+        }
+
+    async def resolve_error(
+        self, error_id: str, admin_email: str, notes: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Mark an error as resolved."""
+        url = f"{settings.supabase_url}/rest/v1/error_logs"
+        headers = {
+            "apikey": settings.supabase_secret_key,
+            "Authorization": f"Bearer {settings.supabase_secret_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        }
+        params = {"id": f"eq.{error_id}"}
+        data = {
+            "is_resolved": True,
+            "resolved_at": datetime.now(timezone.utc).isoformat(),
+            "resolved_by": admin_email,
+            "notes": notes,
+        }
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.patch(
+                url, headers=headers, params=params, json=data
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            return rows[0] if rows else None
+
+    async def unresolve_error(
+        self, error_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """Reopen a resolved error."""
+        url = f"{settings.supabase_url}/rest/v1/error_logs"
+        headers = {
+            "apikey": settings.supabase_secret_key,
+            "Authorization": f"Bearer {settings.supabase_secret_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=representation",
+        }
+        params = {"id": f"eq.{error_id}"}
+        data = {
+            "is_resolved": False,
+            "resolved_at": None,
+            "resolved_by": None,
+            "notes": None,
+        }
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.patch(
+                url, headers=headers, params=params, json=data
+            )
+            resp.raise_for_status()
+            rows = resp.json()
+            return rows[0] if rows else None
