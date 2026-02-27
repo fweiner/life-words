@@ -177,7 +177,7 @@ export default function MyInformationPage() {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-md p-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-[var(--color-primary)]">
               My Information
@@ -188,9 +188,9 @@ export default function MyInformationPage() {
           </div>
           <Link
             href="/dashboard/practice"
-            className="text-[var(--color-primary)] hover:underline"
+            className="text-[var(--color-primary)] hover:underline whitespace-nowrap"
           >
-            ← Back to Life Words and Memory
+            ← Back
           </Link>
         </div>
 
