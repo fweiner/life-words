@@ -72,3 +72,6 @@ coverage/
 
 # Encrypted env files
 *.enc.local
+
+# Screenshots
+*.png
