@@ -1,6 +1,6 @@
-# Parrot Software Treatment Application - Technical Documentation
+# Life Words Application - Technical Documentation
 
-This document provides comprehensive technical information about the Parrot Software Treatment application for AI assistants like Claude.
+This document provides comprehensive technical information about the Life Words application for AI assistants like Claude.
 
 ## Development Environment
 
@@ -42,7 +42,7 @@ This document provides comprehensive technical information about the Parrot Soft
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                    User's Browser                         │
-│              (app.parrotsoftware.com)                     │
+│              (words.parrotsoftware.com)                     │
 │                                                           │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │         Next.js 14+ (App Router)                │    │
@@ -99,7 +99,7 @@ This document provides comprehensive technical information about the Parrot Soft
 - Platform: Google Cloud Run (serverless containers)
 - Frontend: `treatment-web` service
 - Backend: `treatment-api` service
-- Domain: app.parrotsoftware.com (frontend), api.parrotsoftware.com (backend)
+- Domain: words.parrotsoftware.com (frontend), api.parrotsoftware.com (backend)
 - DNS: GoDaddy
 
 **CI/CD**:
@@ -523,7 +523,7 @@ GOOGLE_CLOUD_PROJECT=parrotsoftware-treatment
 GOOGLE_APPLICATION_CREDENTIALS=gcp-runtime.json
 RESEND_API_KEY=<resend-key>
 ENVIRONMENT=development
-ALLOWED_ORIGINS=http://localhost:3000,https://app.parrotsoftware.com
+ALLOWED_ORIGINS=http://localhost:3000,https://words.parrotsoftware.com
 ```
 
 ## Local Development
@@ -588,7 +588,7 @@ Use the compound configuration "Full Stack Debug" in `.vscode/launch.json` to de
    - Region: us-central1
 
 3. **Custom Domains**:
-   - Frontend: https://app.parrotsoftware.com
+   - Frontend: https://words.parrotsoftware.com
    - Backend: https://api.parrotsoftware.com
    - SSL: Automatically provisioned by Cloud Run
 

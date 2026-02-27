@@ -39,7 +39,7 @@ interface ResponseRecord {
 }
 
 // Session phases
-type SessionPhase = 'ready' | 'teach' | 'quiz' | 'hint' | 'reveal' | 'completed'
+type SessionPhase = 'ready' | 'teach' | 'practice' | 'hint' | 'reveal' | 'completed'
 
 const TIMEOUT_MS = 30000 // 30 seconds
 
@@ -62,7 +62,7 @@ export default function InformationPracticeSessionPage() {
   const [currentItem, setCurrentItem] = useState<InformationItem | null>(null)
   const [teachingSpoken, setTeachingSpoken] = useState(false)
 
-  // Quiz state
+  // Practice phase state
   const [isAnswering, setIsAnswering] = useState(false)
   const [isProcessingAnswer, setIsProcessingAnswer] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
@@ -264,6 +264,16 @@ export default function InformationPracticeSessionPage() {
         const formatted = `${isNaN(count) ? String(value) : count} ${childWord}`
         displayValue = formatted
         ttsValue = formatted
+        // Keep raw number as expected_answer so "2" matches (not "2 children")
+        return {
+          field_name: fieldName,
+          field_label: config.label,
+          teach_text: config.teachTemplate.replace('{value}', ttsValue),
+          display_text: config.teachTemplate.replace('{value}', displayValue),
+          question_text: config.question,
+          expected_answer: String(isNaN(count) ? value : count),
+          hint_text: generateHint(displayValue, config.hintType),
+        }
       }
       const hintValue = fieldName === 'date_of_birth' ? displayValue.split(' ')[0] || displayValue : displayValue
       return {
@@ -286,13 +296,13 @@ export default function InformationPracticeSessionPage() {
 
   const handleTimeoutRef = useRef<() => void>(() => {})
 
-  // Handle timeout for quiz phase (defined before teaching useEffect to avoid reference error)
+  // Handle timeout for practice phase (defined before teaching useEffect to avoid reference error)
   const startTimeoutTimer = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
     }
     timeoutRef.current = setTimeout(() => {
-      if (phaseRef.current === 'quiz' || phaseRef.current === 'hint') {
+      if (phaseRef.current === 'practice' || phaseRef.current === 'hint') {
         handleTimeoutRef.current()
       }
     }, TIMEOUT_MS)
@@ -347,21 +357,21 @@ export default function InformationPracticeSessionPage() {
         // Wait a moment to let user hear and process (longer if speech failed so they can read)
         await new Promise(resolve => setTimeout(resolve, speechSucceeded ? 2500 : 3500))
 
-        // Move to next item or switch to quiz
+        // Move to next item or switch to practice
         const nextIndex = currentIdx + 1
         if (nextIndex >= allItems.length) {
-          // Teaching complete, start quiz phase
+          // Teaching complete, start practice phase
           await speakWithRetry("Now let's see what you remember!")
           await new Promise(resolve => setTimeout(resolve, 1500))
 
-          // Reset to first item for quiz
+          // Reset to first item for practice
           isTeachingSpeakingRef.current = false
           setCurrentIndex(0)
           currentIndexRef.current = 0
           setCurrentItem(allItems[0])
           currentItemRef.current = allItems[0]
-          setPhase('quiz')
-          phaseRef.current = 'quiz'
+          setPhase('practice')
+          phaseRef.current = 'practice'
           setIsAnswering(true)
           setUsedHintForCurrent(false)
           setTimedOutForCurrent(false)
@@ -398,8 +408,8 @@ export default function InformationPracticeSessionPage() {
           currentIndexRef.current = 0
           setCurrentItem(allItems[0])
           currentItemRef.current = allItems[0]
-          setPhase('quiz')
-          phaseRef.current = 'quiz'
+          setPhase('practice')
+          phaseRef.current = 'practice'
           setIsAnswering(true)
           setUsedHintForCurrent(false)
           setTimedOutForCurrent(false)
@@ -463,7 +473,7 @@ export default function InformationPracticeSessionPage() {
 
       const nextIndex = 1
       if (nextIndex >= items.length) {
-        // Only one item, go to quiz
+        // Only one item, go to practice
         await speakWithRetry("Now let's see what you remember!")
         await new Promise(resolve => setTimeout(resolve, 1500))
 
@@ -472,8 +482,8 @@ export default function InformationPracticeSessionPage() {
         currentIndexRef.current = 0
         setCurrentItem(items[0])
         currentItemRef.current = items[0]
-        setPhase('quiz')
-        phaseRef.current = 'quiz'
+        setPhase('practice')
+        phaseRef.current = 'practice'
         setIsAnswering(true)
 
         const startTime = Date.now()
@@ -509,7 +519,7 @@ export default function InformationPracticeSessionPage() {
   // ==================== TEACH PHASE ====================
   // Teaching is handled by the useEffect above - auto-speak and auto-advance
 
-  // ==================== QUIZ PHASE ====================
+  // ==================== PRACTICE PHASE ====================
 
   const handleAnswer = async (transcript: string) => {
     const currentItemVal = currentItemRef.current
@@ -679,8 +689,8 @@ export default function InformationPracticeSessionPage() {
     setIsAnswering(true)
     setUsedHintForCurrent(false)
     setTimedOutForCurrent(false)
-    setPhase('quiz')
-    phaseRef.current = 'quiz'
+    setPhase('practice')
+    phaseRef.current = 'practice'
 
     try {
       await speak(nextItem.question_text, { gender: voiceGender })
@@ -794,7 +804,7 @@ export default function InformationPracticeSessionPage() {
 
           <div className="bg-teal-50 border-2 border-teal-200 rounded-lg p-6 mb-8">
             <p className="text-lg text-teal-800">
-              Listen carefully as each item is read aloud. The quiz will follow!
+              Listen carefully as each item is read aloud. Then you'll practice!
             </p>
           </div>
 
@@ -866,7 +876,7 @@ export default function InformationPracticeSessionPage() {
             <p className="text-lg text-gray-600">
               {currentIndex < items.length - 1
                 ? `Item ${currentIndex + 1} of ${items.length} - Listen and remember...`
-                : `Last item - Quiz starting next...`
+                : `Last item - Practice starting next...`
               }
             </p>
           </div>
@@ -962,7 +972,7 @@ export default function InformationPracticeSessionPage() {
     )
   }
 
-  // ==================== QUIZ/HINT/REVEAL PHASE UI ====================
+  // ==================== PRACTICE/HINT/REVEAL PHASE UI ====================
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
       {/* Phase indicator */}
@@ -976,7 +986,7 @@ export default function InformationPracticeSessionPage() {
         }`}>
           {phase === 'hint' ? 'Almost! Here\'s a Hint' :
            phase === 'reveal' ? 'Answer Revealed' :
-           'Quiz Phase - Answer the Questions'}
+           'Answer the Questions'}
         </span>
       </div>
 

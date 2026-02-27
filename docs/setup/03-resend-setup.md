@@ -1,6 +1,6 @@
 # Resend Email Service Setup Guide
 
-This guide walks you through setting up Resend for sending emails in the Parrot Software Treatment application, including integration with Supabase authentication.
+This guide walks you through setting up Resend for sending emails in the Life Words application, including integration with Supabase authentication.
 
 ## Prerequisites
 
@@ -90,7 +90,7 @@ Resend will provide you with DNS records to add. You'll need to add these to you
 1. In the Resend dashboard, go to **API Keys**
 2. Click **+ Create API Key**
 3. API Key details:
-   - **Name**: `Treatment App - Production`
+   - **Name**: `Life Words - Production`
    - **Permission**: **Full Access** (or **Sending access** for production)
    - **Domain**: Select `parrotsoftware.com`
 4. Click **Create**
@@ -110,7 +110,7 @@ Resend will provide you with DNS records to add. You'll need to add these to you
 For local development, you may want a separate key:
 
 1. Click **+ Create API Key** again
-2. Name: `Treatment App - Development`
+2. Name: `Life Words - Development`
 3. Permission: **Full Access**
 4. Domain: `parrotsoftware.com`
 5. Click **Create** and save the key
@@ -159,7 +159,7 @@ See [04-github-secrets.md](./04-github-secrets.md) for more details.
 3. Enter the following details:
 
    - **Sender email**: `noreply@parrotsoftware.com`
-   - **Sender name**: `Parrot Software Treatment`
+   - **Sender name**: `Life Words`
    - **Host**: `smtp.resend.com`
    - **Port number**: `587`
    - **Username**: `resend`
@@ -196,7 +196,7 @@ In Supabase Auth settings, you can customize:
 ### 6.2 Example Custom Template
 
 ```html
-<h2>Welcome to Parrot Software Treatment</h2>
+<h2>Welcome to Life Words</h2>
 <p>Thank you for signing up! Please confirm your email address by clicking the link below:</p>
 <p><a href="{{ .ConfirmationURL }}">Confirm Email Address</a></p>
 <p>This link will expire in 24 hours.</p>
@@ -233,7 +233,7 @@ params = {
     "from": "noreply@parrotsoftware.com",
     "to": ["test@example.com"],
     "subject": "Test Email",
-    "html": "<strong>Hello from Parrot Software!</strong>"
+    "html": "<strong>Hello from Life Words!</strong>"
 }
 
 email = resend.emails.send(params)

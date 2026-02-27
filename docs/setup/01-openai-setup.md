@@ -1,6 +1,6 @@
 # OpenAI API Setup Guide
 
-This guide walks you through creating an OpenAI API key for the Parrot Software Treatment application.
+This guide walks you through creating an OpenAI API key for the Life Words application.
 
 ## Prerequisites
 

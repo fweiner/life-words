@@ -1,6 +1,6 @@
 # GitHub Secrets Configuration Guide
 
-This guide walks you through setting up GitHub repository secrets for CI/CD deployment of the Parrot Software Treatment application.
+This guide walks you through setting up GitHub repository secrets for CI/CD deployment of the Life Words application.
 
 ## Prerequisites
 

@@ -1,6 +1,6 @@
 # Google Cloud Platform Setup Guide
 
-This guide walks you through setting up Google Cloud Platform (GCP) for the Parrot Software Treatment application, including Speech-to-Text, Text-to-Speech, Cloud Run, and service accounts.
+This guide walks you through setting up Google Cloud Platform (GCP) for the Life Words application, including Speech-to-Text, Text-to-Speech, Cloud Run, and service accounts.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ This guide walks you through setting up Google Cloud Platform (GCP) for the Parr
 1. Click the project dropdown at the top of the page
 2. Click **NEW PROJECT**
 3. Project details:
-   - **Project name**: `Parrot Software Treatment`
+   - **Project name**: `Life Words`
    - **Project ID**: `parrotsoftware-treatment` (must be globally unique)
    - **Organization**: Select if applicable (or leave as "No organization")
 4. Click **CREATE**

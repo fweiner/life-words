@@ -1,6 +1,6 @@
 # Domain Deployment Guide
 
-This guide walks you through deploying the Parrot Software Treatment application to Google Cloud Run and configuring the custom domain `app.parrotsoftware.com`.
+This guide walks you through deploying the Life Words application to Google Cloud Run and configuring the custom domain `words.parrotsoftware.com`.
 
 ## Prerequisites
 
@@ -13,7 +13,7 @@ This guide walks you through deploying the Parrot Software Treatment application
 
 ```
 ┌─────────────────────────────────────────┐
-│         app.parrotsoftware.com          │
+│         words.parrotsoftware.com          │
 │      (Next.js Frontend - Cloud Run)     │
 └──────────────┬──────────────────────────┘
                │
@@ -166,14 +166,14 @@ After successful deployment, you can access the services via their default Cloud
 
 8. Click **Done**
 
-### 2.2 Map Frontend Domain (app.parrotsoftware.com)
+### 2.2 Map Frontend Domain (words.parrotsoftware.com)
 
 Repeat the same process for the frontend:
 
 1. Click **Add Mapping** again
 2. **Service**: Select `treatment-web`
 3. **Region**: Same region as backend
-4. **Subdomain**: Enter `app.parrotsoftware.com`
+4. **Subdomain**: Enter `words.parrotsoftware.com`
 5. Note the DNS records (will be similar to backend)
 6. Click **Done**
 
@@ -210,7 +210,7 @@ For each AAAA record:
 
 Repeat for all 4 AAAA records.
 
-### 3.3 Add DNS Records for Frontend (app.parrotsoftware.com)
+### 3.3 Add DNS Records for Frontend (words.parrotsoftware.com)
 
 Repeat the same process, but use:
 - **Host**: `app` (instead of `api`)
@@ -224,7 +224,7 @@ After adding all records, your DNS should have:
 - 4 A records (all with host `api`)
 - 4 AAAA records (all with host `api`)
 
-**For app.parrotsoftware.com**:
+**For words.parrotsoftware.com**:
 - 4 A records (all with host `app`)
 - 4 AAAA records (all with host `app`)
 
@@ -244,7 +244,7 @@ Use online tools to verify DNS has propagated:
 
 **Method 1: DNS Checker**
 1. Go to [https://dnschecker.org](https://dnschecker.org)
-2. Enter `app.parrotsoftware.com`
+2. Enter `words.parrotsoftware.com`
 3. Select record type: **A**
 4. Click **Search**
 5. Verify IP addresses match Cloud Run's values
@@ -252,13 +252,13 @@ Use online tools to verify DNS has propagated:
 
 **Method 2: Command Line (Windows)**
 ```cmd
-nslookup app.parrotsoftware.com
+nslookup words.parrotsoftware.com
 nslookup api.parrotsoftware.com
 ```
 
 **Method 2: Command Line (Mac/Linux)**
 ```bash
-dig app.parrotsoftware.com
+dig words.parrotsoftware.com
 dig api.parrotsoftware.com
 ```
 
@@ -271,7 +271,7 @@ Cloud Run automatically provisions SSL certificates for custom domains.
 ### 5.1 Check Certificate Status
 
 1. In Google Cloud Console, go to **Cloud Run** > **Manage Custom Domains**
-2. Find your mappings for `app.parrotsoftware.com` and `api.parrotsoftware.com`
+2. Find your mappings for `words.parrotsoftware.com` and `api.parrotsoftware.com`
 3. Check the **Certificate Status**:
    - ⏳ **Pending**: DNS not yet propagated or certificate provisioning in progress
    - ✅ **Active**: Certificate is active and HTTPS is working
@@ -284,7 +284,7 @@ Once certificate status shows **Active**:
 
 1. Open browser and navigate to:
    - `https://api.parrotsoftware.com/health`
-   - `https://app.parrotsoftware.com`
+   - `https://words.parrotsoftware.com`
 
 2. Verify:
    - ✅ Page loads over HTTPS
@@ -316,7 +316,7 @@ The frontend needs to know the backend API URL:
 2. Click **Edit & Deploy New Revision**
 3. Update environment variable:
    - **Name**: `ALLOWED_ORIGINS`
-   - **Value**: `https://app.parrotsoftware.com,http://localhost:3000`
+   - **Value**: `https://words.parrotsoftware.com,http://localhost:3000`
 4. Click **Deploy**
 
 ## Step 7: Test the Deployed Application
@@ -333,7 +333,7 @@ curl https://api.parrotsoftware.com/health
 
 ### 7.2 Test Frontend
 
-1. Open `https://app.parrotsoftware.com` in browser
+1. Open `https://words.parrotsoftware.com` in browser
 2. Verify the application loads
 3. Test navigation and basic functionality
 
@@ -349,7 +349,7 @@ curl https://api.parrotsoftware.com/health
 
 ### Domain Not Loading (404 Error)
 
-**Problem**: `app.parrotsoftware.com` returns 404
+**Problem**: `words.parrotsoftware.com` returns 404
 
 **Solutions**:
 1. Verify DNS records are correct (use dnschecker.org)
@@ -458,7 +458,7 @@ For future deployments:
 4. Create a new GitHub release with incremented version tag (e.g., `v1.0.1`, `v1.1.0`)
 5. GitHub Actions automatically deploys
 6. Verify deployment in Cloud Run
-7. Test at `app.parrotsoftware.com`
+7. Test at `words.parrotsoftware.com`
 
 **Rollback Process** (if needed):
 1. Go to Cloud Run service

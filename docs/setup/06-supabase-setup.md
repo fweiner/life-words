@@ -1,6 +1,6 @@
 # Supabase Database Setup Guide
 
-This guide walks you through configuring your Supabase database for the Parrot Software Treatment application, including cleaning up existing tables, creating the new schema, and setting up authentication.
+This guide walks you through configuring your Supabase database for the Life Words application, including cleaning up existing tables, creating the new schema, and setting up authentication.
 
 ## Prerequisites
 
@@ -350,7 +350,7 @@ CREATE POLICY "Users can delete own files" ON storage.objects
 
 2. **Confirm Signup** template:
    ```html
-   <h2>Welcome to Parrot Software Treatment</h2>
+   <h2>Welcome to Life Words</h2>
    <p>Thank you for signing up! Please confirm your email address by clicking the link below:</p>
    <p><a href="{{ .ConfirmationURL }}">Confirm Email Address</a></p>
    <p>This link will expire in 24 hours.</p>
@@ -371,9 +371,9 @@ CREATE POLICY "Users can delete own files" ON storage.objects
 ### 6.3 Configure Site URL
 
 1. Go to **Authentication** > **URL Configuration**
-2. **Site URL**: `https://app.parrotsoftware.com`
+2. **Site URL**: `https://words.parrotsoftware.com`
 3. **Redirect URLs**: Add:
-   - `https://app.parrotsoftware.com/**`
+   - `https://words.parrotsoftware.com/**`
    - `http://localhost:3000/**` (for development)
 4. Click **Save**
 
@@ -476,7 +476,7 @@ Should return: `Status: 200` and `Response: []`
 1. Go to **Authentication** > **Users**
 2. Click **Add user** > **Create new user**
 3. Enter:
-   - **Email**: `test@parrotsoftware.com`
+   - **Email**: `test@example.com`
    - **Password**: `TestPassword123!`
    - **Auto Confirm User**: ✅ (checked, for testing)
 4. Click **Create user**

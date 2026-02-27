@@ -54,7 +54,7 @@ interface QuestionResponse {
 }
 
 // Session phases
-type SessionPhase = 'study' | 'quiz' | 'completed'
+type SessionPhase = 'study' | 'practice' | 'completed'
 
 // Question type names for display
 const QUESTION_TYPE_NAMES: Record<number, string> = {
@@ -203,7 +203,7 @@ export default function LifeWordsQuestionSessionPage() {
   const [phase, setPhase] = useState<SessionPhase>('study')
   const [studyIndex, setStudyIndex] = useState(0)
 
-  // Quiz state
+  // Practice phase state
   const [currentIndex, setCurrentIndex] = useState(0)
   const [currentQuestion, setCurrentQuestion] = useState<GeneratedQuestion | null>(null)
   const [isAnswering, setIsAnswering] = useState(false)
@@ -277,7 +277,7 @@ export default function LifeWordsQuestionSessionPage() {
       setSession(sessionData.session as QuestionSession)
       setContacts(sessionData.contacts as PersonalContact[])
 
-      // If session has existing responses, this is a resumed session - skip to quiz
+      // If session has existing responses, this is a resumed session
       if (sessionData.responses && (sessionData.responses as unknown[]).length > 0) {
         setResponses(sessionData.responses as QuestionResponse[])
       }
@@ -426,16 +426,16 @@ export default function LifeWordsQuestionSessionPage() {
         console.warn('TTS failed:', e)
       }
     } else {
-      // Done with study phase, start quiz
-      startQuizPhase()
+      // Done with study phase, start practice
+      startPracticePhase()
     }
   }
 
-  const startQuizPhase = () => {
-    // Stop any lingering study phase TTS before quiz begins
+  const startPracticePhase = () => {
+    // Stop any lingering study phase TTS before practice begins
     stopSpeaking()
 
-    setPhase('quiz')
+    setPhase('practice')
     setCurrentIndex(0)
     currentIndexRef.current = 0
 
@@ -467,7 +467,7 @@ export default function LifeWordsQuestionSessionPage() {
     }
   }, [phase, questions, studyIndex])
 
-  // ==================== QUIZ PHASE ====================
+  // ==================== PRACTICE PHASE ====================
 
   const handleAnswer = async (transcript: string) => {
     const currentQ = currentQuestionRef.current
@@ -769,7 +769,7 @@ export default function LifeWordsQuestionSessionPage() {
             onClick={handleStudyNext}
             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-12 rounded-lg text-2xl transition-colors"
           >
-            {isLastStudyItem ? "I'm Ready - Start Quiz" : 'Next'}
+            {isLastStudyItem ? "I'm Ready" : 'Next'}
           </button>
         </div>
 
@@ -789,7 +789,6 @@ export default function LifeWordsQuestionSessionPage() {
   // ==================== COMPLETED PHASE UI ====================
   if (phase === 'completed') {
     const totalCorrect = responses.filter(r => r.is_correct).length
-    const totalPartial = responses.filter(r => r.is_partial && !r.is_correct).length
     const avgResponseTime = responses.length > 0
       ? Math.round(responses.reduce((sum, r) => sum + r.response_time, 0) / responses.length)
       : 0
@@ -810,10 +809,6 @@ export default function LifeWordsQuestionSessionPage() {
               <div className="bg-blue-50 rounded-lg p-4">
                 <div className="text-4xl font-bold text-blue-600">{questions.length}</div>
                 <div className="text-gray-600">Total Questions</div>
-              </div>
-              <div className="bg-amber-50 rounded-lg p-4">
-                <div className="text-4xl font-bold text-amber-600">{totalPartial}</div>
-                <div className="text-gray-600">Partial Correct</div>
               </div>
               <div className="bg-purple-50 rounded-lg p-4">
                 <div className="text-4xl font-bold text-purple-600">
@@ -853,13 +848,13 @@ export default function LifeWordsQuestionSessionPage() {
     )
   }
 
-  // ==================== QUIZ PHASE UI ====================
+  // ==================== PRACTICE PHASE UI ====================
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
       {/* Phase indicator */}
       <div className="mb-6">
         <span className="bg-blue-100 text-blue-800 px-6 py-2 rounded-full text-xl font-semibold">
-          Quiz Phase - Answer the Questions
+          Answer the Questions
         </span>
       </div>
 
@@ -925,7 +920,7 @@ export default function LifeWordsQuestionSessionPage() {
                   <div className="text-green-700">
                     <span className="text-4xl mb-2 block">✓</span>
                     <p className="text-xl font-bold">
-                      {lastResult.isPartial ? 'Partial Match!' : 'Correct!'}
+                      Correct!
                     </p>
                     <p className="text-lg mt-2">You said: &quot;{lastResult.userAnswer}&quot;</p>
                   </div>

@@ -77,7 +77,7 @@ export default function HomePage() {
               className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ minHeight: '44px' }}
             >
-              Go to My Treatment
+              Start Practice
             </Link>
             <Link
               href="/signup"
