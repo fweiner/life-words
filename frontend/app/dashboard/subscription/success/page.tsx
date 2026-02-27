@@ -37,7 +37,7 @@ export default function SubscriptionSuccessPage() {
             Thank you for subscribing to Life Words. You now have full access to all practice sessions.
           </p>
           <Link
-            href="/dashboard/treatments/life-words"
+            href="/dashboard/practice"
             className="inline-block bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-8 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
             style={{ minHeight: '44px' }}
           >

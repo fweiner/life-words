@@ -33,7 +33,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-6">
           {/* My Life Words and Memory - Active */}
           <Link
-            href="/dashboard/treatments/life-words"
+            href="/dashboard/practice"
             className="block p-6 border-2 border-[var(--color-primary)] rounded-lg hover:bg-blue-50 transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
           >
             <div className="flex items-start space-x-4">

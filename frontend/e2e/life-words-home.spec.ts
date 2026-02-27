@@ -7,7 +7,7 @@ test.describe('Life Words Home Page', () => {
   })
 
   test('renders the page with Ready to Practice heading', async ({ page }) => {
-    await page.goto('/dashboard/treatments/life-words')
+    await page.goto('/dashboard/practice')
 
     await expect(
       page.getByRole('heading', { name: /My Life Words and Memory/i }),
@@ -25,7 +25,7 @@ test.describe('Life Words Home Page', () => {
   test('shows Name Practice, Question Practice, and Information Practice buttons', async ({
     page,
   }) => {
-    await page.goto('/dashboard/treatments/life-words')
+    await page.goto('/dashboard/practice')
 
     await expect(
       page.getByRole('button', { name: /Name Practice/i }),
@@ -43,7 +43,7 @@ test.describe('Life Words Home Page', () => {
   test('clicking Name Practice shows category selection dialog', async ({
     page,
   }) => {
-    await page.goto('/dashboard/treatments/life-words')
+    await page.goto('/dashboard/practice')
 
     await page.getByRole('button', { name: /Name Practice/i }).click()
 
@@ -62,7 +62,7 @@ test.describe('Life Words Home Page', () => {
   })
 
   test('shows secondary action links', async ({ page }) => {
-    await page.goto('/dashboard/treatments/life-words')
+    await page.goto('/dashboard/practice')
 
     await expect(page.getByText('Quick Add')).toBeVisible()
     await expect(page.getByText('Instructions')).toBeVisible()
@@ -74,7 +74,7 @@ test.describe('Life Words Home Page', () => {
   })
 
   test('has a back to dashboard link', async ({ page }) => {
-    await page.goto('/dashboard/treatments/life-words')
+    await page.goto('/dashboard/practice')
 
     const backLink = page.getByText(/Back to Dashboard/i)
     await expect(backLink).toBeVisible()
@@ -89,7 +89,7 @@ test.describe('Life Words Home Page - Mobile', () => {
   })
 
   test('renders correctly on mobile viewport', async ({ page }) => {
-    await page.goto('/dashboard/treatments/life-words')
+    await page.goto('/dashboard/practice')
 
     await expect(
       page.getByRole('heading', { name: /My Life Words and Memory/i }),

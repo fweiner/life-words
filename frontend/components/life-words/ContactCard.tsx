@@ -105,7 +105,7 @@ export function ContactCard({ contact, onDelete, showActions = true, onQuickComp
         {showActions && (
           <div className="flex gap-2 mt-4">
             <Link
-              href={`/dashboard/treatments/life-words/contacts/${contact.id}/edit`}
+              href={`/dashboard/practice/contacts/${contact.id}/edit`}
               className={`flex-1 text-center py-2 px-3 font-semibold rounded-lg text-sm transition-colors ${
                 isIncomplete
                   ? 'bg-amber-100 hover:bg-amber-200 text-amber-700'
