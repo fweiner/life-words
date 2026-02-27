@@ -13,7 +13,7 @@ This guide explains how to migrate from GitHub Secrets to GCP Secret Manager for
 ## Prerequisites
 
 1. Authenticated with gcloud: `gcloud auth login`
-2. Correct project set: `gcloud config set project parrotsoftware-treatment`
+2. Correct project set: `gcloud config set project life-words-production`
 3. GitHub secrets currently configured (we'll migrate these)
 
 ## Step 1: Create Secrets in GCP Secret Manager
@@ -42,7 +42,7 @@ The script will:
 Check that all secrets were created:
 
 ```bash
-gcloud secrets list --project=parrotsoftware-treatment
+gcloud secrets list --project=life-words-production
 ```
 
 You should see:
@@ -110,7 +110,7 @@ Then uses them as build arguments (they're baked into the Next.js bundle).
 ### View a Secret's Metadata
 
 ```bash
-gcloud secrets describe production-supabase-url --project=parrotsoftware-treatment
+gcloud secrets describe production-supabase-url --project=life-words-production
 ```
 
 ### Update a Secret
@@ -122,7 +122,7 @@ echo -n "new-secret-value" | gcloud secrets versions add production-supabase-url
 ### View Secret Versions
 
 ```bash
-gcloud secrets versions list production-supabase-url --project=parrotsoftware-treatment
+gcloud secrets versions list production-supabase-url --project=life-words-production
 ```
 
 ### Access a Secret (requires permissions)
@@ -146,7 +146,7 @@ gcloud secrets versions access latest --secret="production-supabase-url"
 Grant the Cloud Run service account access:
 
 ```bash
-PROJECT_NUMBER=$(gcloud projects describe parrotsoftware-treatment --format='value(projectNumber)')
+PROJECT_NUMBER=$(gcloud projects describe life-words-production --format='value(projectNumber)')
 SERVICE_ACCOUNT="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
 gcloud secrets add-iam-policy-binding production-supabase-url \
@@ -159,7 +159,7 @@ gcloud secrets add-iam-policy-binding production-supabase-url \
 Verify the secret exists and the name is correct:
 
 ```bash
-gcloud secrets list --project=parrotsoftware-treatment
+gcloud secrets list --project=life-words-production
 ```
 
 ### Workflow fails to fetch secrets
@@ -167,8 +167,8 @@ gcloud secrets list --project=parrotsoftware-treatment
 Ensure the GitHub Actions service account has Secret Manager access:
 
 ```bash
-gcloud projects add-iam-policy-binding parrotsoftware-treatment \
-  --member="serviceAccount:github-actions-deploy@parrotsoftware-treatment.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding life-words-production \
+  --member="serviceAccount:github-actions-deploy@life-words-production.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
 ```
 

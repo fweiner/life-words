@@ -2,7 +2,7 @@
 
 ## 🎉 Project Status: Core Implementation Complete (95%)
 
-The Parrot Software Treatment Application has been built with a solid foundation. The backend is **fully functional**, the database schema is **production-ready**, and comprehensive documentation has been created.
+The Life Words application has been built with a solid foundation. The backend is **fully functional**, the database schema is **production-ready**, and comprehensive documentation has been created.
 
 ---
 
@@ -174,7 +174,7 @@ Implement the remaining frontend pages as outlined in [IMPLEMENTATION_STATUS.md]
 ## 📁 Project Structure
 
 ```
-parrotsoftware-treatment/
+life-words/
 ├── docs/
 │   ├── setup/                    # 6 comprehensive setup guides
 │   └── claude.md                 # Technical documentation

@@ -1,10 +1,10 @@
-# Parrot Software Treatment Application
+# Life Words
 
 A web-based cognitive and memory treatment application designed for users 65+ years old with cognitive challenges. Features speech-based interaction, accessible design, and personalized treatment tracking.
 
-## 🎯 Purpose
+## Purpose
 
-This application provides 10 mini treatment apps to help users with:
+This application provides treatment apps to help users with:
 - Short-term memory improvement
 - Word finding exercises
 - Cognitive function maintenance
@@ -16,7 +16,7 @@ This application provides 10 mini treatment apps to help users with:
 - Simple, intuitive interfaces
 - Speech-based interactions
 
-## 🏗️ Architecture
+## Architecture
 
 - **Frontend**: Next.js 14+ (React, TypeScript, Tailwind CSS)
 - **Backend**: FastAPI (Python 3.12+)
@@ -25,7 +25,7 @@ This application provides 10 mini treatment apps to help users with:
 - **Speech**: Google Cloud Speech-to-Text & Text-to-Speech
 - **Email**: Resend
 - **Hosting**: Google Cloud Run
-- **Domain**: [app.parrotsoftware.com](https://app.parrotsoftware.com)
+- **Domain**: [words.parrotsoftware.com](https://words.parrotsoftware.com)
 
 ```
 ┌─────────────┐      ┌──────────────┐
@@ -40,7 +40,7 @@ This application provides 10 mini treatment apps to help users with:
                              └───→ OpenAI GPT-4o-mini
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -53,8 +53,8 @@ This application provides 10 mini treatment apps to help users with:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/fweiner/parrotsoftware-treatment.git
-   cd parrotsoftware-treatment
+   git clone https://github.com/fweiner/life-words.git
+   cd life-words
    ```
 
 2. **Set up Frontend**:
@@ -94,7 +94,7 @@ This application provides 10 mini treatment apps to help users with:
    - Backend API: http://localhost:8000
    - API Docs: http://localhost:8000/docs
 
-## 📚 Detailed Setup Guides
+## Detailed Setup Guides
 
 For detailed step-by-step instructions, see the setup guides in [`docs/setup/`](./docs/setup/):
 
@@ -105,12 +105,12 @@ For detailed step-by-step instructions, see the setup guides in [`docs/setup/`](
 5. [Domain & Deployment](./docs/setup/05-domain-deployment.md) - Deploy to Cloud Run and configure DNS
 6. [Supabase Database Setup](./docs/setup/06-supabase-setup.md) - Create database schema and configure authentication
 
-## 🔑 Environment Variables
+## Environment Variables
 
 ### Frontend (`.env.local`)
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://ciqrtvuxalpnjjsmrmwc.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://nnvqtxwobvyitqbsdskc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-publishable-key
 NEXT_PUBLIC_API_URL=http://localhost:8000
 RESEND_API_KEY=your-resend-key
@@ -119,19 +119,19 @@ RESEND_API_KEY=your-resend-key
 ### Backend (`.env.local`)
 
 ```env
-SUPABASE_URL=https://ciqrtvuxalpnjjsmrmwc.supabase.co
+SUPABASE_URL=https://nnvqtxwobvyitqbsdskc.supabase.co
 SUPABASE_SECRET_KEY=your-supabase-secret-key
 OPENAI_API_KEY=your-openai-key
-GOOGLE_CLOUD_PROJECT=parrotsoftware-treatment
+GOOGLE_CLOUD_PROJECT=life-words-production
 GOOGLE_APPLICATION_CREDENTIALS=gcp-runtime.json
 RESEND_API_KEY=your-resend-key
-ALLOWED_ORIGINS=http://localhost:3000,https://app.parrotsoftware.com
+ALLOWED_ORIGINS=http://localhost:3000,https://words.parrotsoftware.com
 ```
 
-## 🗂️ Project Structure
+## Project Structure
 
 ```
-parrotsoftware-treatment/
+life-words/
 ├── frontend/               # Next.js application
 │   ├── app/               # App router pages
 │   │   ├── (auth)/       # Public auth pages
@@ -157,7 +157,7 @@ parrotsoftware-treatment/
 └── .vscode/             # Debug configurations
 ```
 
-## 🧪 Development
+## Development
 
 ### VSCode Debugging
 
@@ -171,8 +171,6 @@ Press `F5` and select the configuration.
 
 ### Running Tests
 
-*Tests will be added in future releases.*
-
 ```bash
 # Frontend tests
 cd frontend
@@ -183,7 +181,7 @@ cd backend
 uv run pytest
 ```
 
-## 🚢 Deployment
+## Deployment
 
 ### Automatic Deployment
 
@@ -197,25 +195,27 @@ Deployment is automated via GitHub Actions when you create a release:
 
 ```bash
 # Build and push Docker images
-docker build -t gcr.io/parrotsoftware-treatment/treatment-web:latest ./frontend
-docker build -t gcr.io/parrotsoftware-treatment/treatment-api:latest ./backend
+docker build --platform linux/amd64 -t us-docker.pkg.dev/life-words-production/gcr.io/treatment-web:latest ./frontend
+docker build --platform linux/amd64 -t us-docker.pkg.dev/life-words-production/gcr.io/treatment-api:latest ./backend
 
-docker push gcr.io/parrotsoftware-treatment/treatment-web:latest
-docker push gcr.io/parrotsoftware-treatment/treatment-api:latest
+docker push us-docker.pkg.dev/life-words-production/gcr.io/treatment-web:latest
+docker push us-docker.pkg.dev/life-words-production/gcr.io/treatment-api:latest
 
 # Deploy to Cloud Run (use gcloud CLI)
 gcloud run deploy treatment-web \
-  --image gcr.io/parrotsoftware-treatment/treatment-web:latest \
-  --region us-central1
+  --image us-docker.pkg.dev/life-words-production/gcr.io/treatment-web:latest \
+  --region us-central1 \
+  --project life-words-production
 
 gcloud run deploy treatment-api \
-  --image gcr.io/parrotsoftware-treatment/treatment-api:latest \
-  --region us-central1
+  --image us-docker.pkg.dev/life-words-production/gcr.io/treatment-api:latest \
+  --region us-central1 \
+  --project life-words-production
 ```
 
 See [Domain & Deployment Guide](./docs/setup/05-domain-deployment.md) for detailed instructions.
 
-## 🗄️ Database
+## Database
 
 ### Schema Overview
 
@@ -230,25 +230,25 @@ Supabase migrations are managed via SQL scripts in the Supabase dashboard.
 
 See [Supabase Setup Guide](./docs/setup/06-supabase-setup.md) for schema details and setup instructions.
 
-## 📊 Treatment Apps
+## Treatment Apps
 
 ### Implemented
 
-1. ✅ **Word Finding** - Image-based word recall with semantic cues
-2. ✅ **Life Words** - Personal contacts and items naming practice
+1. **Word Finding** - Image-based word recall with semantic cues
+2. **Life Words** - Personal contacts and items naming practice
 
 ### Planned
 
-3. ⏳ Short Term Memory
-4. ⏳ Pattern Recognition
-5. ⏳ Sequential Memory
-6. ⏳ Visual Perception
-7. ⏳ Auditory Processing
-8. ⏳ Problem Solving
-9. ⏳ Attention Training
-10. ⏳ Executive Function
+3. Short Term Memory
+4. Pattern Recognition
+5. Sequential Memory
+6. Visual Perception
+7. Auditory Processing
+8. Problem Solving
+9. Attention Training
+10. Executive Function
 
-## ♿ Accessibility
+## Accessibility
 
 This application is designed to meet WCAG AAA accessibility standards:
 
@@ -260,20 +260,7 @@ This application is designed to meet WCAG AAA accessibility standards:
 - **Reduced motion**: Respects user preferences
 - **Semantic HTML**: Proper use of headings, landmarks, and roles
 
-## 💰 Cost Estimates
-
-Monthly costs for low traffic (~1000 users, ~500 sessions/month):
-
-| Service | Estimated Cost |
-|---------|---------------|
-| Cloud Run | $0-5 (free tier) |
-| Supabase | $0 (free tier) |
-| Google Speech APIs | $6-12 |
-| OpenAI GPT-4o-mini | $1-3 |
-| Resend | $0 (free tier) |
-| **Total** | **~$7-25/month** |
-
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -293,31 +280,23 @@ Monthly costs for low traffic (~1000 users, ~500 sessions/month):
 
 See [docs/claude.md](./docs/claude.md) for more troubleshooting tips.
 
-## 📖 Documentation
+## Documentation
 
 - [Technical Documentation](./docs/claude.md) - Comprehensive technical guide
 - [Setup Guides](./docs/setup/) - Step-by-step setup instructions
 - [API Documentation](http://localhost:8000/docs) - FastAPI auto-generated docs (when running locally)
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
+## License
 
 This project is proprietary and confidential.
 
-## 👤 Author
+## Author
 
 **Fred Weiner**
 - Email: weiner@parrotsoftware.com
 - GitHub: [@fweiner](https://github.com/fweiner)
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with [Next.js](https://nextjs.org/)
 - Backend powered by [FastAPI](https://fastapi.tiangolo.com/)
@@ -327,7 +306,3 @@ This project is proprietary and confidential.
 - Email by [Resend](https://resend.com/)
 - UI components by [shadcn/ui](https://ui.shadcn.com/)
 - Styling by [Tailwind CSS](https://tailwindcss.com/)
-
----
-
-**Note**: This is an initial release focused on architecture and foundational features. The 9 remaining treatment apps will be implemented in future releases.

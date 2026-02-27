@@ -4,7 +4,7 @@ set -e
 # Script to create GCP secrets from values
 # You'll need to provide the actual secret values when prompted
 
-PROJECT_ID="parrotsoftware-treatment"
+PROJECT_ID="life-words-production"
 ENVIRONMENT="production"
 
 echo "Creating secrets in GCP Secret Manager for $PROJECT_ID..."
@@ -35,7 +35,7 @@ create_or_update_secret() {
 }
 
 # Known values
-SUPABASE_URL="https://ciqrtvuxalpnjjsmrmwc.supabase.co"
+SUPABASE_URL="https://nnvqtxwobvyitqbsdskc.supabase.co"
 
 echo "Please enter the following secret values:"
 echo "(These should match your GitHub secrets)"

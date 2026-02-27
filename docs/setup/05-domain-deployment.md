@@ -40,7 +40,7 @@ Ensure the workflow file exists at `.github/workflows/deploy-production.yml` (th
 The deployment is triggered by creating a release with a version tag:
 
 1. Go to your GitHub repository:
-   - [https://github.com/fweiner/parrotsoftware-treatment](https://github.com/fweiner/parrotsoftware-treatment)
+   - [https://github.com/fweiner/life-words-production](https://github.com/fweiner/life-words-production)
 
 2. Click on **Releases** (in the right sidebar)
 
@@ -427,7 +427,7 @@ curl https://api.parrotsoftware.com/health
 1. Go to **Billing** > **Cost table**
 2. Filter by:
    - **Service**: Cloud Run
-   - **Project**: parrotsoftware-treatment
+   - **Project**: life-words-production
 3. View costs by:
    - Service instance
    - Region

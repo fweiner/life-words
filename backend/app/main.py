@@ -7,7 +7,7 @@ from app.core.error_logger import log_error
 
 # Create FastAPI app
 app = FastAPI(
-    title="Parrot Software Treatment API",
+    title="Life Words API",
     description="Backend API for cognitive treatment applications",
     version="1.0.0",
 )
@@ -57,7 +57,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 async def root():
     """Root endpoint."""
     return {
-        "message": "Parrot Software Treatment API",
+        "message": "Life Words API",
         "version": "1.0.0",
         "status": "online",
     }

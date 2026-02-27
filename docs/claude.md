@@ -85,7 +85,7 @@ This document provides comprehensive technical information about the Life Words 
 
 **Database & Auth**:
 - Platform: Supabase (PostgreSQL + Auth + Storage)
-- Project ID: ciqrtvuxalpnjjsmrmwc
+- Project ID: nnvqtxwobvyitqbsdskc
 - Auth Method: Email/password only
 - Keys: Publishable (anon) + Secret (service_role)
 
@@ -133,7 +133,7 @@ app/
 ## Directory Structure
 
 ```
-parrotsoftware-treatment/
+life-words/
 ├── frontend/                       # Next.js application
 │   ├── app/
 │   │   ├── (auth)/                # Auth routes (login, signup)
@@ -506,7 +506,7 @@ def verify_token(token: str) -> User:
 ### Frontend (.env.local)
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://ciqrtvuxalpnjjsmrmwc.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://nnvqtxwobvyitqbsdskc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<publishable-key>
 NEXT_PUBLIC_API_URL=http://localhost:8000  # or https://api.parrotsoftware.com
 NEXT_PUBLIC_GOOGLE_CLOUD_API_KEY=<optional-for-client-side-speech>
@@ -516,10 +516,10 @@ RESEND_API_KEY=<for-server-actions>
 ### Backend (.env)
 
 ```env
-SUPABASE_URL=https://ciqrtvuxalpnjjsmrmwc.supabase.co
+SUPABASE_URL=https://nnvqtxwobvyitqbsdskc.supabase.co
 SUPABASE_SECRET_KEY=<secret-key>
 OPENAI_API_KEY=<openai-key>
-GOOGLE_CLOUD_PROJECT=parrotsoftware-treatment
+GOOGLE_CLOUD_PROJECT=life-words-production
 GOOGLE_APPLICATION_CREDENTIALS=gcp-runtime.json
 RESEND_API_KEY=<resend-key>
 ENVIRONMENT=development
@@ -539,8 +539,8 @@ ALLOWED_ORIGINS=http://localhost:3000,https://words.parrotsoftware.com
 
 1. **Clone Repository**:
    ```bash
-   git clone https://github.com/fweiner/parrotsoftware-treatment.git
-   cd parrotsoftware-treatment
+   git clone https://github.com/fweiner/life-words.git
+   cd life-words
    ```
 
 2. **Frontend Setup**:
@@ -657,6 +657,6 @@ Use the compound configuration "Full Stack Debug" in `.vscode/launch.json` to de
 
 ## Contact & Support
 
-- **Repository**: https://github.com/fweiner/parrotsoftware-treatment
+- **Repository**: https://github.com/fweiner/life-words
 - **Issues**: GitHub Issues
 - **Documentation**: `docs/` directory

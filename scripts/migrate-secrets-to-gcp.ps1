@@ -1,7 +1,7 @@
 # PowerShell script to migrate secrets from GitHub to GCP Secret Manager
 # Run this locally after authenticating with gcloud
 
-$PROJECT_ID = "parrotsoftware-treatment"
+$PROJECT_ID = "life-words-production"
 $ENVIRONMENT = "production"
 
 Write-Host "Migrating secrets to GCP Secret Manager for $PROJECT_ID..." -ForegroundColor Cyan

@@ -4,7 +4,7 @@ This guide walks you through configuring your Supabase database for the Life Wor
 
 ## Prerequisites
 
-- Access to Supabase project: `ciqrtvuxalpnjjsmrmwc`
+- Access to Supabase project: `nnvqtxwobvyitqbsdskc`
 - Supabase CLI installed (optional, for migrations)
 - Completed Resend setup ([03-resend-setup.md](./03-resend-setup.md))
 
@@ -12,7 +12,7 @@ This guide walks you through configuring your Supabase database for the Life Wor
 
 1. Navigate to [https://app.supabase.com](https://app.supabase.com)
 2. Sign in to your account
-3. Select your project: `ciqrtvuxalpnjjsmrmwc`
+3. Select your project: `nnvqtxwobvyitqbsdskc`
 
 ## Step 2: Clean Up Existing Tables
 
@@ -394,7 +394,7 @@ CREATE POLICY "Users can delete own files" ON storage.objects
 
 **Project URL**:
 ```
-https://ciqrtvuxalpnjjsmrmwc.supabase.co
+https://nnvqtxwobvyitqbsdskc.supabase.co
 ```
 
 **API Keys**:
@@ -411,13 +411,13 @@ https://ciqrtvuxalpnjjsmrmwc.supabase.co
 
 **Backend** (`backend/.env`):
 ```env
-SUPABASE_URL=https://ciqrtvuxalpnjjsmrmwc.supabase.co
+SUPABASE_URL=https://nnvqtxwobvyitqbsdskc.supabase.co
 SUPABASE_SECRET_KEY=your-service-role-key-here
 ```
 
 **Frontend** (`frontend/.env.local`):
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://ciqrtvuxalpnjjsmrmwc.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://nnvqtxwobvyitqbsdskc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 

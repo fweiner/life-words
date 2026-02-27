@@ -21,7 +21,7 @@ This guide walks you through setting up Google Cloud Platform (GCP) for the Life
 2. Click **NEW PROJECT**
 3. Project details:
    - **Project name**: `Life Words`
-   - **Project ID**: `parrotsoftware-treatment` (must be globally unique)
+   - **Project ID**: `life-words-production` (must be globally unique)
    - **Organization**: Select if applicable (or leave as "No organization")
 4. Click **CREATE**
 5. Wait for the project to be created (usually takes a few seconds)
@@ -153,7 +153,7 @@ You'll need two service accounts:
 2. Update `backend/.env`:
    ```env
    GOOGLE_APPLICATION_CREDENTIALS=gcp-runtime.json
-   GOOGLE_CLOUD_PROJECT=parrotsoftware-treatment
+   GOOGLE_CLOUD_PROJECT=life-words-production
    ```
 
 3. Verify `.gitignore` includes:
@@ -185,7 +185,7 @@ You can test the Speech API using the Google Cloud Console:
 2. Click **CREATE BUDGET**
 3. Budget details:
    - **Name**: `Treatment App Monthly Budget`
-   - **Projects**: Select `parrotsoftware-treatment`
+   - **Projects**: Select `life-words-production`
    - **Services**: All services
    - **Time range**: Monthly
 4. Set budget amount (e.g., $50/month)

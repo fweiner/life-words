@@ -39,7 +39,7 @@
 ## 📋 What Remains (User Action Required)
 
 ### Database Setup (5-10 minutes)
-1. **Open Supabase SQL Editor** for project `ciqrtvuxalpnjjsmrmwc`
+1. **Open Supabase SQL Editor** for project `nnvqtxwobvyitqbsdskc`
 2. **Run migrations in order:**
    ```
    supabase/migrations/20250101000001_word_finding_schema.sql

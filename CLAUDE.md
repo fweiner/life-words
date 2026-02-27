@@ -161,4 +161,4 @@ GitHub Actions CI/CD triggers on release tags (v*):
 2. Builds Docker images → Google Artifact Registry
 3. Deploys to Google Cloud Run
 
-Production: app.parrotsoftware.com
+Production: words.parrotsoftware.com

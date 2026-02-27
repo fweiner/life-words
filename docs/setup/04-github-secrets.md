@@ -4,7 +4,7 @@ This guide walks you through setting up GitHub repository secrets for CI/CD depl
 
 ## Prerequisites
 
-- Admin access to the GitHub repository: `fweiner/parrotsoftware-treatment`
+- Admin access to the GitHub repository: `fweiner/life-words-production`
 - Completed setup for:
   - OpenAI API ([01-openai-setup.md](./01-openai-setup.md))
   - Google Cloud Platform ([02-gcp-setup.md](./02-gcp-setup.md))
@@ -18,7 +18,7 @@ GitHub Secrets are encrypted environment variables that you can use in GitHub Ac
 ## Step 1: Access Repository Secrets
 
 1. Navigate to your GitHub repository:
-   - [https://github.com/fweiner/parrotsoftware-treatment](https://github.com/fweiner/parrotsoftware-treatment)
+   - [https://github.com/fweiner/life-words-production](https://github.com/fweiner/life-words-production)
 
 2. Click on **Settings** (in the repository navigation)
 
@@ -35,7 +35,7 @@ Click **New repository secret** for each of the following secrets:
 ### 2.1 GCP_PROJECT_ID
 
 - **Name**: `GCP_PROJECT_ID`
-- **Value**: `parrotsoftware-treatment`
+- **Value**: `life-words-production`
 - Click **Add secret**
 
 **Purpose**: Identifies your Google Cloud Platform project.
@@ -79,7 +79,7 @@ echo "Base64 encoded key copied to clipboard!"
 ### 2.3 SUPABASE_URL
 
 - **Name**: `SUPABASE_URL`
-- **Value**: `https://ciqrtvuxalpnjjsmrmwc.supabase.co`
+- **Value**: `https://nnvqtxwobvyitqbsdskc.supabase.co`
 - Click **Add secret**
 
 **Purpose**: Your Supabase project URL.
@@ -323,7 +323,7 @@ After configuring GitHub secrets:
 
 | Secret Name | Example Value | Where to Get It |
 |------------|---------------|-----------------|
-| `GCP_PROJECT_ID` | `parrotsoftware-treatment` | GCP Console |
+| `GCP_PROJECT_ID` | `life-words-production` | GCP Console |
 | `GCP_SA_KEY` | `eyJ0eXAi...` (base64) | Encoded JSON file |
 | `SUPABASE_URL` | `https://xxx.supabase.co` | Supabase Settings > API |
 | `SUPABASE_ANON_KEY` | `eyJhbGc...` | Supabase Settings > API |

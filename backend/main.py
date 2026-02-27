@@ -1,5 +1,5 @@
 def main():
-    print("Hello from parrotsoftware-treatment-api!")
+    print("Hello from life-words-api!")
 
 
 if __name__ == "__main__":

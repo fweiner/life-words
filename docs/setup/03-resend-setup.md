@@ -148,7 +148,7 @@ See [04-github-secrets.md](./04-github-secrets.md) for more details.
 ### 5.1 Access Supabase Project Settings
 
 1. Go to [https://app.supabase.com](https://app.supabase.com)
-2. Select your project: `ciqrtvuxalpnjjsmrmwc`
+2. Select your project: `nnvqtxwobvyitqbsdskc`
 3. Go to **Project Settings** (gear icon)
 4. Select **Auth** in the left sidebar
 

@@ -4,7 +4,7 @@ set -e
 # Script to set up secrets in GCP Secret Manager
 # Run this locally to migrate from GitHub Secrets to Secret Manager
 
-PROJECT_ID="parrotsoftware-treatment"
+PROJECT_ID="life-words-production"
 ENVIRONMENT="production"
 
 echo "Setting up secrets in GCP Secret Manager for $PROJECT_ID..."
