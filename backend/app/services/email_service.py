@@ -43,13 +43,12 @@ async def send_invite_email(
     subject = f"{inviter_first_name} wants you to help with their memory recovery"
 
     # Build the email body
-    custom_section = ""
+    message_section = ""
     if custom_message:
-        custom_section = f"""
-        <div style="background-color: #f0f9ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0; border-radius: 4px;">
-            <p style="margin: 0; color: #1e40af; font-style: italic;">"{custom_message}"</p>
-            <p style="margin: 8px 0 0 0; color: #64748b; font-size: 14px;">— {inviter_first_name}</p>
-        </div>
+        message_section = f"""
+            <p style="font-size: 16px; color: #475569; margin-bottom: 16px;">
+                {custom_message}
+            </p>
         """
 
     html_body = f"""
@@ -63,17 +62,7 @@ async def send_invite_email(
         <div style="background-color: #ffffff; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <h1 style="color: #1e293b; font-size: 24px; margin-bottom: 24px;">Hello {recipient_first_name},</h1>
 
-            <p style="font-size: 16px; color: #475569; margin-bottom: 16px;">
-                As you may be aware, <strong>{inviter_first_name}</strong> has been working on memory recovery as part of their rehabilitation.
-                One of the treatments involves practicing recognizing and naming familiar people in their life.
-            </p>
-
-            <p style="font-size: 16px; color: #475569; margin-bottom: 16px;">
-                <strong>{inviter_first_name}</strong> has asked if you would help by adding your photo and some basic information
-                to their practice exercises. This will help them work on remembering the important people in their life.
-            </p>
-
-            {custom_section}
+            {message_section}
 
             <p style="font-size: 16px; color: #475569; margin-bottom: 24px;">
                 It only takes a few minutes and would mean a lot to {inviter_first_name}'s recovery journey.

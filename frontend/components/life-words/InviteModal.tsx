@@ -10,7 +10,7 @@ interface InviteModalProps {
 }
 
 function getDefaultMessage(userName: string): string {
-  return `As you are probably aware, ${userName} has suffered a stroke. As part of his treatment we are talking to him about friends, relatives, pets, and objects in his environment. We would appreciate that you click this link that will take you to a page where you can add a photo of yourself and answer a few basic questions. This information will be added to ${userName}'s contact list to help with his rehabilitation.`
+  return `As you are probably aware, ${userName} is being treated for speech and memory. As part of his treatment we are talking to him about friends, relatives, pets, and objects in his environment. We would appreciate that you click this link that will take you to a page where you can add a photo of yourself and answer a few basic questions. This information will be added to ${userName}'s contact list to help with his rehabilitation.`
 }
 
 export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
