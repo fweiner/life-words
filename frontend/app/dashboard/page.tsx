@@ -25,7 +25,7 @@ export default function DashboardPage() {
           Welcome back{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ''}!
         </h1>
         <p className="text-xl text-gray-700">
-          Ready to continue your recovery journey?
+          Ready to continue your journey?
         </p>
       </div>
 
@@ -40,7 +40,7 @@ export default function DashboardPage() {
                   My Life Words and Memory
                 </h3>
                 <p className="text-lg text-gray-700 mb-3">
-                  Practice naming the people, pets, and things that matter most to you.
+                  The people, pets, and things that matter most to you.
                 </p>
                 <div className="flex flex-wrap gap-3 mt-1">
                   <Link
