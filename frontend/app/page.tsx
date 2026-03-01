@@ -67,7 +67,7 @@ export default function HomePage() {
             <span className="text-[var(--color-primary)]">Reclaim Your Life</span>
           </h1>
           <p className="text-xl sm:text-2xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            A personalized therapy platform for people with word-finding and memory
+            A personalized platform for people with word-finding and memory
             difficulties. Practice with your own photos, people, and meaningful content
             &mdash; right from home.
           </p>
@@ -98,7 +98,7 @@ export default function HomePage() {
               Who Life Words Is For
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Life Words is built for people who struggle to recall words, names, or
+              Life Words is built for people who have difficulty recalling words, names, or
               personal information &mdash; and for the families and therapists who support them.
             </p>
           </div>
