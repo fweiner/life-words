@@ -1,7 +1,6 @@
 """Unit tests for profile service."""
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import ANY
 
 
 SAMPLE_PROFILE = {
@@ -30,7 +29,7 @@ async def test_get_or_create_profile_existing(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_get_or_create_profile_creates_new(mock_db):
+async def test_get_or_create_profile_creates_new(mock_db, mocker):
     """Test creating a profile when none exists."""
     from app.services.profile_service import ProfileService
 
@@ -49,7 +48,7 @@ async def test_get_or_create_profile_creates_new(mock_db):
             "email": "test@example.com",
             "full_name": None,
             "account_status": "trial",
-            "trial_ends_at": ANY,
+            "trial_ends_at": mocker.ANY,
         }
     )
 

@@ -303,7 +303,7 @@ async def test_submit_invite_success(mock_db, mocker):
 
     mock_send_thank_you = mocker.patch(
         "app.services.invite_service.send_thank_you_email",
-        new_callable=AsyncMock,
+        new_callable=mocker.AsyncMock,
         return_value=True,
     )
 
@@ -427,18 +427,18 @@ async def test_verify_invite_token_for_upload_completed(mock_db):
 @pytest.mark.asyncio
 async def test_upload_photo_success(mock_db, mocker):
     """Test uploading a photo successfully."""
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "image/jpeg"
     mock_file.filename = "photo.jpg"
-    mock_file.read = AsyncMock(return_value=b"fake-image-data")
+    mock_file.read = mocker.AsyncMock(return_value=b"fake-image-data")
 
     # Mock httpx.AsyncClient
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
-    mock_client_instance = AsyncMock()
+    mock_client_instance = mocker.AsyncMock()
     mock_client_instance.post.return_value = mock_response
-    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-    mock_client_instance.__aexit__ = AsyncMock(return_value=False)
+    mock_client_instance.__aenter__ = mocker.AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = mocker.AsyncMock(return_value=False)
     mocker.patch(
         "app.services.utils.httpx.AsyncClient",
         return_value=mock_client_instance,
@@ -452,9 +452,9 @@ async def test_upload_photo_success(mock_db, mocker):
 
 
 @pytest.mark.asyncio
-async def test_upload_photo_invalid_type(mock_db):
+async def test_upload_photo_invalid_type(mock_db, mocker):
     """Test uploading a non-image file raises 400."""
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "application/pdf"
     mock_file.filename = "document.pdf"
 
@@ -467,13 +467,13 @@ async def test_upload_photo_invalid_type(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_upload_photo_too_large(mock_db):
+async def test_upload_photo_too_large(mock_db, mocker):
     """Test uploading a file over 5MB raises 400."""
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "image/jpeg"
     mock_file.filename = "large_photo.jpg"
     # 6MB of data
-    mock_file.read = AsyncMock(return_value=b"x" * (6 * 1024 * 1024))
+    mock_file.read = mocker.AsyncMock(return_value=b"x" * (6 * 1024 * 1024))
 
     service = InviteService(mock_db)
     with pytest.raises(HTTPException) as exc_info:
@@ -484,9 +484,9 @@ async def test_upload_photo_too_large(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_upload_photo_no_content_type(mock_db):
+async def test_upload_photo_no_content_type(mock_db, mocker):
     """Test uploading a file with no content type raises 400."""
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = None
     mock_file.filename = "unknown"
 
@@ -500,18 +500,18 @@ async def test_upload_photo_no_content_type(mock_db):
 @pytest.mark.asyncio
 async def test_upload_photo_storage_failure(mock_db, mocker):
     """Test upload failure from storage returns 500."""
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "image/png"
     mock_file.filename = "photo.png"
-    mock_file.read = AsyncMock(return_value=b"fake-image-data")
+    mock_file.read = mocker.AsyncMock(return_value=b"fake-image-data")
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 500
     mock_response.text = "Internal Server Error"
-    mock_client_instance = AsyncMock()
+    mock_client_instance = mocker.AsyncMock()
     mock_client_instance.post.return_value = mock_response
-    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-    mock_client_instance.__aexit__ = AsyncMock(return_value=False)
+    mock_client_instance.__aenter__ = mocker.AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = mocker.AsyncMock(return_value=False)
     mocker.patch(
         "app.services.utils.httpx.AsyncClient",
         return_value=mock_client_instance,

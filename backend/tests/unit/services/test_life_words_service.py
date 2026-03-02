@@ -797,3 +797,93 @@ async def test_convert_items_to_contacts_missing_optional_fields():
     assert converted["category"] is None
     assert converted["description"] is None
     assert converted["item_features"] is None
+
+
+# ---- get_progress ----
+
+
+@pytest.mark.asyncio
+async def test_get_progress_with_data(mock_db):
+    """Test get_progress aggregates data from all session types."""
+    from app.services.life_words_service import LifeWordsService
+
+    name_sessions = [
+        {"id": "ns-1", "completed_at": "2026-02-28T10:00:00Z", "total_correct": 4, "total_incorrect": 1, "average_response_time": 3.5, "average_cues_used": 1.2},
+    ]
+    question_sessions = [
+        {"id": "qs-1", "completed_at": "2026-02-27T10:00:00Z", "total_correct": 3, "total_questions": 5, "average_response_time": 2.5, "average_clarity_score": 0.85},
+    ]
+    info_sessions = [
+        {"id": "is-1", "completed_at": "2026-02-26T10:00:00Z", "total_correct": 4, "total_questions": 5, "average_response_time": 5.0, "hints_used": 1},
+    ]
+    name_responses = [
+        {"is_correct": True, "response_time": 3.0, "speech_confidence": 0.9, "contact_id": "c1"},
+        {"is_correct": False, "response_time": 5.0, "speech_confidence": 0.7, "contact_id": "c2"},
+    ]
+    question_responses = [
+        {"is_correct": True, "response_time": 2000, "clarity_score": 0.9},
+        {"is_correct": True, "response_time": 3000, "clarity_score": 0.8},
+        {"is_correct": False, "response_time": 4000, "clarity_score": 0.6},
+    ]
+    info_responses = [
+        {"is_correct": True, "response_time": 5000, "used_hint": False},
+        {"is_correct": True, "response_time": 3000, "used_hint": True},
+        {"is_correct": False, "response_time": 8000, "used_hint": False},
+    ]
+
+    mock_db.query.side_effect = [
+        name_sessions, question_sessions, info_sessions,
+        name_responses, question_responses, info_responses,
+    ]
+
+    service = LifeWordsService(mock_db)
+    result = await service.get_progress("user-123")
+
+    assert "summary" in result
+    assert "session_history" in result
+
+    summary = result["summary"]
+    assert summary["total_sessions"] == 3
+
+    # Name practice stats
+    np = summary["name_practice"]
+    assert np["sessions"] == 1
+    assert np["correct"] == 1
+    assert np["total"] == 2
+    assert np["accuracy"] == 50.0
+
+    # Question practice stats
+    qp = summary["question_practice"]
+    assert qp["sessions"] == 1
+    assert qp["correct"] == 2
+    assert qp["total"] == 3
+
+    # Information practice stats
+    ip = summary["information_practice"]
+    assert ip["sessions"] == 1
+    assert ip["correct"] == 2
+    assert ip["total"] == 3
+
+    # Session history
+    assert len(result["session_history"]) == 3
+    # Should be sorted by date desc
+    assert result["session_history"][0]["type"] == "name"
+
+
+@pytest.mark.asyncio
+async def test_get_progress_empty(mock_db):
+    """Test get_progress with no sessions returns zeroed stats."""
+    from app.services.life_words_service import LifeWordsService
+
+    mock_db.query.return_value = None
+
+    service = LifeWordsService(mock_db)
+    result = await service.get_progress("user-123")
+
+    summary = result["summary"]
+    assert summary["total_sessions"] == 0
+    assert summary["name_practice"]["sessions"] == 0
+    assert summary["name_practice"]["accuracy"] == 0
+    assert summary["question_practice"]["sessions"] == 0
+    assert summary["information_practice"]["sessions"] == 0
+    assert result["session_history"] == []
