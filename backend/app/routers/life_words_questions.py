@@ -1,15 +1,12 @@
 """Life Words Question-Based Recall endpoints."""
-from typing import List, Dict, Any
+from typing import Dict, Any
 from fastapi import APIRouter
 from app.core.dependencies import CurrentUserId, Database
 from app.models.life_words_questions import (
     LifeWordsQuestionSessionCreate,
     LifeWordsQuestionResponseCreate,
 )
-from app.services.life_words_question_service import (
-    LifeWordsQuestionService,
-    evaluate_answer,
-)
+from app.services.life_words_question_service import LifeWordsQuestionService
 
 router = APIRouter()
 
@@ -50,19 +47,3 @@ async def complete_question_session(
     """Complete a question session and calculate statistics."""
     service = LifeWordsQuestionService(db)
     return await service.complete_session(session_id, user_id)
-
-
-@router.post("/evaluate-answer")
-async def evaluate_answer_endpoint(
-    user_id: CurrentUserId,
-    expected_answer: str,
-    user_answer: str,
-    acceptable_answers: List[str] = []
-) -> Dict[str, Any]:
-    """Evaluate an answer against expected (utility endpoint)."""
-    is_correct, is_partial, score = evaluate_answer(user_answer, expected_answer, acceptable_answers)
-    return {
-        "is_correct": is_correct,
-        "is_partial": is_partial,
-        "correctness_score": score,
-    }

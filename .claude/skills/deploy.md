@@ -1,96 +1,166 @@
+---
+name: deploy
+description: Run tests, fix failures, commit clean code, push migrations to Supabase production, deploy to GCP via GitHub release, and monitor until successful
+user-invocable: true
+disable-model-invocation: false
+---
+
 # Deploy to Production
 
-**Description**: Complete deployment workflow with testing, versioning, and monitoring
+You are a deployment automation agent. Follow these steps in order. Do not skip steps.
 
-**Requires approval**: Yes
+## Step 1: Run All Tests
 
-## Instructions
+Tests must pass before anything gets committed or pushed.
 
-You are a deployment automation agent. Follow these steps carefully:
+### Backend tests
+```bash
+cd /Users/fredweiner/dev/Life-Words/backend && uv run pytest --cov=app --cov-report=term --cov-fail-under=80 -q
+```
 
-### Step 1: Confirm Deployment Intent
-- Ask the user to confirm they want to deploy to production
-- If not confirmed, stop immediately
+### Frontend lint + build
+```bash
+cd /Users/fredweiner/dev/Life-Words/frontend && npm run lint && npm run build
+```
 
-### Step 2: Check Git Status
-- Run `git status` to see all uncommitted changes
-- Show the user what will be committed
-- If there are unstaged changes, stage them with `git add .`
+### Frontend unit tests
+```bash
+cd /Users/fredweiner/dev/Life-Words/frontend && npm test -- --passWithNoTests
+```
 
-### Step 3: Determine Version Type
-- Get the current version from the latest git tag (or default to 0.0.0 if no tags exist)
-- Ask the user: "Is this a new feature or a bugfix?"
-  - If **new feature**: increment the minor version (0.1.0 → 0.2.0)
-  - If **bugfix**: increment the patch version (0.1.0 → 0.1.1)
-- Show the user the new version number and ask for confirmation
+If any tests fail:
+1. Analyze the failure output
+2. Fix the code
+3. Re-run the failing test suite
+4. Repeat until all tests pass
+5. Do NOT proceed to Step 2 until every test suite is green
 
-### Step 4: Commit Changes
-- Create a descriptive commit message based on recent changes
-- Commit all changes with the standard format including Claude Code footer
-- Tag the commit with the new version: `git tag v{VERSION}`
+## Step 2: Check Pending Migrations
 
-### Step 5: Run Tests
-- **Backend tests**:
-  - Navigate to `backend/` directory
-  - Run: `"$USERPROFILE/.local/bin/uv.exe" run pytest`
-  - If tests fail, analyze the failures and fix them
-  - Re-run tests until they all pass
-- **Frontend checks** (if applicable):
-  - Navigate to `frontend/` directory
-  - Run: `npm run build` to ensure build succeeds
-  - If build fails, analyze and fix issues
-  - Re-run until build succeeds
+Check if there are local migrations not yet applied to the Supabase production database:
 
-### Step 6: Push to GitHub
-- Push commits: `git push`
-- Push tags: `git push --tags`
+```bash
+cd /Users/fredweiner/dev/Life-Words && supabase migration list
+```
 
-### Step 7: Create GitHub Release
-- Use GitHub CLI to create a release:
-  ```bash
-  gh release create v{VERSION} --title "v{VERSION}" --generate-notes
-  ```
-- This will trigger the GitHub Actions deployment workflow
+Look for migrations that exist locally but not on remote. If there are pending migrations, they will be pushed in Step 5.
 
-### Step 8: Monitor Deployment
-- Use `gh run watch` to monitor the latest workflow run
-- Watch for deployment success or failure
-- If deployment fails:
-  - Use `gh run view --log-failed` to see error logs
-  - Analyze the failure reason
-  - Fix the issue (update code, configuration, etc.)
-  - Increment patch version (e.g., 0.1.0 → 0.1.1)
-  - Repeat from Step 4 (commit, test, push, release, monitor)
-- Continue monitoring and fixing until deployment succeeds
+## Step 3: Clean Working Tree
 
-### Step 9: Verify Deployment
-- Once deployment succeeds, inform the user
-- Provide the release URL
-- List the deployed services and their status
+```bash
+cd /Users/fredweiner/dev/Life-Words && git status
+```
 
-## Important Notes
+Show the user any uncommitted changes (staged, unstaged, untracked).
 
-- **Always run tests before pushing** - Never skip this step
-- **Never force push** to main branch
-- **Always increment version** even for deployment fixes
-- **Monitor the full deployment** - Don't stop until it's confirmed successful
-- **Be patient** - Deployments can take several minutes
-- **Keep the user informed** - Provide status updates at each step
-- **Use TodoWrite** to track deployment progress
+If there are changes:
+1. Show the user a summary of what changed
+2. Stage relevant files (prefer specific file names over `git add .`)
+3. Create a descriptive commit message summarizing the changes
+4. Commit with the standard format:
+   ```
+   git commit -m "$(cat <<'EOF'
+   <commit message>
 
-## Error Handling
+   Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+   EOF
+   )"
+   ```
 
-If you encounter any errors:
-1. Read the full error message and logs
-2. Identify the root cause
-3. Fix the issue
-4. Inform the user what was fixed
-5. Continue with the deployment process
+If the tree is already clean, proceed.
 
-## Example Version Progression
+## Step 4: Determine Version
 
-- Initial: v0.1.0 (first release)
-- Bugfix: v0.1.1
-- New feature: v0.2.0
-- Another bugfix: v0.2.1
-- Major feature: v0.3.0
+Get the current version:
+```bash
+git tag --sort=-v:refname | head -1
+```
+
+Ask the user using AskUserQuestion with these options:
+- **Breaking change** — increments MAJOR (e.g., 1.2.5 -> 2.0.0). Use when: API contracts change, database schema has breaking changes, existing features removed or fundamentally altered.
+- **Feature addition** — increments MINOR (e.g., 1.2.5 -> 1.3.0). Use when: new functionality added, new endpoints, new pages, non-breaking enhancements.
+- **Bugfix** — increments PATCH (e.g., 1.2.5 -> 1.2.6). Use when: bug fixes, copy changes, style tweaks, test fixes, dependency updates.
+
+Show the user the current version and what the new version will be. Confirm before proceeding.
+
+Tag the commit:
+```bash
+git tag v{VERSION}
+```
+
+## Step 5: Push Migrations to Supabase Production
+
+If Step 2 found pending migrations, push them now BEFORE deploying code:
+
+```bash
+cd /Users/fredweiner/dev/Life-Words && supabase db push
+```
+
+If the migration push fails:
+1. Read the error carefully
+2. Fix the migration SQL if needed
+3. Re-run `supabase db push`
+4. Do NOT proceed until migrations are applied
+
+If no pending migrations, skip this step.
+
+## Step 6: Push to GitHub
+
+```bash
+git push && git push --tags
+```
+
+## Step 7: Create GitHub Release
+
+```bash
+gh release create v{VERSION} --title "v{VERSION}" --generate-notes
+```
+
+This triggers the `deploy-production.yml` GitHub Actions workflow which:
+- Runs backend tests (80% coverage gate)
+- Builds and pushes Docker images to Artifact Registry
+- Deploys `treatment-api` and `treatment-web` to Cloud Run
+
+## Step 8: Monitor Deployment
+
+```bash
+gh run watch
+```
+
+Watch the workflow run to completion. If it fails:
+
+1. Get the failure logs:
+   ```bash
+   gh run view --log-failed
+   ```
+2. Analyze the root cause
+3. Fix the issue in code
+4. Re-run tests locally (Step 1)
+5. Commit the fix
+6. Increment the PATCH version (e.g., 1.3.0 -> 1.3.1)
+7. Tag, push, and create a new release
+8. Monitor again
+9. Repeat until deployment succeeds
+
+## Step 9: Verify Deployment
+
+Once the workflow succeeds:
+
+1. Report success to the user with:
+   - The release version and GitHub release URL
+   - Backend status: `gcloud run services describe treatment-api --project=life-words-production --region=us-central1 --format="value(status.url)"`
+   - Frontend status: `gcloud run services describe treatment-web --project=life-words-production --region=us-central1 --format="value(status.url)"`
+2. Verify the deployed backend is healthy:
+   ```bash
+   curl -sf https://treatment-api-757821375257.us-central1.run.app/docs > /dev/null && echo "Backend healthy" || echo "Backend unreachable"
+   ```
+
+## Rules
+
+- **Tests before commits** — never commit code that hasn't passed all tests
+- **Migrations before code deploy** — schema changes must land before the new code that uses them
+- **Never force push** to main
+- **Never skip hooks** (no `--no-verify`)
+- **Always increment version** for every release, even deployment fixes
+- **Keep the user informed** at every step
+- **Use TaskCreate/TaskUpdate** to track deployment progress

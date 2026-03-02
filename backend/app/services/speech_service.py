@@ -4,6 +4,7 @@ from typing import Optional
 from google.cloud import speech_v1 as speech
 from google.cloud import texttospeech
 from app.config import settings
+from app.core.error_logger import log_error
 
 
 class SpeechService:
@@ -65,7 +66,12 @@ class SpeechService:
             return alternative.transcript, alternative.confidence
 
         except Exception as e:
-            print(f"Error in speech-to-text: {e}")
+            log_error(
+                error=e,
+                source="swallowed",
+                service_name="SpeechService",
+                function_name="speech_to_text",
+            )
             raise
 
     async def text_to_speech(
@@ -112,7 +118,12 @@ class SpeechService:
             return response.audio_content
 
         except Exception as e:
-            print(f"Error in text-to-speech: {e}")
+            log_error(
+                error=e,
+                source="swallowed",
+                service_name="SpeechService",
+                function_name="text_to_speech",
+            )
             raise
 
 

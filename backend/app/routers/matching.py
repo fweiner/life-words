@@ -26,13 +26,12 @@ router = APIRouter()
 @router.post("/evaluate/name")
 async def evaluate_name_answer(req: NameMatchRequest) -> NameMatchResponse:
     """Evaluate a name-practice answer against expected name."""
-    settings = req.settings.model_dump() if req.settings else None
     is_correct, matched_via = match_name_answer(
         req.user_answer,
         req.expected_name,
         nickname=req.nickname,
         alternatives=req.alternatives,
-        settings=settings,
+        settings=req.settings,
     )
     return NameMatchResponse(is_correct=is_correct, matched_via=matched_via)
 
@@ -40,12 +39,11 @@ async def evaluate_name_answer(req: NameMatchRequest) -> NameMatchResponse:
 @router.post("/evaluate/question")
 async def evaluate_question_answer(req: QuestionMatchRequest) -> QuestionMatchResponse:
     """Evaluate a question-practice answer."""
-    settings = req.settings.model_dump() if req.settings else None
     is_correct, is_partial, score = match_question_answer(
         req.user_answer,
         req.expected_answer,
         acceptable=req.acceptable_answers,
-        settings=settings,
+        settings=req.settings,
     )
     return QuestionMatchResponse(
         is_correct=is_correct, is_partial=is_partial, score=score

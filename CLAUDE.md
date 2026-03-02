@@ -31,9 +31,11 @@ Aphasia therapy platform with a FastAPI backend, Next.js frontend, and Supabase 
 ### Frontend (Next.js)
 ```bash
 cd frontend
-npm run dev      # Development server at http://localhost:3000
-npm run build    # Production build
-npm run lint     # ESLint
+npm run dev          # Development server at http://localhost:3000
+npm run build        # Production build
+npm run lint         # ESLint
+npm test             # Unit tests (Jest + React Testing Library)
+npm run test:e2e     # E2E tests (Playwright, requires build first)
 ```
 
 ### Backend (FastAPI)
@@ -53,12 +55,10 @@ uv run ruff check app/                     # Python linting
 ### System Overview
 ```
 Browser (Next.js Frontend, localhost:3000)
-    ↓
-Supabase (Auth + PostgreSQL + Storage)
-    ↓
-FastAPI Backend (localhost:8000)
-    ↓
-External APIs: Google Cloud Speech/TTS, OpenAI GPT-4o-mini, Resend Email
+    ├── Supabase Auth (login, tokens, session management)
+    └── FastAPI Backend (localhost:8000)
+            ├── Supabase DB (PostgreSQL + Storage, via service role key)
+            └── External APIs: Google Cloud Speech/TTS, OpenAI GPT-4o-mini, Resend Email
 ```
 
 ### Backend Structure (Service Layer Pattern)
@@ -96,14 +96,15 @@ Common patterns (ownership checks, session verification, partial updates, soft d
 All DB operations use `SupabaseClient`. The client already uses the service role key, so raw httpx is never needed in routers.
 
 #### Testing
-75%+ coverage on all new service modules. Function-based tests only, pytest-mock. No test classes.
+75%+ coverage on all new service modules (CI requires 80% overall). Function-based tests only, pytest-mock. No test classes.
 
 ### Frontend Structure (Next.js App Router)
 ```
 frontend/app/
 ├── (auth)/           # Public routes: login, signup
 ├── (dashboard)/      # Protected routes (middleware-guarded)
-│   └── treatments/   # Treatment pages: word-finding, life-words, short-term-memory
+│   ├── treatments/   # Treatment pages: word-finding, life-words, short-term-memory
+│   └── preparation/  # Step-by-step session preparation
 ├── message/          # Public messaging page
 └── invite/           # Invite acceptance page
 ```
@@ -135,7 +136,7 @@ When making schema changes, **always create and push the migration in one step**
 
 ## Testing
 
-Backend has 526 tests. Use function-based tests only, no test classes.
+Use function-based tests only, no test classes. Run `uv run pytest` to see current test count and results.
 
 ```python
 # Use pytest-mock, not unittest.mock
@@ -154,10 +155,29 @@ Target audience is elderly users with cognitive impairments:
 - Clear, simple navigation
 - WCAG AAA compliance goal
 
+## Available Skills
+
+- `/deploy` — Run tests, version, push migrations, deploy via GitHub release, monitor
+- `/review-standards [scope]` — Review code for DRY, thin client/router, test coverage, security violations
+- `/e2e-test [scope]` — Interactive browser testing with Chrome DevTools MCP, generates Playwright tests
+
+## Environment Variables
+
+Backend requires (in `.env` or environment):
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — Supabase connection
+- `OPENAI_API_KEY` — GPT-4o-mini for answer extraction
+- `GOOGLE_APPLICATION_CREDENTIALS` — Google Cloud Speech/TTS
+- `RESEND_API_KEY` — Transactional email
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — Subscription billing
+
+Frontend requires (in `.env.local`):
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase client
+- `NEXT_PUBLIC_API_URL` — Backend URL (default: `http://localhost:8000`)
+
 ## Deployment
 
 GitHub Actions CI/CD triggers on release tags (v*):
-1. Runs backend tests (80% minimum coverage required)
+1. Runs backend tests (80% minimum overall coverage required)
 2. Builds Docker images → Google Artifact Registry
 3. Deploys to Google Cloud Run
 

@@ -86,10 +86,9 @@ async def toggle_user(
     """Toggle a user between enabled and disabled. Admin only."""
     service = AdminService(db)
     result = await service.toggle_user(user_id)
-    action = "enabled" if result["new_status"] != "admin_disabled" else "disabled"
     return AdminToggleUserResponse(
         success=True,
-        message=f"User {action} successfully",
+        message=f"User {result['action']} successfully",
         user_id=result["user_id"],
         new_status=result["new_status"],
     )

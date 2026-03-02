@@ -239,7 +239,8 @@ class AdminService:
                 data={"account_status": "admin_disabled", "previous_status": current_status},
             )
 
-        return {"user_id": user_id, "new_status": new_status}
+        action = "enabled" if new_status != "admin_disabled" else "disabled"
+        return {"user_id": user_id, "new_status": new_status, "action": action}
 
     async def list_error_logs(
         self,

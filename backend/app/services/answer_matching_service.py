@@ -303,7 +303,7 @@ def match_name_answer(
     expected_name: str,
     nickname: Optional[str] = None,
     alternatives: Optional[List[str]] = None,
-    settings: Optional[dict] = None,
+    settings=None,
 ) -> Tuple[bool, Optional[str]]:
     """
     Match a name-practice answer.
@@ -317,6 +317,9 @@ def match_name_answer(
     if not user_answer or not expected_name:
         return False, None
 
+    # Accept Pydantic models or dicts
+    if settings is not None and hasattr(settings, "model_dump"):
+        settings = settings.model_dump()
     if settings is None:
         settings = {}
     use_alternatives = settings.get("match_acceptable_alternatives", True)
@@ -399,7 +402,7 @@ def match_question_answer(
     user_answer: str,
     expected: str,
     acceptable: Optional[List[str]] = None,
-    settings: Optional[dict] = None,
+    settings=None,
 ) -> Tuple[bool, bool, float]:
     """
     Match a question-practice answer.
@@ -407,6 +410,9 @@ def match_question_answer(
     Delegates to the existing evaluate_answer() from the question service.
     Returns (is_correct, is_partial, score).
     """
+    # Accept Pydantic models or dicts
+    if settings is not None and hasattr(settings, "model_dump"):
+        settings = settings.model_dump()
     from app.services.life_words_question_service import evaluate_answer
     return evaluate_answer(user_answer, expected, acceptable or [], settings)
 

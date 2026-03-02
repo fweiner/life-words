@@ -37,9 +37,7 @@ async def get_conversation(
 ) -> Dict[str, Any]:
     """Get messages for a specific contact."""
     service = MessagingService(db)
-    result = await service.get_conversation(contact_id, user_id, limit)
-    result["messages"] = [MessageResponse(**msg) for msg in result["messages"]]
-    return result
+    return await service.get_conversation(contact_id, user_id, limit)
 
 
 @router.post("/conversations/{contact_id}/messages")
@@ -118,9 +116,7 @@ async def get_public_messages(
 ) -> Dict[str, Any]:
     """Get conversation history (public endpoint for contacts)."""
     service = MessagingService(db)
-    result = await service.get_public_messages(token, limit)
-    result["messages"] = [MessageResponse(**msg) for msg in result["messages"]]
-    return result
+    return await service.get_public_messages(token, limit)
 
 
 @router.post("/public/{token}/messages")
@@ -139,9 +135,9 @@ async def send_public_message(
 async def upload_public_media(
     file: UploadFile = File(...),
     media_type: str = "photo",
-    db: Database = None
+    db: Database = None,
 ) -> Dict[str, str]:
-    """Upload photo or voice message (public endpoint)."""
+    """Upload photo or voice message (public endpoint for contacts via messaging link)."""
     service = MessagingService(db)
     return await service.upload_media(file, media_type)
 

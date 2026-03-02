@@ -1,48 +1,36 @@
 """Speech endpoints for text-to-speech using Amazon Polly."""
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
-from pydantic import BaseModel
-from typing import Optional
+from app.core.error_logger import log_error
+from app.models.speech import PollyTTSRequest
 from app.services.polly_service import polly_service
 
 router = APIRouter()
 
 
-class TTSRequest(BaseModel):
-    """Text-to-speech request."""
-    text: str
-    gender: Optional[str] = "neutral"  # 'male', 'female', or 'neutral'
-
-
 @router.post("/tts")
-async def text_to_speech(request: TTSRequest) -> Response:
-    """
-    Convert text to speech using Amazon Polly.
-
-    Returns MP3 audio content.
-    """
-    if not request.text or not request.text.strip():
-        raise HTTPException(status_code=400, detail="Text is required")
-
+async def text_to_speech(request: PollyTTSRequest) -> Response:
+    """Convert text to speech using Amazon Polly. Public endpoint for frontend TTS."""
     try:
-        # Get appropriate voice based on gender preference
-        voice_id = polly_service.get_voice_for_gender(request.gender or "neutral")
-
-        # Generate speech
-        audio_content = await polly_service.synthesize_speech(
-            text=request.text,
-            voice_id=voice_id
+        audio_content = await polly_service.synthesize_for_gender(
+            request.text, request.gender
         )
-
         return Response(
             content=audio_content,
             media_type="audio/mpeg",
             headers={
                 "Content-Disposition": "inline",
-                "Cache-Control": "public, max-age=86400"  # Cache for 24 hours
-            }
+                "Cache-Control": "public, max-age=86400",
+            },
         )
-
     except Exception as e:
-        print(f"TTS error: {e}")
-        raise HTTPException(status_code=500, detail=f"Text-to-speech failed: {str(e)}")
+        log_error(
+            error=e,
+            source="swallowed",
+            service_name="PollyService",
+            function_name="synthesize_for_gender",
+            endpoint="/api/speech/tts",
+            http_method="POST",
+            status_code=500,
+        )
+        raise HTTPException(status_code=500, detail="Text-to-speech failed")

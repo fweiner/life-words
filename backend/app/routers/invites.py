@@ -75,7 +75,7 @@ async def submit_invite(
 @router.post("/invites/upload-photo")
 async def upload_invite_photo(
     file: UploadFile = File(...),
-    db: Database = None
+    db: Database = None,
 ) -> Dict[str, str]:
     """Upload a photo for an invite submission (public endpoint)."""
     service = InviteService(db)

@@ -2,6 +2,7 @@
 import boto3
 from typing import Optional
 from app.config import settings
+from app.core.error_logger import log_error
 
 
 class PollyService:
@@ -58,7 +59,12 @@ class PollyService:
             return audio_stream.read()
 
         except Exception as e:
-            print(f"Error in Polly text-to-speech: {e}")
+            log_error(
+                error=e,
+                source="swallowed",
+                service_name="PollyService",
+                function_name="synthesize_speech",
+            )
             raise
 
     def get_voice_for_gender(self, gender: str) -> str:
@@ -78,6 +84,11 @@ class PollyService:
             'neutral': 'Matthew'  # Default to Matthew for neutral
         }
         return voice_map.get(gender, 'Matthew')
+
+    async def synthesize_for_gender(self, text: str, gender: str = "neutral") -> bytes:
+        """Synthesize speech with automatic voice selection based on gender."""
+        voice_id = self.get_voice_for_gender(gender or "neutral")
+        return await self.synthesize_speech(text=text, voice_id=voice_id)
 
 
 # Global Polly service instance
