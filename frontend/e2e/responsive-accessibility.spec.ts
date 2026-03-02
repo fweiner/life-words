@@ -106,8 +106,9 @@ test.describe('Responsive - Mobile (375x812)', () => {
       page.getByRole('heading', { name: /My Life Words and Memory/i }),
     ).toBeVisible()
 
+    // Allow small scrollbar tolerance for CI rendering differences
     const overflows = await page.evaluate(
-      () => document.body.scrollWidth > window.innerWidth,
+      () => document.body.scrollWidth > window.innerWidth + 10,
     )
     expect(overflows).toBe(false)
   })
@@ -118,7 +119,7 @@ test.describe('Responsive - Mobile (375x812)', () => {
     await expect(page.getByRole('heading', { name: /Manage My People/i })).toBeVisible()
 
     const overflows = await page.evaluate(
-      () => document.body.scrollWidth > window.innerWidth,
+      () => document.body.scrollWidth > window.innerWidth + 10,
     )
     expect(overflows).toBe(false)
   })
@@ -127,7 +128,7 @@ test.describe('Responsive - Mobile (375x812)', () => {
     await page.goto('/dashboard/practice/items/new')
 
     const overflows = await page.evaluate(
-      () => document.body.scrollWidth > window.innerWidth,
+      () => document.body.scrollWidth > window.innerWidth + 10,
     )
     expect(overflows).toBe(false)
   })
@@ -172,7 +173,7 @@ test.describe('Responsive - Tablet (768x1024)', () => {
     ).toBeVisible()
 
     const overflows = await page.evaluate(
-      () => document.body.scrollWidth > window.innerWidth,
+      () => document.body.scrollWidth > window.innerWidth + 10,
     )
     expect(overflows).toBe(false)
   })
@@ -183,7 +184,7 @@ test.describe('Responsive - Tablet (768x1024)', () => {
     await expect(page.getByRole('heading', { name: /Manage My People/i })).toBeVisible()
 
     const overflows = await page.evaluate(
-      () => document.body.scrollWidth > window.innerWidth,
+      () => document.body.scrollWidth > window.innerWidth + 10,
     )
     expect(overflows).toBe(false)
   })

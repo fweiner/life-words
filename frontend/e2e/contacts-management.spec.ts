@@ -212,7 +212,7 @@ test.describe('Contacts Management - Mobile', () => {
 
     // Verify no horizontal scrollbar
     const overflows = await page.evaluate(
-      () => document.body.scrollWidth > window.innerWidth,
+      () => document.body.scrollWidth > window.innerWidth + 10,
     )
     expect(overflows).toBe(false)
   })

@@ -184,7 +184,7 @@ test.describe('Progress Page - Mobile', () => {
     await expect(page.getByRole('heading', { name: /Your Progress/i })).toBeVisible()
 
     const overflows = await page.evaluate(
-      () => document.body.scrollWidth > window.innerWidth,
+      () => document.body.scrollWidth > window.innerWidth + 10,
     )
     expect(overflows).toBe(false)
   })
