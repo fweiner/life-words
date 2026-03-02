@@ -1,6 +1,5 @@
 """Integration tests for admin endpoints."""
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 from fastapi import HTTPException
 
 
@@ -103,7 +102,7 @@ def test_delete_user_success(app, client, mock_db, mocker):
     """Test admin can delete a user successfully."""
     _setup_admin_overrides(app, mock_db)
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
 
     mock_client = mocker.AsyncMock()
@@ -128,7 +127,7 @@ def test_delete_user_not_found(app, client, mock_db, mocker):
     """Test deleting a nonexistent user returns 404."""
     _setup_admin_overrides(app, mock_db)
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 404
 
     mock_client = mocker.AsyncMock()
@@ -161,7 +160,7 @@ def test_create_user_success(app, client, mock_db, mocker):
     """Test admin can create a user successfully."""
     _setup_admin_overrides(app, mock_db)
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {"id": "new-user-1"}
 
@@ -194,7 +193,7 @@ def test_create_user_duplicate_email(app, client, mock_db, mocker):
     """Test creating user with existing email returns 400."""
     _setup_admin_overrides(app, mock_db)
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 422
 
     mock_client = mocker.AsyncMock()
@@ -269,7 +268,7 @@ def test_toggle_user_disable_success(app, client, mock_db, mocker):
     _setup_admin_overrides(app, mock_db)
     mock_db.query.return_value = [{"id": "user-1", "account_status": "paid"}]
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
 
     mock_client = mocker.AsyncMock()
@@ -298,7 +297,7 @@ def test_toggle_user_enable_success(app, client, mock_db, mocker):
         {"id": "user-1", "account_status": "admin_disabled", "previous_status": "paid"}
     ]
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
 
     mock_client = mocker.AsyncMock()

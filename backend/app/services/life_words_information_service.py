@@ -1,9 +1,10 @@
 """Life Words Information Practice service."""
 import random
+from datetime import datetime, timezone
 from typing import List, Dict, Any
 from fastapi import HTTPException
 from app.core.database import SupabaseClient
-from app.services.utils import verify_session, verify_can_practice
+from app.services.utils import verify_session, verify_can_practice, get_profile_or_404, calculate_session_accuracy
 from app.models.life_words_information import (
     InformationItem,
     LifeWordsInformationResponseCreate,
@@ -142,7 +143,14 @@ def format_date_for_display(date_value) -> str:
             from datetime import datetime as dt
             parsed = dt.fromisoformat(date_value.replace("Z", "+00:00"))
             return parsed.strftime("%B %d")
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError) as e:
+            from app.core.error_logger import log_error
+            log_error(
+                error=e,
+                source="swallowed",
+                service_name="life_words_information_service",
+                function_name="format_date_for_display",
+            )
             return date_value
     if hasattr(date_value, "strftime"):
         return date_value.strftime("%B %d")
@@ -248,7 +256,7 @@ class LifeWordsInformationService:
                 "min_fields_required": MIN_FIELDS_REQUIRED,
             }
 
-        profile = profiles[0]
+        profile = profiles[0]  # Intentionally not using get_profile_or_404 here — returns zeroed status instead
         filled_count = get_filled_fields_count(profile)
 
         return {
@@ -261,13 +269,7 @@ class LifeWordsInformationService:
         """Create a new information practice session with up to 5 random items."""
         await verify_can_practice(self.db, user_id)
 
-        profiles = await self.db.query(
-            "profiles", select="*", filters={"id": user_id}
-        )
-        if not profiles:
-            raise HTTPException(status_code=400, detail="Profile not found")
-
-        profile = profiles[0]
+        profile = await get_profile_or_404(self.db, user_id)
         filled_count = get_filled_fields_count(profile)
         if filled_count < MIN_FIELDS_REQUIRED:
             raise HTTPException(
@@ -355,7 +357,7 @@ class LifeWordsInformationService:
             select="*",
             filters={"session_id": session_id}
         )
-        total_correct = sum(1 for r in responses if r["is_correct"]) if responses else 0
+        total_correct, accuracy_pct = calculate_session_accuracy(responses)
         total_hints_used = sum(1 for r in responses if r["used_hint"]) if responses else 0
         total_timeouts = sum(1 for r in responses if r["timed_out"]) if responses else 0
 
@@ -367,7 +369,7 @@ class LifeWordsInformationService:
             "total_correct": total_correct,
             "total_hints_used": total_hints_used,
             "total_timeouts": total_timeouts,
-            "accuracy_percentage": round((total_correct / len(responses)) * 100, 1) if responses else 0,
+            "accuracy_percentage": accuracy_pct,
             "average_response_time_ms": round(avg_response_time, 0),
             "by_field": {}
         }
@@ -386,7 +388,7 @@ class LifeWordsInformationService:
             {"id": session_id},
             {
                 "is_completed": True,
-                "completed_at": "now()",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
                 "total_correct": total_correct,
                 "total_hints_used": total_hints_used,
                 "total_timeouts": total_timeouts,

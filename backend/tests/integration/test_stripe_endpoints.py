@@ -1,6 +1,5 @@
 """Integration tests for Stripe subscription endpoints."""
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
 
 
 SAMPLE_USER = {
@@ -80,11 +79,11 @@ def test_checkout_creates_session(app, client, mock_db, mocker):
                  stripe_yearly_price_id="price_yearly",
                  cors_origins=["http://localhost:3000"])
 
-    mock_customer = MagicMock()
+    mock_customer = mocker.MagicMock()
     mock_customer.id = "cus_new"
     mocker.patch("app.services.stripe_service.stripe.Customer.create", return_value=mock_customer)
 
-    mock_session = MagicMock()
+    mock_session = mocker.MagicMock()
     mock_session.url = "https://checkout.stripe.com/test"
     mocker.patch("app.services.stripe_service.stripe.checkout.Session.create", return_value=mock_session)
 
@@ -123,7 +122,7 @@ def test_portal_creates_session(app, client, mock_db, mocker):
                  stripe_secret_key="sk_test",
                  cors_origins=["http://localhost:3000"])
 
-    mock_session = MagicMock()
+    mock_session = mocker.MagicMock()
     mock_session.url = "https://billing.stripe.com/test"
     mocker.patch("app.services.stripe_service.stripe.billing_portal.Session.create", return_value=mock_session)
 

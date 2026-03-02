@@ -40,9 +40,25 @@ def test_get_current_user_invalid_token(client):
     assert response.status_code == 401
 
 
-def test_logout(client):
-    """Test logout endpoint."""
+def test_logout_unauthorized(client):
+    """Test logout endpoint without authentication."""
     response = client.post("/api/auth/logout")
+    assert response.status_code == 401
+
+
+def test_logout(app, client, mock_user):
+    """Test logout endpoint."""
+    from app.core.auth import get_current_user
+
+    async def override_get_current_user():
+        return mock_user
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+    response = client.post(
+        "/api/auth/logout",
+        headers={"Authorization": "Bearer valid-token"}
+    )
 
     assert response.status_code == 200
     data = response.json()

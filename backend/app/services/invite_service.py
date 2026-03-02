@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List
 from fastapi import HTTPException, UploadFile
 from app.core.database import SupabaseClient
-from app.services.utils import empty_to_none, generate_secure_token, upload_to_storage, FRONTEND_URL
+from app.services.utils import empty_to_none, generate_secure_token, upload_to_storage, safe_file_extension, FRONTEND_URL
 from app.services.email_service import send_invite_email, send_thank_you_email
 from app.services.profile_service import ProfileService
 
@@ -232,6 +232,28 @@ class InviteService:
             "contact_name": contact_data.name
         }
 
+    async def verify_invite_token_for_upload(self, token: str) -> None:
+        """Verify an invite token is valid before allowing photo upload."""
+        invites = await self.db.query(
+            "contact_invites",
+            select="id,status,expires_at",
+            filters={"token": token}
+        )
+
+        if not invites:
+            raise HTTPException(status_code=403, detail="Invalid invite token")
+
+        invite = invites[0]
+
+        expires_at = datetime.fromisoformat(
+            invite["expires_at"].replace("Z", "+00:00")
+        )
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(status_code=403, detail="Invite has expired")
+
+        if invite["status"] == "completed":
+            raise HTTPException(status_code=403, detail="Invite has already been used")
+
     async def upload_photo(self, file: UploadFile) -> Dict[str, str]:
         """Upload a photo for an invite submission (public)."""
         if not file.content_type or not file.content_type.startswith("image/"):
@@ -244,11 +266,7 @@ class InviteService:
                 status_code=400, detail="File size must be less than 5MB"
             )
 
-        file_ext = (
-            file.filename.split(".")[-1]
-            if file.filename and "." in file.filename
-            else "jpg"
-        )
+        file_ext = safe_file_extension(file.content_type or "", "jpg")
 
         photo_url = await upload_to_storage(
             content,

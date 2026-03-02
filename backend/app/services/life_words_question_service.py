@@ -1,9 +1,10 @@
 """Life Words Question-Based Recall service."""
 import random
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from app.core.database import SupabaseClient
-from app.services.utils import verify_session, verify_can_practice
+from app.services.utils import verify_session, verify_can_practice, list_complete_entities, calculate_session_accuracy
 from app.models.life_words_questions import (
     GeneratedQuestion,
     QuestionType,
@@ -348,19 +349,11 @@ class LifeWordsQuestionService:
         """Create a new question-based session and generate questions."""
         await verify_can_practice(self.db, user_id)
 
+        all_contacts = await list_complete_entities(self.db, "personal_contacts", user_id)
         if session_data.contact_ids:
-            contacts = await self.db.query(
-                "personal_contacts",
-                select="*",
-                filters={"user_id": user_id, "is_active": True, "is_complete": True}
-            )
-            contacts = [c for c in contacts if c["id"] in session_data.contact_ids]
+            contacts = [c for c in all_contacts if c["id"] in session_data.contact_ids]
         else:
-            contacts = await self.db.query(
-                "personal_contacts",
-                select="*",
-                filters={"user_id": user_id, "is_active": True, "is_complete": True}
-            )
+            contacts = all_contacts
 
         if not contacts or len(contacts) < MIN_CONTACTS_REQUIRED:
             raise HTTPException(
@@ -404,11 +397,7 @@ class LifeWordsQuestionService:
             order="created_at"
         )
 
-        contacts = await self.db.query(
-            "personal_contacts",
-            select="*",
-            filters={"user_id": user_id, "is_active": True, "is_complete": True}
-        )
+        contacts = await list_complete_entities(self.db, "personal_contacts", user_id)
         session_contacts = [c for c in contacts if c["id"] in session["contact_ids"]]
 
         return {
@@ -456,7 +445,7 @@ class LifeWordsQuestionService:
             select="*",
             filters={"session_id": session_id}
         )
-        total_correct = sum(1 for r in responses if r["is_correct"]) if responses else 0
+        total_correct, accuracy_pct = calculate_session_accuracy(responses)
         total_partial = sum(1 for r in responses if r["is_partial"] and not r["is_correct"]) if responses else 0
 
         response_times = [r["response_time"] for r in responses if r["response_time"]] if responses else []
@@ -472,7 +461,7 @@ class LifeWordsQuestionService:
             "total_questions": len(responses) if responses else 0,
             "total_correct": total_correct,
             "total_partial": total_partial,
-            "accuracy_percentage": round((total_correct / len(responses)) * 100, 1) if responses else 0,
+            "accuracy_percentage": accuracy_pct,
             "average_response_time_ms": round(avg_response_time, 0),
             "average_clarity_score": round(avg_clarity, 2),
             "average_correctness_score": round(avg_correctness, 2),
@@ -492,7 +481,7 @@ class LifeWordsQuestionService:
             {"id": session_id},
             {
                 "is_completed": True,
-                "completed_at": "now()",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
                 "total_correct": total_correct,
                 "average_response_time": round(avg_response_time, 2),
                 "average_clarity_score": round(avg_clarity, 2),

@@ -1,5 +1,5 @@
 """Treatment endpoints for treatment sessions."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from typing import List, Optional
 from app.core.dependencies import CurrentUserId, Database
 from app.models.schemas import (
@@ -50,12 +50,7 @@ async def get_session(
 ):
     """Get a specific session."""
     service = TreatmentService(db)
-    result = await service.get_session(session_id, user_id)
-
-    if not result:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    return result
+    return await service.get_session(session_id, user_id)
 
 
 @router.patch("/sessions/{session_id}", response_model=dict)

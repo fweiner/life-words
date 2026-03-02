@@ -1,7 +1,6 @@
 """Unit tests for messaging service."""
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi import HTTPException
 
 
@@ -125,14 +124,14 @@ async def test_get_conversation_not_found(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_send_message_success(mock_db):
+async def test_send_message_success(mock_db, mocker):
     """Test sending a text message succeeds."""
     from app.services.messaging_service import MessagingService
 
     mock_db.query.return_value = [{"id": "contact-123"}]
     mock_db.insert.return_value = [SAMPLE_MESSAGE]
 
-    message_data = MagicMock()
+    message_data = mocker.MagicMock()
     message_data.text_content = "Hello!"
     message_data.photo_url = None
     message_data.voice_url = None
@@ -149,11 +148,11 @@ async def test_send_message_success(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_send_message_no_content(mock_db):
+async def test_send_message_no_content(mock_db, mocker):
     """Test sending a message with no content raises 400."""
     from app.services.messaging_service import MessagingService
 
-    message_data = MagicMock()
+    message_data = mocker.MagicMock()
     message_data.text_content = None
     message_data.photo_url = None
     message_data.voice_url = None
@@ -167,13 +166,13 @@ async def test_send_message_no_content(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_send_message_contact_not_found(mock_db):
+async def test_send_message_contact_not_found(mock_db, mocker):
     """Test sending a message to non-existent contact raises 404."""
     from app.services.messaging_service import MessagingService
 
     mock_db.query.return_value = []
 
-    message_data = MagicMock()
+    message_data = mocker.MagicMock()
     message_data.text_content = "Hello!"
     message_data.photo_url = None
     message_data.voice_url = None
@@ -189,23 +188,23 @@ async def test_send_message_contact_not_found(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_mark_messages_read_success(mock_db):
+async def test_mark_messages_read_success(mock_db, mocker):
     """Test marking messages as read succeeds using raw httpx."""
     from app.services.messaging_service import MessagingService
 
     mock_db.query.return_value = [{"id": "contact-123"}]
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
 
-    mock_client_instance = AsyncMock()
+    mock_client_instance = mocker.AsyncMock()
     mock_client_instance.patch.return_value = mock_response
-    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.__aenter__ = mocker.AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = mocker.AsyncMock(return_value=None)
 
-    with patch("app.services.messaging_service.httpx.AsyncClient", return_value=mock_client_instance):
-        service = MessagingService(mock_db)
-        result = await service.mark_messages_read("contact-123", "user-123")
+    mocker.patch("app.services.messaging_service.httpx.AsyncClient", return_value=mock_client_instance)
+    service = MessagingService(mock_db)
+    result = await service.mark_messages_read("contact-123", "user-123")
 
     assert result["success"] is True
     mock_client_instance.patch.assert_called_once()
@@ -252,7 +251,7 @@ async def test_get_or_create_messaging_token_existing(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_get_or_create_messaging_token_new(mock_db):
+async def test_get_or_create_messaging_token_new(mock_db, mocker):
     """Test creating a new messaging token when none exists."""
     from app.services.messaging_service import MessagingService
 
@@ -264,9 +263,9 @@ async def test_get_or_create_messaging_token_new(mock_db):
     ]
     mock_db.insert.return_value = [new_token_data]
 
-    with patch("app.services.messaging_service.generate_secure_token", return_value="new-generated-token"):
-        service = MessagingService(mock_db)
-        result = await service.get_or_create_messaging_token("contact-123", "user-123")
+    mocker.patch("app.services.messaging_service.generate_secure_token", return_value="new-generated-token")
+    service = MessagingService(mock_db)
+    result = await service.get_or_create_messaging_token("contact-123", "user-123")
 
     assert result["token"] == "new-generated-token"
     assert "messaging_url" in result
@@ -294,7 +293,7 @@ async def test_get_or_create_messaging_token_contact_not_found(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_regenerate_messaging_token_success(mock_db):
+async def test_regenerate_messaging_token_success(mock_db, mocker):
     """Test regenerating a token deletes old and creates new."""
     from app.services.messaging_service import MessagingService
 
@@ -303,9 +302,9 @@ async def test_regenerate_messaging_token_success(mock_db):
     mock_db.query.return_value = [{"id": "contact-123"}]
     mock_db.insert.return_value = [new_token_data]
 
-    with patch("app.services.messaging_service.generate_secure_token", return_value="regenerated-token"):
-        service = MessagingService(mock_db)
-        result = await service.regenerate_messaging_token("contact-123", "user-123")
+    mocker.patch("app.services.messaging_service.generate_secure_token", return_value="regenerated-token")
+    service = MessagingService(mock_db)
+    result = await service.regenerate_messaging_token("contact-123", "user-123")
 
     assert result["token"] == "regenerated-token"
     assert result["last_used_at"] is None
@@ -432,7 +431,7 @@ async def test_get_public_messages_invalid_token(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_send_public_message_success(mock_db):
+async def test_send_public_message_success(mock_db, mocker):
     """Test sending a public message from contact to user."""
     from app.services.messaging_service import MessagingService
 
@@ -445,7 +444,7 @@ async def test_send_public_message_success(mock_db):
     mock_db.query.return_value = [SAMPLE_TOKEN_DATA]
     mock_db.insert.return_value = [public_msg]
 
-    message_data = MagicMock()
+    message_data = mocker.MagicMock()
     message_data.text_content = "Hello from contact!"
     message_data.photo_url = None
     message_data.voice_url = None
@@ -462,11 +461,11 @@ async def test_send_public_message_success(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_send_public_message_no_content(mock_db):
+async def test_send_public_message_no_content(mock_db, mocker):
     """Test sending a public message with no content raises 400."""
     from app.services.messaging_service import MessagingService
 
-    message_data = MagicMock()
+    message_data = mocker.MagicMock()
     message_data.text_content = None
     message_data.photo_url = None
     message_data.voice_url = None
@@ -483,27 +482,27 @@ async def test_send_public_message_no_content(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_upload_media_photo_success(mock_db):
+async def test_upload_media_photo_success(mock_db, mocker):
     """Test uploading a photo succeeds."""
     from app.services.messaging_service import MessagingService
 
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "image/jpeg"
     mock_file.filename = "photo.jpg"
-    mock_file.read = AsyncMock(return_value=b"fake-image-data")
+    mock_file.read = mocker.AsyncMock(return_value=b"fake-image-data")
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
     mock_response.text = "OK"
 
-    mock_client_instance = AsyncMock()
+    mock_client_instance = mocker.AsyncMock()
     mock_client_instance.post.return_value = mock_response
-    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.__aenter__ = mocker.AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = mocker.AsyncMock(return_value=None)
 
-    with patch("app.services.utils.httpx.AsyncClient", return_value=mock_client_instance):
-        service = MessagingService(mock_db)
-        result = await service.upload_media(mock_file, media_type="photo")
+    mocker.patch("app.services.utils.httpx.AsyncClient", return_value=mock_client_instance)
+    service = MessagingService(mock_db)
+    result = await service.upload_media(mock_file, media_type="photo")
 
     assert result["media_type"] == "photo"
     assert "url" in result
@@ -512,27 +511,27 @@ async def test_upload_media_photo_success(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_upload_media_voice_success(mock_db):
+async def test_upload_media_voice_success(mock_db, mocker):
     """Test uploading a voice message succeeds."""
     from app.services.messaging_service import MessagingService
 
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "audio/webm"
     mock_file.filename = "recording.webm"
-    mock_file.read = AsyncMock(return_value=b"fake-audio-data")
+    mock_file.read = mocker.AsyncMock(return_value=b"fake-audio-data")
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 201
     mock_response.text = "Created"
 
-    mock_client_instance = AsyncMock()
+    mock_client_instance = mocker.AsyncMock()
     mock_client_instance.post.return_value = mock_response
-    mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
-    mock_client_instance.__aexit__ = AsyncMock(return_value=None)
+    mock_client_instance.__aenter__ = mocker.AsyncMock(return_value=mock_client_instance)
+    mock_client_instance.__aexit__ = mocker.AsyncMock(return_value=None)
 
-    with patch("app.services.utils.httpx.AsyncClient", return_value=mock_client_instance):
-        service = MessagingService(mock_db)
-        result = await service.upload_media(mock_file, media_type="voice")
+    mocker.patch("app.services.utils.httpx.AsyncClient", return_value=mock_client_instance)
+    service = MessagingService(mock_db)
+    result = await service.upload_media(mock_file, media_type="voice")
 
     assert result["media_type"] == "voice"
     assert "url" in result
@@ -540,11 +539,11 @@ async def test_upload_media_voice_success(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_upload_media_invalid_type(mock_db):
+async def test_upload_media_invalid_type(mock_db, mocker):
     """Test uploading with invalid media_type raises 400."""
     from app.services.messaging_service import MessagingService
 
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "image/jpeg"
     mock_file.filename = "photo.jpg"
 
@@ -557,11 +556,11 @@ async def test_upload_media_invalid_type(mock_db):
 
 
 @pytest.mark.asyncio
-async def test_upload_media_invalid_content_type(mock_db):
+async def test_upload_media_invalid_content_type(mock_db, mocker):
     """Test uploading a photo with wrong content type raises 400."""
     from app.services.messaging_service import MessagingService
 
-    mock_file = MagicMock()
+    mock_file = mocker.MagicMock()
     mock_file.content_type = "application/pdf"
     mock_file.filename = "document.pdf"
 

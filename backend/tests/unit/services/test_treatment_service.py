@@ -53,16 +53,19 @@ async def test_get_session(mock_db):
 
 @pytest.mark.asyncio
 async def test_get_session_not_found(mock_db):
-    """Test retrieving a session that doesn't exist."""
+    """Test retrieving a session that doesn't exist raises 404."""
     from app.services.treatment_service import TreatmentService
+    from fastapi import HTTPException
 
     # Setup mock to return empty list
     mock_db.query.return_value = []
 
     service = TreatmentService(mock_db)
-    result = await service.get_session("nonexistent", "user-123")
+    with pytest.raises(HTTPException) as exc_info:
+        await service.get_session("nonexistent", "user-123")
 
-    assert result is None
+    assert exc_info.value.status_code == 404
+    assert "Session not found" in exc_info.value.detail
 
 
 @pytest.mark.asyncio

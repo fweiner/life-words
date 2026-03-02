@@ -417,7 +417,7 @@ async def test_create_session_success(mock_db):
 
 @pytest.mark.asyncio
 async def test_create_session_no_profile(mock_db):
-    """Test creating a session with no profile raises 400."""
+    """Test creating a session with no profile raises 404."""
     from app.services.life_words_information_service import LifeWordsInformationService
 
     mock_db.query.return_value = []
@@ -426,7 +426,7 @@ async def test_create_session_no_profile(mock_db):
     with pytest.raises(HTTPException) as exc_info:
         await service.create_session("user-123")
 
-    assert exc_info.value.status_code == 400
+    assert exc_info.value.status_code == 404
     assert "Profile not found" in exc_info.value.detail
 
 

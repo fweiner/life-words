@@ -1,5 +1,5 @@
 """Treatment service for managing treatment sessions and results."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from app.core.database import SupabaseClient
 from app.models.schemas import (
@@ -27,7 +27,7 @@ class TreatmentService:
             "user_id": user_id,
             "treatment_type": session_data.treatment_type,
             "data": session_data.data,
-            "started_at": datetime.utcnow().isoformat()
+            "started_at": datetime.now(timezone.utc).isoformat()
         }
 
         result = await self.db.insert("treatment_sessions", data)
@@ -37,14 +37,17 @@ class TreatmentService:
         self,
         session_id: str,
         user_id: str
-    ) -> Optional[Dict[str, Any]]:
-        """Get a specific session."""
+    ) -> Dict[str, Any]:
+        """Get a specific session. Raises 404 if not found."""
+        from fastapi import HTTPException
         results = await self.db.query(
             "treatment_sessions",
             filters={"id": session_id, "user_id": user_id},
             limit=1
         )
-        return results[0] if results else None
+        if not results:
+            raise HTTPException(status_code=404, detail="Session not found")
+        return results[0]
 
     async def complete_session(
         self,
@@ -54,7 +57,7 @@ class TreatmentService:
     ) -> Dict[str, Any]:
         """Mark a session as completed."""
         update_data = {
-            "completed_at": datetime.utcnow().isoformat()
+            "completed_at": datetime.now(timezone.utc).isoformat()
         }
         if data:
             update_data["data"] = data
@@ -147,7 +150,7 @@ class TreatmentService:
         # Get the session to find treatment type
         session_results = await self.db.query(
             "treatment_sessions",
-            filters={"id": session_id},
+            filters={"id": session_id, "user_id": user_id},
             limit=1
         )
 
@@ -179,7 +182,7 @@ class TreatmentService:
         progress_data = {
             "total_sessions": total_sessions,
             "average_score": average_score,
-            "last_session_at": datetime.utcnow().isoformat()
+            "last_session_at": datetime.now(timezone.utc).isoformat()
         }
 
         if existing:

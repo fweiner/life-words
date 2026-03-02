@@ -365,6 +365,63 @@ async def test_submit_invite_already_completed(mock_db):
     assert "already been used" in exc_info.value.detail.lower()
 
 
+# ---- verify_invite_token_for_upload ----
+
+
+@pytest.mark.asyncio
+async def test_verify_invite_token_for_upload_valid(mock_db):
+    """Test verifying a valid invite token for upload."""
+    mock_db.query.return_value = [SAMPLE_INVITE]
+
+    service = InviteService(mock_db)
+    # Should not raise
+    await service.verify_invite_token_for_upload("mock-token-abc123")
+
+
+@pytest.mark.asyncio
+async def test_verify_invite_token_for_upload_invalid(mock_db):
+    """Test verifying an invalid invite token for upload."""
+    mock_db.query.return_value = []
+
+    service = InviteService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.verify_invite_token_for_upload("bad-token")
+
+    assert exc_info.value.status_code == 403
+    assert "invalid" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_verify_invite_token_for_upload_expired(mock_db):
+    """Test verifying an expired invite token for upload."""
+    expired_invite = {
+        **SAMPLE_INVITE,
+        "expires_at": (datetime.now(timezone.utc) - timedelta(days=1)).isoformat(),
+    }
+    mock_db.query.return_value = [expired_invite]
+
+    service = InviteService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.verify_invite_token_for_upload("mock-token-abc123")
+
+    assert exc_info.value.status_code == 403
+    assert "expired" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_verify_invite_token_for_upload_completed(mock_db):
+    """Test verifying a completed invite token for upload."""
+    completed_invite = {**SAMPLE_INVITE, "status": "completed"}
+    mock_db.query.return_value = [completed_invite]
+
+    service = InviteService(mock_db)
+    with pytest.raises(HTTPException) as exc_info:
+        await service.verify_invite_token_for_upload("mock-token-abc123")
+
+    assert exc_info.value.status_code == 403
+    assert "already been used" in exc_info.value.detail.lower()
+
+
 # ---- upload_photo ----
 
 

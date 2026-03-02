@@ -7,6 +7,8 @@ from fastapi import HTTPException
 
 from app.config import settings
 from app.core.database import SupabaseClient
+from app.core.error_logger import log_error
+from app.services.utils import get_profile_or_404
 
 VALID_ACCOUNT_STATUSES = {"trial", "paid", "cancelled", "past_due", "admin_disabled"}
 VALID_ERROR_SOURCES = {"unhandled", "swallowed", "manual"}
@@ -123,9 +125,7 @@ class AdminService:
         Returns refreshed user stats via RPC.
         """
         # Verify user exists
-        profiles = await self.db.query("profiles", filters={"id": user_id})
-        if not profiles:
-            raise HTTPException(status_code=404, detail="User not found")
+        await get_profile_or_404(self.db, user_id)
 
         if account_status and account_status not in VALID_ACCOUNT_STATUSES:
             raise HTTPException(
@@ -186,15 +186,13 @@ class AdminService:
         Uses Auth Admin API ban_duration to prevent login when disabling.
         Returns dict with user_id and new_status.
         """
-        profiles = await self.db.query("profiles", filters={"id": user_id})
-        if not profiles:
-            raise HTTPException(status_code=404, detail="User not found")
+        profile = await get_profile_or_404(self.db, user_id)
 
-        current_status = profiles[0].get("account_status", "trial")
+        current_status = profile.get("account_status", "trial")
 
         if current_status == "admin_disabled":
             # Re-enable: restore previous status from metadata or default to trial
-            previous_status = profiles[0].get("previous_status", "trial")
+            previous_status = profile.get("previous_status", "trial")
             new_status = previous_status
 
             # Unban in Auth
@@ -240,7 +238,12 @@ class AdminService:
             )
 
         action = "enabled" if new_status != "admin_disabled" else "disabled"
-        return {"user_id": user_id, "new_status": new_status, "action": action}
+        return {
+            "user_id": user_id,
+            "new_status": new_status,
+            "action": action,
+            "message": f"User {action} successfully",
+        }
 
     async def list_error_logs(
         self,
@@ -259,22 +262,29 @@ class AdminService:
         }
 
         if search:
-            params["error_message"] = f"ilike.*{search}*"
+            safe_search = search.replace("*", "").replace(".", "")[:200]
+            params["error_message"] = f"ilike.*{safe_search}*"
         if source and source in VALID_ERROR_SOURCES:
             params["source"] = f"eq.{source}"
         if resolved is not None:
             params["is_resolved"] = f"eq.{str(resolved).lower()}"
 
         url = f"{settings.supabase_url}/rest/v1/error_logs"
-        headers = {
-            "apikey": settings.supabase_secret_key,
-            "Authorization": f"Bearer {settings.supabase_secret_key}",
-        }
 
         async with httpx.AsyncClient() as client:
             # Fetch errors
-            resp = await client.get(url, headers=headers, params=params)
-            resp.raise_for_status()
+            try:
+                resp = await client.get(url, headers=AUTH_HEADERS, params=params)
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                log_error(
+                    error=e,
+                    source="swallowed",
+                    service_name="AdminService",
+                    function_name="list_error_logs",
+                    status_code=e.response.status_code,
+                )
+                raise HTTPException(status_code=500, detail="Failed to fetch error logs")
             errors = resp.json()
 
             # Fetch total count for pagination
@@ -287,7 +297,7 @@ class AdminService:
             count_resp = await client.get(
                 url,
                 headers={
-                    **headers,
+                    **AUTH_HEADERS,
                     "Prefer": "count=exact",
                 },
                 params=count_params,
@@ -305,12 +315,11 @@ class AdminService:
 
     async def resolve_error(
         self, error_id: str, admin_email: str, notes: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
-        """Mark an error as resolved."""
+    ) -> Dict[str, Any]:
+        """Mark an error as resolved. Raises 404 if not found."""
         url = f"{settings.supabase_url}/rest/v1/error_logs"
         headers = {
-            "apikey": settings.supabase_secret_key,
-            "Authorization": f"Bearer {settings.supabase_secret_key}",
+            **AUTH_HEADERS,
             "Content-Type": "application/json",
             "Prefer": "return=representation",
         }
@@ -323,21 +332,32 @@ class AdminService:
         }
 
         async with httpx.AsyncClient() as client:
-            resp = await client.patch(
-                url, headers=headers, params=params, json=data
-            )
-            resp.raise_for_status()
+            try:
+                resp = await client.patch(
+                    url, headers=headers, params=params, json=data
+                )
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                log_error(
+                    error=e,
+                    source="swallowed",
+                    service_name="AdminService",
+                    function_name="resolve_error",
+                    status_code=e.response.status_code,
+                )
+                raise HTTPException(status_code=500, detail="Failed to resolve error")
             rows = resp.json()
-            return rows[0] if rows else None
+            if not rows:
+                raise HTTPException(status_code=404, detail="Error not found")
+            return rows[0]
 
     async def unresolve_error(
         self, error_id: str
-    ) -> Optional[Dict[str, Any]]:
-        """Reopen a resolved error."""
+    ) -> Dict[str, Any]:
+        """Reopen a resolved error. Raises 404 if not found."""
         url = f"{settings.supabase_url}/rest/v1/error_logs"
         headers = {
-            "apikey": settings.supabase_secret_key,
-            "Authorization": f"Bearer {settings.supabase_secret_key}",
+            **AUTH_HEADERS,
             "Content-Type": "application/json",
             "Prefer": "return=representation",
         }
@@ -350,9 +370,21 @@ class AdminService:
         }
 
         async with httpx.AsyncClient() as client:
-            resp = await client.patch(
-                url, headers=headers, params=params, json=data
-            )
-            resp.raise_for_status()
+            try:
+                resp = await client.patch(
+                    url, headers=headers, params=params, json=data
+                )
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                log_error(
+                    error=e,
+                    source="swallowed",
+                    service_name="AdminService",
+                    function_name="unresolve_error",
+                    status_code=e.response.status_code,
+                )
+                raise HTTPException(status_code=500, detail="Failed to unresolve error")
             rows = resp.json()
-            return rows[0] if rows else None
+            if not rows:
+                raise HTTPException(status_code=404, detail="Error not found")
+            return rows[0]

@@ -22,6 +22,7 @@ interface InviteContactFormProps {
   initialName?: string
   onSubmit: (data: InviteFormData) => Promise<void>
   isSubmitting?: boolean
+  token: string
 }
 
 const RELATIONSHIP_OPTIONS = [
@@ -51,7 +52,8 @@ const PERSONALITY_OPTIONS = [
 export function InviteContactForm({
   initialName = '',
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  token
 }: InviteContactFormProps) {
   const [formData, setFormData] = useState<InviteFormData>({
     name: initialName,
@@ -113,6 +115,7 @@ export function InviteContactForm({
         <PublicPhotoUpload
           onUploadComplete={handlePhotoUpload}
           currentPhotoUrl={formData.photo_url}
+          token={token}
         />
       </div>
 

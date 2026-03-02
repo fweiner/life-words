@@ -1,6 +1,6 @@
 """Speech-related Pydantic models."""
-from typing import Optional
-from pydantic import BaseModel, field_validator
+from typing import Literal, Optional
+from pydantic import BaseModel, Field, field_validator
 
 
 class SpeechTranscribeResponse(BaseModel):
@@ -18,8 +18,8 @@ class TextToSpeechRequest(BaseModel):
 
 class PollyTTSRequest(BaseModel):
     """Amazon Polly text-to-speech request."""
-    text: str
-    gender: Optional[str] = "neutral"
+    text: str = Field(..., max_length=3000)
+    gender: Optional[Literal["male", "female", "neutral"]] = "neutral"
 
     @field_validator("text")
     @classmethod

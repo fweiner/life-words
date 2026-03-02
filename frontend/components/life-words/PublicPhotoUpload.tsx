@@ -9,13 +9,14 @@ interface PublicPhotoUploadProps {
   onUploadComplete: (url: string) => void
   currentPhotoUrl?: string
   className?: string
+  token: string
 }
 
 /**
  * Photo upload component for public invite forms.
  * Uses the backend API endpoint instead of direct Supabase client auth.
  */
-export function PublicPhotoUpload({ onUploadComplete, currentPhotoUrl, className = '' }: PublicPhotoUploadProps) {
+export function PublicPhotoUpload({ onUploadComplete, currentPhotoUrl, className = '', token }: PublicPhotoUploadProps) {
   const [preview, setPreview] = useState<string | null>(currentPhotoUrl || null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,9 +51,9 @@ export function PublicPhotoUpload({ onUploadComplete, currentPhotoUrl, className
       const formData = new FormData()
       formData.append('file', compressedBlob, 'photo.jpg')
 
-      // Upload via public API endpoint (unauthenticated)
+      // Upload via public API endpoint (token-validated)
       const data = await apiClient.postFormData<{ photo_url: string }>(
-        '/api/life-words/invites/upload-photo',
+        `/api/life-words/invites/upload-photo?token=${encodeURIComponent(token)}`,
         formData,
         false
       )

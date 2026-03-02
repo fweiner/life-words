@@ -1,6 +1,6 @@
 """Contact invite endpoints for Life Words treatment."""
 from typing import List, Dict, Any
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from app.core.dependencies import CurrentUser, CurrentUserId, Database
 from app.models.schemas import (
     ContactInviteCreate,
@@ -74,9 +74,11 @@ async def submit_invite(
 
 @router.post("/invites/upload-photo")
 async def upload_invite_photo(
+    token: str = Query(..., description="Invite token for authorization"),
     file: UploadFile = File(...),
     db: Database = None,
 ) -> Dict[str, str]:
-    """Upload a photo for an invite submission (public endpoint)."""
+    """Upload a photo for an invite submission (public, token-validated)."""
     service = InviteService(db)
+    await service.verify_invite_token_for_upload(token)
     return await service.upload_photo(file)

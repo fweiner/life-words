@@ -133,12 +133,22 @@ async def send_public_message(
 
 @router.post("/public/upload-media")
 async def upload_public_media(
+    token: str,
+    db: Database,
     file: UploadFile = File(...),
     media_type: str = "photo",
-    db: Database = None,
 ) -> Dict[str, str]:
     """Upload photo or voice message (public endpoint for contacts via messaging link)."""
     service = MessagingService(db)
+    # Validate token before allowing upload
+    tokens = await db.query(
+        "contact_messaging_tokens",
+        select="id",
+        filters={"token": token, "is_active": True},
+    )
+    if not tokens:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Invalid or inactive messaging link")
     return await service.upload_media(file, media_type)
 
 

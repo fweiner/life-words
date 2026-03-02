@@ -7,7 +7,8 @@ from fastapi import HTTPException
 
 from app.config import settings
 from app.core.database import SupabaseClient
-from app.services.utils import FRONTEND_URL
+from app.core.error_logger import log_error
+from app.services.utils import get_profile_or_404, FRONTEND_URL
 
 VALID_PLANS = {"monthly", "yearly"}
 
@@ -44,12 +45,7 @@ class StripeService:
 
     async def _get_profile(self, user_id: str) -> Dict[str, Any]:
         """Get user profile or raise 404."""
-        profiles = await self.db.query(
-            "profiles", select="*", filters={"id": user_id}
-        )
-        if not profiles:
-            raise HTTPException(status_code=404, detail="Profile not found")
-        return profiles[0]
+        return await get_profile_or_404(self.db, user_id)
 
     async def _get_or_create_customer(self, user_id: str, email: str) -> str:
         """Get or create a Stripe customer for a user."""
@@ -158,9 +154,23 @@ class StripeService:
             event = stripe.Webhook.construct_event(
                 payload, sig_header, settings.stripe_webhook_secret
             )
-        except ValueError:
+        except ValueError as e:
+            log_error(
+                error=e,
+                source="swallowed",
+                service_name="StripeService",
+                function_name="handle_webhook_event",
+                status_code=400,
+            )
             raise HTTPException(status_code=400, detail="Invalid payload")
-        except stripe.SignatureVerificationError:
+        except stripe.SignatureVerificationError as e:
+            log_error(
+                error=e,
+                source="swallowed",
+                service_name="StripeService",
+                function_name="handle_webhook_event",
+                status_code=400,
+            )
             raise HTTPException(status_code=400, detail="Invalid signature")
 
         event_type = event["type"]

@@ -1,5 +1,6 @@
 """Life Words service for managing contacts, items, sessions, and progress."""
 import random
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from app.core.database import SupabaseClient
@@ -18,6 +19,8 @@ from app.services.utils import (
     build_update_data,
     soft_delete_entity,
     list_user_entities,
+    list_complete_entities,
+    calculate_session_accuracy,
 )
 
 MIN_CONTACTS_REQUIRED = 2
@@ -59,16 +62,8 @@ class LifeWordsService:
 
     async def get_status(self, user_id: str) -> Dict[str, Any]:
         """Get user's life words setup status (counts complete contacts + items)."""
-        contacts = await self.db.query(
-            CONTACTS_TABLE,
-            select="id",
-            filters={"user_id": user_id, "is_active": True, "is_complete": True}
-        )
-        items = await self.db.query(
-            ITEMS_TABLE,
-            select="id",
-            filters={"user_id": user_id, "is_active": True, "is_complete": True}
-        )
+        contacts = await list_complete_entities(self.db, CONTACTS_TABLE, user_id)
+        items = await list_complete_entities(self.db, ITEMS_TABLE, user_id)
 
         contact_count = len(contacts) if contacts else 0
         item_count = len(items) if items else 0
@@ -174,28 +169,15 @@ class LifeWordsService:
 
         # Fetch contacts unless filtering to items only
         if category != "items":
+            all_contacts = await list_complete_entities(self.db, CONTACTS_TABLE, user_id)
             if session_data.contact_ids:
-                contacts = await self.db.query(
-                    CONTACTS_TABLE,
-                    select="*",
-                    filters={"user_id": user_id, "is_active": True, "is_complete": True}
-                )
-                contacts = [c for c in contacts if c["id"] in session_data.contact_ids]
+                contacts = [c for c in all_contacts if c["id"] in session_data.contact_ids]
             else:
-                contacts = await self.db.query(
-                    CONTACTS_TABLE,
-                    select="*",
-                    filters={"user_id": user_id, "is_active": True, "is_complete": True}
-                )
-            contacts = contacts or []
+                contacts = all_contacts
 
         # Fetch items unless filtering to people only
         if category != "people":
-            items = await self.db.query(
-                ITEMS_TABLE,
-                select="*",
-                filters={"user_id": user_id, "is_active": True, "is_complete": True}
-            )
+            items = await list_complete_entities(self.db, ITEMS_TABLE, user_id)
             items_as_contacts = convert_items_to_contacts(items or [])
 
         all_entries = contacts + items_as_contacts
@@ -285,14 +267,14 @@ class LifeWordsService:
             filters={"session_id": session_id}
         )
 
-        total_correct = sum(1 for r in responses if r["is_correct"]) if responses else 0
+        total_correct, accuracy_pct = calculate_session_accuracy(responses)
         total_incorrect = (len(responses) - total_correct) if responses else 0
         avg_cues = (sum(r["cues_used"] for r in responses) / len(responses)) if responses else 0
         avg_time = (sum(float(r["response_time"] or 0) for r in responses) / len(responses)) if responses else 0
 
         statistics = {
             "responses_count": len(responses),
-            "accuracy_percentage": round((total_correct / len(responses)) * 100, 1) if responses else 0,
+            "accuracy_percentage": accuracy_pct,
             "by_contact": {}
         }
         for r in responses:
@@ -309,7 +291,7 @@ class LifeWordsService:
             {"id": session_id},
             {
                 "is_completed": True,
-                "completed_at": "now()",
+                "completed_at": datetime.now(timezone.utc).isoformat(),
                 "total_correct": total_correct,
                 "total_incorrect": total_incorrect,
                 "average_cues_used": round(avg_cues, 2),

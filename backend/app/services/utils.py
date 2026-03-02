@@ -119,6 +119,58 @@ async def verify_can_practice(db, user_id: str) -> None:
     )
 
 
+async def get_profile_or_404(db, user_id: str) -> Dict[str, Any]:
+    """Get a user profile or raise 404 if not found."""
+    profiles = await db.query("profiles", select="*", filters={"id": user_id})
+    if not profiles:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profiles[0]
+
+
+async def list_complete_entities(
+    db, table: str, user_id: str
+) -> List[Dict[str, Any]]:
+    """List active and complete entities for a user."""
+    results = await db.query(
+        table,
+        select="*",
+        filters={"user_id": user_id, "is_active": True, "is_complete": True},
+    )
+    return results or []
+
+
+def calculate_session_accuracy(responses: list) -> tuple:
+    """Calculate session accuracy stats.
+
+    Returns (total_correct, accuracy_percentage).
+    """
+    if not responses:
+        return 0, 0.0
+    total_correct = sum(1 for r in responses if r["is_correct"])
+    accuracy = round((total_correct / len(responses)) * 100, 1)
+    return total_correct, accuracy
+
+
+# File extension allowlist from content-type for secure uploads
+EXTENSION_FROM_CONTENT_TYPE = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "audio/webm": "webm",
+    "audio/mp3": "mp3",
+    "audio/mpeg": "mp3",
+    "audio/wav": "wav",
+    "audio/ogg": "ogg",
+    "audio/mp4": "m4a",
+}
+
+
+def safe_file_extension(content_type: str, default: str = "bin") -> str:
+    """Get a safe file extension from content-type. Never trusts user-supplied filename."""
+    return EXTENSION_FROM_CONTENT_TYPE.get(content_type, default)
+
+
 async def upload_to_storage(
     content: bytes, content_type: str, folder: str, file_ext: str
 ) -> str:

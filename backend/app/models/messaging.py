@@ -5,19 +5,15 @@ from pydantic import BaseModel
 
 
 class MessageCreate(BaseModel):
-    """Create message request (authenticated user)."""
+    """Create message request (authenticated or public)."""
     text_content: Optional[str] = None
     photo_url: Optional[str] = None
     voice_url: Optional[str] = None
     voice_duration_seconds: Optional[int] = None
 
 
-class PublicMessageCreate(BaseModel):
-    """Create message request (public contact endpoint)."""
-    text_content: Optional[str] = None
-    photo_url: Optional[str] = None
-    voice_url: Optional[str] = None
-    voice_duration_seconds: Optional[int] = None
+# Alias for backward compatibility — identical schema
+PublicMessageCreate = MessageCreate
 
 
 class MessageResponse(BaseModel):

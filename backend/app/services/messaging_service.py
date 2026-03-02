@@ -4,7 +4,13 @@ from typing import Dict, Any, List
 from fastapi import HTTPException, UploadFile
 from app.core.database import SupabaseClient
 from app.config import settings
-from app.services.utils import generate_secure_token, upload_to_storage, FRONTEND_URL
+from app.services.utils import (
+    generate_secure_token,
+    upload_to_storage,
+    verify_ownership,
+    safe_file_extension,
+    FRONTEND_URL,
+)
 import httpx
 
 
@@ -13,16 +19,6 @@ class MessagingService:
 
     def __init__(self, db: SupabaseClient):
         self.db = db
-
-    async def _verify_contact(self, contact_id: str, user_id: str) -> None:
-        """Verify a contact belongs to a user. Raises 404 if not found."""
-        contacts = await self.db.query(
-            "personal_contacts",
-            select="id",
-            filters={"id": contact_id, "user_id": user_id}
-        )
-        if not contacts:
-            raise HTTPException(status_code=404, detail="Contact not found")
 
     async def list_conversations(
         self, user_id: str
@@ -123,7 +119,7 @@ class MessagingService:
         if not any([message_data.text_content, message_data.photo_url, message_data.voice_url]):
             raise HTTPException(status_code=400, detail="Message must have content")
 
-        await self._verify_contact(contact_id, user_id)
+        await verify_ownership(self.db, "personal_contacts", contact_id, user_id, "Contact")
 
         message = await self.db.insert(
             "messages",
@@ -146,7 +142,7 @@ class MessagingService:
         self, contact_id: str, user_id: str
     ) -> Dict[str, Any]:
         """Mark all messages from a contact as read."""
-        await self._verify_contact(contact_id, user_id)
+        await verify_ownership(self.db, "personal_contacts", contact_id, user_id, "Contact")
 
         # Use raw httpx for multi-filter update (SupabaseClient.update doesn't
         # support filtering by direction + is_read booleans in compound form)
@@ -179,7 +175,7 @@ class MessagingService:
         self, contact_id: str, user_id: str
     ) -> Dict[str, Any]:
         """Get or create a messaging token for a contact."""
-        await self._verify_contact(contact_id, user_id)
+        await verify_ownership(self.db, "personal_contacts", contact_id, user_id, "Contact")
 
         tokens = await self.db.query(
             "contact_messaging_tokens",
@@ -216,7 +212,7 @@ class MessagingService:
         self, contact_id: str, user_id: str
     ) -> Dict[str, Any]:
         """Regenerate the messaging token (invalidates old link)."""
-        await self._verify_contact(contact_id, user_id)
+        await verify_ownership(self.db, "personal_contacts", contact_id, user_id, "Contact")
 
         await self.db.delete(
             "contact_messaging_tokens",
@@ -403,10 +399,9 @@ class MessagingService:
                 detail=f"File size must be less than {max_size // (1024 * 1024)}MB"
             )
 
-        ext = (
-            file.filename.split(".")[-1]
-            if file.filename and "." in file.filename
-            else ("jpg" if media_type == "photo" else "webm")
+        ext = safe_file_extension(
+            file.content_type or "",
+            "jpg" if media_type == "photo" else "webm",
         )
 
         url = await upload_to_storage(

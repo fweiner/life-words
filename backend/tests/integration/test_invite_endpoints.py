@@ -1,7 +1,6 @@
 """Integration tests for invite endpoints."""
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import patch, MagicMock, AsyncMock
 
 
 # Sample test data
@@ -55,9 +54,9 @@ def test_create_invite_unauthorized(client):
     assert response.status_code == 401
 
 
-@patch("app.services.invite_service.send_invite_email")
-def test_create_invite_success(mock_send_email, app, client, mock_db):
+def test_create_invite_success(app, client, mock_db, mocker):
     """Test successfully creating an invite."""
+    mock_send_email = mocker.patch("app.services.invite_service.send_invite_email")
     from app.core.auth import get_current_user
     from app.core.dependencies import get_db
 
@@ -327,9 +326,9 @@ def test_verify_invite_expired(app, client, mock_db):
     assert data["status"] == "expired"
 
 
-@patch("app.services.invite_service.send_thank_you_email")
-def test_submit_invite_success(mock_send_email, app, client, mock_db):
+def test_submit_invite_success(app, client, mock_db, mocker):
     """Test successfully submitting an invite form."""
+    mock_send_email = mocker.patch("app.services.invite_service.send_thank_you_email")
     from app.core.dependencies import get_db
 
     mock_send_email.return_value = True
@@ -436,10 +435,49 @@ def test_submit_invite_already_completed(app, client, mock_db):
     assert "already" in response.json()["detail"].lower()
 
 
-def test_upload_photo_invalid_file(client):
-    """Test uploading an invalid file type."""
+def test_upload_photo_no_token(client):
+    """Test uploading a photo without a token is rejected."""
     response = client.post(
         "/api/life-words/invites/upload-photo",
+        files={"file": ("test.png", b"fake", "image/png")}
+    )
+
+    assert response.status_code == 422  # Missing required query param
+
+
+def test_upload_photo_invalid_token(app, client, mock_db):
+    """Test uploading a photo with an invalid token is rejected."""
+    from app.core.dependencies import get_db
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = []
+
+    response = client.post(
+        "/api/life-words/invites/upload-photo?token=bad-token",
+        files={"file": ("test.png", b"fake", "image/png")}
+    )
+
+    assert response.status_code == 403
+    assert "invalid" in response.json()["detail"].lower()
+
+
+def test_upload_photo_invalid_file(app, client, mock_db):
+    """Test uploading an invalid file type."""
+    from app.core.dependencies import get_db
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = [SAMPLE_INVITE]
+
+    response = client.post(
+        "/api/life-words/invites/upload-photo?token=test-token-abc123",
         files={"file": ("test.txt", b"not an image", "text/plain")}
     )
 
@@ -447,13 +485,22 @@ def test_upload_photo_invalid_file(client):
     assert "image" in response.json()["detail"].lower()
 
 
-@patch("app.services.utils.httpx.AsyncClient")
-def test_upload_photo_success(mock_client_class, client):
+def test_upload_photo_success(app, client, mock_db, mocker):
     """Test successfully uploading a photo."""
-    mock_async_client = AsyncMock()
+    mock_client_class = mocker.patch("app.services.utils.httpx.AsyncClient")
+    from app.core.dependencies import get_db
+
+    async def override_get_db():
+        return mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    mock_db.query.return_value = [SAMPLE_INVITE]
+
+    mock_async_client = mocker.AsyncMock()
     mock_client_class.return_value.__aenter__.return_value = mock_async_client
 
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = 200
     mock_async_client.post.return_value = mock_response
 
@@ -466,7 +513,7 @@ def test_upload_photo_success(mock_client_class, client):
     )
 
     response = client.post(
-        "/api/life-words/invites/upload-photo",
+        "/api/life-words/invites/upload-photo?token=test-token-abc123",
         files={"file": ("test.png", png_data, "image/png")}
     )
 

@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     # Application
     environment: str = "development"
     allowed_origins: str = "http://localhost:3000"
+    admin_emails: str = "weiner@parrotsoftware.com"
 
     @property
     def cors_origins(self) -> List[str]:

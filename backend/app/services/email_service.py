@@ -2,6 +2,7 @@
 import resend
 from typing import Optional
 from app.config import settings
+from app.core.error_logger import log_error
 
 
 # Initialize Resend with API key
@@ -91,21 +92,21 @@ async def send_invite_email(
     """
 
     try:
-        result = resend.Emails.send({
+        resend.Emails.send({
             "from": FROM_EMAIL,
             "to": [recipient_email],
             "subject": subject,
             "html": html_body,
         })
-        print(f"Email sent successfully: {result}")
         return True, None
     except Exception as e:
-        import traceback
-        error_msg = str(e)
-        print(f"Failed to send invite email: {error_msg}")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Full traceback: {traceback.format_exc()}")
-        return False, error_msg
+        log_error(
+            error=e,
+            source="swallowed",
+            service_name="email_service",
+            function_name="send_invite_email",
+        )
+        return False, str(e)
 
 
 async def send_thank_you_email(
@@ -182,5 +183,10 @@ async def send_thank_you_email(
         })
         return True
     except Exception as e:
-        print(f"Failed to send thank you email: {e}")
+        log_error(
+            error=e,
+            source="swallowed",
+            service_name="email_service",
+            function_name="send_thank_you_email",
+        )
         return False

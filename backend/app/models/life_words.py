@@ -94,10 +94,10 @@ class LifeWordsSessionResponse(BaseModel):
     is_completed: bool
     started_at: datetime
     completed_at: Optional[datetime] = None
-    total_correct: int
-    total_incorrect: int
-    average_cues_used: float
-    average_response_time: float
+    total_correct: int = 0
+    total_incorrect: int = 0
+    average_cues_used: float = 0.0
+    average_response_time: float = 0.0
     contacts: Optional[list[PersonalContactResponse]] = None
 
 

@@ -1,7 +1,6 @@
 """Authentication endpoints."""
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from app.core.dependencies import CurrentUser
-from app.models.schemas import UserResponse
 
 
 router = APIRouter()
@@ -20,7 +19,7 @@ async def get_current_user_info(
 
 
 @router.post("/logout")
-async def logout():
+async def logout(current_user: CurrentUser):
     """
     Logout endpoint.
     Note: Actual logout is handled client-side by clearing the session.

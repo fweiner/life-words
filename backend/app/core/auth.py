@@ -78,7 +78,7 @@ async def get_current_user_id(
     return user["id"]
 
 
-ADMIN_EMAILS = {"weiner@parrotsoftware.com"}
+ADMIN_EMAILS = {e.strip() for e in settings.admin_emails.split(",") if e.strip()}
 
 
 async def require_admin(

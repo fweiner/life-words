@@ -1,6 +1,5 @@
 """Integration tests for Life Words Question endpoints."""
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
 
 
 SAMPLE_USER_ID = "user-123"

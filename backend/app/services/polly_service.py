@@ -65,7 +65,8 @@ class PollyService:
                 service_name="PollyService",
                 function_name="synthesize_speech",
             )
-            raise
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Text-to-speech failed")
 
     def get_voice_for_gender(self, gender: str) -> str:
         """

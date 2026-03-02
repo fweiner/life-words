@@ -182,6 +182,7 @@ export default function InvitePage() {
           initialName={inviteStatus.recipient_name || ''}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
+          token={token}
         />
       </div>
     </div>

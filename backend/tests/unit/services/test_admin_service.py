@@ -1,7 +1,6 @@
 """Unit tests for admin service."""
 import pytest
 from datetime import datetime, timezone
-from unittest.mock import MagicMock
 from fastapi import HTTPException
 
 from app.services.admin_service import AdminService
@@ -43,7 +42,7 @@ SAMPLE_USER_STATS = [
 
 def _mock_httpx_client(mocker, method="delete", status_code=200, json_data=None, text=""):
     """Helper to create a mock httpx AsyncClient."""
-    mock_response = MagicMock()
+    mock_response = mocker.MagicMock()
     mock_response.status_code = status_code
     mock_response.text = text
     if json_data is not None:
@@ -649,7 +648,7 @@ async def test_resolve_error(mock_db, mocker):
 
 @pytest.mark.asyncio
 async def test_resolve_error_not_found(mock_db, mocker):
-    """Test resolving a nonexistent error returns None."""
+    """Test resolving a nonexistent error raises 404."""
     mock_response = mocker.MagicMock()
     mock_response.json.return_value = []
     mock_response.raise_for_status = mocker.MagicMock()
@@ -662,9 +661,11 @@ async def test_resolve_error_not_found(mock_db, mocker):
     mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
 
     service = AdminService(mock_db)
-    result = await service.resolve_error("nonexistent", "admin@example.com")
+    with pytest.raises(HTTPException) as exc_info:
+        await service.resolve_error("nonexistent", "admin@example.com")
 
-    assert result is None
+    assert exc_info.value.status_code == 404
+    assert "Error not found" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
@@ -705,7 +706,7 @@ async def test_unresolve_error(mock_db, mocker):
 
 @pytest.mark.asyncio
 async def test_unresolve_error_not_found(mock_db, mocker):
-    """Test unresolving a nonexistent error returns None."""
+    """Test unresolving a nonexistent error raises 404."""
     mock_response = mocker.MagicMock()
     mock_response.json.return_value = []
     mock_response.raise_for_status = mocker.MagicMock()
@@ -718,6 +719,8 @@ async def test_unresolve_error_not_found(mock_db, mocker):
     mocker.patch("app.services.admin_service.httpx.AsyncClient", return_value=mock_client)
 
     service = AdminService(mock_db)
-    result = await service.unresolve_error("nonexistent")
+    with pytest.raises(HTTPException) as exc_info:
+        await service.unresolve_error("nonexistent")
 
-    assert result is None
+    assert exc_info.value.status_code == 404
+    assert "Error not found" in exc_info.value.detail

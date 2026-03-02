@@ -380,7 +380,7 @@ def test_create_information_session_no_profile(app, client, mock_user_id, mock_d
         headers={"Authorization": "Bearer valid-token"}
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 404
     assert "Profile not found" in response.json()["detail"]
 
 

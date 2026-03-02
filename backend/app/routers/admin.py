@@ -1,6 +1,6 @@
 """Admin management endpoints."""
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from app.core.dependencies import AdminUser, Database
 from app.models.admin import (
     AdminUserStats,
@@ -88,7 +88,7 @@ async def toggle_user(
     result = await service.toggle_user(user_id)
     return AdminToggleUserResponse(
         success=True,
-        message=f"User {result['action']} successfully",
+        message=result["message"],
         user_id=result["user_id"],
         new_status=result["new_status"],
     )
@@ -141,10 +141,7 @@ async def resolve_error(
     """Mark an error as resolved. Admin only."""
     service = AdminService(db)
     admin_email = user.get("email", "unknown")
-    result = await service.resolve_error(error_id, admin_email, body.notes)
-    if not result:
-        raise HTTPException(status_code=404, detail="Error not found")
-    return result
+    return await service.resolve_error(error_id, admin_email, body.notes)
 
 
 @router.post("/errors/{error_id}/unresolve")
@@ -155,7 +152,4 @@ async def unresolve_error(
 ):
     """Reopen a resolved error. Admin only."""
     service = AdminService(db)
-    result = await service.unresolve_error(error_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Error not found")
-    return result
+    return await service.unresolve_error(error_id)
