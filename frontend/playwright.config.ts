@@ -60,7 +60,7 @@ export default defineConfig({
 
   ...(!process.env.BASE_URL && {
     webServer: {
-      command: `npx next build && npx next start -p ${E2E_PORT}`,
+      command: `npx next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && PORT=${E2E_PORT} node .next/standalone/server.js`,
       url: `http://localhost:${E2E_PORT}`,
       reuseExistingServer: !isCI,
       timeout: 120 * 1000,

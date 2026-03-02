@@ -154,7 +154,7 @@ test.describe('Contacts Management', () => {
 
     await page.getByRole('button', { name: /Invite via Email/i }).click()
 
-    await expect(page.getByText(/Send an Invite/i)).toBeVisible()
+    await expect(page.getByText(/Send Invite/i)).toBeVisible()
   })
 })
 
@@ -165,30 +165,33 @@ test.describe('Contacts Management - Add New Contact', () => {
   })
 
   test('add form renders with all required fields', async ({ page }) => {
-    await page.goto('/dashboard/practice/contacts/add')
+    await page.goto('/dashboard/practice/contacts/new')
 
-    await expect(page.getByRole('heading', { name: /Add a Person/i })).toBeVisible()
-    await expect(page.getByLabel(/Full Name/i)).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Add New Contact/i })).toBeVisible()
+    await expect(page.getByLabel(/^Name/)).toBeVisible()
     await expect(page.getByLabel(/Nickname/i)).toBeVisible()
     await expect(page.getByLabel(/Relationship/i)).toBeVisible()
   })
 
   test('shows validation error when submitting empty form', async ({ page }) => {
-    await page.goto('/dashboard/practice/contacts/add')
+    await page.goto('/dashboard/practice/contacts/new')
 
-    await page.getByRole('button', { name: /Save Person/i }).click()
+    await page.getByRole('button', { name: /Add Contact/i }).click()
 
-    // Should show validation error for required fields
-    await expect(page.getByText(/Name is required/i)).toBeVisible()
+    // Native HTML validation prevents submission — form stays visible
+    await expect(page.getByRole('heading', { name: /Add New Contact/i })).toBeVisible()
+    // Name field has required attribute
+    await expect(page.getByLabel(/^Name/)).toHaveAttribute('required', '')
   })
 
-  test('shows error when fewer than 6 description fields filled', async ({ page }) => {
-    await page.goto('/dashboard/practice/contacts/add')
+  test('shows error when photo not uploaded', async ({ page }) => {
+    await page.goto('/dashboard/practice/contacts/new')
 
-    // Fill only name and photo (mock photo by intercepting)
-    await page.getByLabel(/Full Name/i).fill('Test Person')
+    // Fill required HTML fields to bypass native validation
+    await page.getByLabel(/^Name/).fill('Test Person')
+    await page.getByLabel(/Relationship/i).selectOption({ index: 1 })
 
-    await page.getByRole('button', { name: /Save Person/i }).click()
+    await page.getByRole('button', { name: /Add Contact/i }).click()
 
     await expect(page.getByText(/upload a photo/i)).toBeVisible()
   })

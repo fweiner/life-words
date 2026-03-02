@@ -156,9 +156,9 @@ test.describe('Items Management - Add New Item', () => {
   })
 
   test('add form renders with all fields', async ({ page }) => {
-    await page.goto('/dashboard/practice/items/add')
+    await page.goto('/dashboard/practice/items/new')
 
-    await expect(page.getByRole('heading', { name: /Add an Item/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Add New Item/i })).toBeVisible()
     await expect(page.getByLabel(/^Name/)).toBeVisible()
     await expect(page.getByLabel(/Category/i)).toBeVisible()
     await expect(page.getByLabel(/Purpose/i)).toBeVisible()
@@ -172,15 +172,18 @@ test.describe('Items Management - Add New Item', () => {
   })
 
   test('shows validation error when submitting without name', async ({ page }) => {
-    await page.goto('/dashboard/practice/items/add')
+    await page.goto('/dashboard/practice/items/new')
 
-    await page.getByRole('button', { name: /Save Item/i }).click()
+    await page.getByRole('button', { name: /Add Item/i }).click()
 
-    await expect(page.getByText(/Name is required/i)).toBeVisible()
+    // Native HTML validation prevents submission — form stays visible
+    await expect(page.getByRole('heading', { name: /Add New Item/i })).toBeVisible()
+    // Name field has required attribute
+    await expect(page.getByLabel(/^Name/)).toHaveAttribute('required', '')
   })
 
   test('shows minimum description fields notice', async ({ page }) => {
-    await page.goto('/dashboard/practice/items/add')
+    await page.goto('/dashboard/practice/items/new')
 
     await expect(
       page.getByText(/fill in at least 6 of the description fields/i),
@@ -188,7 +191,7 @@ test.describe('Items Management - Add New Item', () => {
   })
 
   test('photo upload tip shows item-specific text', async ({ page }) => {
-    await page.goto('/dashboard/practice/items/add')
+    await page.goto('/dashboard/practice/items/new')
 
     await expect(
       page.getByText(/Use a clear, well-lit photo of the item/i),

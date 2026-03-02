@@ -176,7 +176,7 @@ export async function mockAuthAndApis(page: Page): Promise<void> {
     }),
   )
 
-  // Mock life-words status endpoint (registered last = highest priority)
+  // Mock life-words status endpoint
   await page.route('**/api/life-words/status**', (route) =>
     route.fulfill({
       status: 200,
@@ -187,6 +187,22 @@ export async function mockAuthAndApis(page: Page): Promise<void> {
         total_count: 5,
         can_start_session: true,
         min_contacts_required: 2,
+      }),
+    }),
+  )
+
+  // Mock Stripe subscription status (registered last = highest priority)
+  await page.route('**/api/stripe/status**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        account_status: 'active',
+        is_paid: true,
+        is_trial_active: false,
+        can_practice: true,
+        has_subscription: true,
+        trial_ends_at: null,
       }),
     }),
   )

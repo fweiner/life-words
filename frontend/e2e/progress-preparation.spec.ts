@@ -9,33 +9,34 @@ const mockProfile = {
 }
 
 const mockProgress = {
-  overall: {
+  summary: {
     total_sessions: 3,
-    overall_accuracy: 92,
-    correct_answers: 11,
-    total_attempts: 12,
+    name_practice: {
+      sessions: 1,
+      correct: 4,
+      total: 5,
+      accuracy: 80,
+      avg_response_time_sec: 3.2,
+      avg_speech_confidence: 85,
+    },
+    question_practice: {
+      sessions: 1,
+      correct: 7,
+      total: 7,
+      accuracy: 100,
+      avg_response_time_ms: 3200,
+      avg_clarity: 90,
+    },
+    information_practice: {
+      sessions: 1,
+      correct: 0,
+      total: 0,
+      accuracy: 0,
+      avg_response_time_sec: 0,
+      hint_rate: 0,
+    },
   },
-  name_practice: {
-    sessions_completed: 1,
-    correct_answers: 0,
-    total_attempts: 0,
-    accuracy: 0,
-    avg_response_time_sec: 0,
-  },
-  question_practice: {
-    sessions_completed: 1,
-    correct_answers: 7,
-    total_questions: 7,
-    accuracy: 100,
-    avg_response_time_ms: 3200,
-  },
-  information_practice: {
-    sessions_completed: 1,
-    correct_answers: 4,
-    total_questions: 5,
-    accuracy: 80,
-    avg_response_time_sec: 12.1,
-  },
+  session_history: [],
 }
 
 const mockStatus = {
@@ -73,6 +74,20 @@ function setupProgressMocks(page: import('@playwright/test').Page) {
         body: JSON.stringify(mockStatus),
       }),
     ),
+    page.route('**/api/stripe/status**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          account_status: 'active',
+          is_paid: true,
+          is_trial_active: false,
+          can_practice: true,
+          has_subscription: true,
+          trial_ends_at: null,
+        }),
+      }),
+    ),
   ])
 }
 
@@ -92,13 +107,14 @@ test.describe('Progress Page', () => {
   test('shows total sessions count', async ({ page }) => {
     await page.goto('/dashboard/practice/progress')
 
-    await expect(page.getByText('3')).toBeVisible()
+    await expect(page.getByText('3', { exact: true })).toBeVisible()
     await expect(page.getByText('Total Sessions')).toBeVisible()
   })
 
   test('shows overall accuracy', async ({ page }) => {
     await page.goto('/dashboard/practice/progress')
 
+    // 11 correct / 12 total = 92%
     await expect(page.getByText('92%')).toBeVisible()
     await expect(page.getByText('Overall Accuracy')).toBeVisible()
   })
@@ -114,6 +130,7 @@ test.describe('Progress Page', () => {
   test('displays correct and total attempts', async ({ page }) => {
     await page.goto('/dashboard/practice/progress')
 
+    // 4 + 7 + 0 = 11 correct, 5 + 7 + 0 = 12 total
     await expect(page.getByText('11')).toBeVisible()
     await expect(page.getByText('Correct Answers').first()).toBeVisible()
     await expect(page.getByText('12')).toBeVisible()
@@ -141,8 +158,9 @@ test.describe('Preparation Page', () => {
   test('shows step-by-step preparation instructions', async ({ page }) => {
     await page.goto('/dashboard/practice/preparation')
 
-    // Should have numbered steps
-    await expect(page.getByText(/Step 1/i)).toBeVisible()
+    // Should have numbered phase headings
+    await expect(page.getByText(/Getting Started/i)).toBeVisible()
+    await expect(page.getByText(/Add Your People/i)).toBeVisible()
   })
 
   test('has back link to practice home', async ({ page }) => {

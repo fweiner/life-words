@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<import('@supabase/supabase-js').User | null>(null)
+  const [hasStarted, setHasStarted] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -14,7 +16,19 @@ export default function DashboardPage() {
       setUser(user)
     }
 
+    const checkProgress = async () => {
+      try {
+        const data = await apiClient.get<{ total_count: number }>('/api/life-words/status')
+        if (data.total_count > 0) {
+          setHasStarted(true)
+        }
+      } catch {
+        // Default to new user message on error
+      }
+    }
+
     loadUserData()
+    checkProgress()
   }, [supabase.auth])
 
   return (
@@ -25,7 +39,7 @@ export default function DashboardPage() {
           Welcome back{user?.user_metadata?.full_name ? `, ${user.user_metadata.full_name}` : ''}!
         </h1>
         <p className="text-xl text-gray-700">
-          Ready to continue your journey?
+          {hasStarted ? 'Ready to continue your journey?' : 'Ready for your journey?'}
         </p>
       </div>
 

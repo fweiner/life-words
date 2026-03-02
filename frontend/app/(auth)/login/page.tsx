@@ -138,7 +138,7 @@ export default function LoginPage() {
           </Link>
         </p>
         <p className="text-base text-gray-600">
-          New to cognitive therapy? Sign up to get started
+          New to our site? Sign up to get started
         </p>
       </div>
     </div>

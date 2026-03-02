@@ -66,11 +66,25 @@ function setupFullMocks(page: import('@playwright/test').Page) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          contact_count: 1,
-          item_count: 0,
-          total_count: 1,
-          can_start_session: false,
+          contact_count: 3,
+          item_count: 2,
+          total_count: 5,
+          can_start_session: true,
           min_contacts_required: 2,
+        }),
+      }),
+    ),
+    page.route('**/api/stripe/status**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          account_status: 'active',
+          is_paid: true,
+          is_trial_active: false,
+          can_practice: true,
+          has_subscription: true,
+          trial_ends_at: null,
         }),
       }),
     ),
@@ -110,7 +124,7 @@ test.describe('Responsive - Mobile (375x812)', () => {
   })
 
   test('item add form has no horizontal scroll on mobile', async ({ page }) => {
-    await page.goto('/dashboard/practice/items/add')
+    await page.goto('/dashboard/practice/items/new')
 
     const overflows = await page.evaluate(
       () => document.body.scrollWidth > window.innerWidth,
