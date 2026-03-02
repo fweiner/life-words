@@ -65,6 +65,25 @@ class SupabaseClient:
             result = response.json()
             return result if isinstance(result, list) else [result]
 
+    async def upsert(
+        self,
+        table: str,
+        data: Dict[str, Any],
+        on_conflict: str = ""
+    ) -> List[Dict[str, Any]]:
+        """Insert or update a row (merge on conflict)."""
+        url = f"{self.url}/rest/v1/{table}"
+        headers = {**self.headers, "Prefer": "return=representation,resolution=merge-duplicates"}
+        params = {}
+        if on_conflict:
+            params["on_conflict"] = on_conflict
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=data, params=params)
+            response.raise_for_status()
+            result = response.json()
+            return result if isinstance(result, list) else [result]
+
     async def update(
         self,
         table: str,

@@ -625,7 +625,7 @@ async def test_save_response(mock_db):
     from app.models.life_words import LifeWordsResponseCreate
 
     mock_db.query.return_value = [SAMPLE_SESSION]
-    mock_db.insert.return_value = [SAMPLE_RESPONSE]
+    mock_db.upsert.return_value = [SAMPLE_RESPONSE]
 
     service = LifeWordsService(mock_db)
     result = await service.save_response(
@@ -642,10 +642,11 @@ async def test_save_response(mock_db):
     )
 
     assert result["response"]["is_correct"] is True
-    mock_db.insert.assert_called_once()
-    call_data = mock_db.insert.call_args.args[1]
+    mock_db.upsert.assert_called_once()
+    call_data = mock_db.upsert.call_args.args[1]
     assert call_data["session_id"] == "session-789"
     assert call_data["user_id"] == "user-123"
+    assert mock_db.upsert.call_args.kwargs["on_conflict"] == "session_id,contact_id"
 
 
 @pytest.mark.asyncio

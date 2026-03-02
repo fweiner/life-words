@@ -241,7 +241,7 @@ class LifeWordsService:
         """Save a response for a contact in a session."""
         await verify_session(self.db, SESSIONS_TABLE, session_id, user_id)
 
-        response = await self.db.insert(
+        response = await self.db.upsert(
             "life_words_responses",
             {
                 "session_id": session_id,
@@ -253,7 +253,8 @@ class LifeWordsService:
                 "user_answer": response_data.user_answer,
                 "correct_answer": response_data.correct_answer,
                 "speech_confidence": response_data.speech_confidence,
-            }
+            },
+            on_conflict="session_id,contact_id",
         )
         return {"response": response[0]}
 

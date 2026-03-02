@@ -102,6 +102,58 @@ async def test_insert(mocker):
 
 
 @pytest.mark.asyncio
+async def test_upsert(mocker):
+    """Test database upsert with on_conflict."""
+    from app.core.database import SupabaseClient
+
+    mock_response = mocker.Mock()
+    mock_response.json.return_value = [{"id": "new-id", "name": "Test"}]
+    mock_response.raise_for_status = mocker.Mock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.post.return_value = mock_response
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+
+    mocker.patch("httpx.AsyncClient", return_value=mock_client)
+
+    db = SupabaseClient()
+    result = await db.upsert(
+        "test_table", {"name": "Test"}, on_conflict="session_id,contact_id"
+    )
+
+    assert result[0]["id"] == "new-id"
+    mock_client.post.assert_called_once()
+    call_args = mock_client.post.call_args
+    assert "resolution=merge-duplicates" in call_args.kwargs["headers"]["Prefer"]
+    assert call_args.kwargs["params"]["on_conflict"] == "session_id,contact_id"
+
+
+@pytest.mark.asyncio
+async def test_upsert_without_on_conflict(mocker):
+    """Test database upsert without specifying on_conflict columns."""
+    from app.core.database import SupabaseClient
+
+    mock_response = mocker.Mock()
+    mock_response.json.return_value = [{"id": "new-id"}]
+    mock_response.raise_for_status = mocker.Mock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.post.return_value = mock_response
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+
+    mocker.patch("httpx.AsyncClient", return_value=mock_client)
+
+    db = SupabaseClient()
+    result = await db.upsert("test_table", {"name": "Test"})
+
+    assert result[0]["id"] == "new-id"
+    call_args = mock_client.post.call_args
+    assert call_args.kwargs["params"] == {}
+
+
+@pytest.mark.asyncio
 async def test_update(mocker):
     """Test database update."""
     from app.core.database import SupabaseClient

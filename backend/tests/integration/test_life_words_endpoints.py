@@ -825,7 +825,7 @@ def test_save_response_success(app, client, mock_user_id, mock_db):
         "id": "session-123",
         "user_id": mock_user_id
     }]
-    mock_db.insert.return_value = [{
+    mock_db.upsert.return_value = [{
         "id": "response-123",
         "session_id": "session-123",
         "contact_id": "contact-1",
