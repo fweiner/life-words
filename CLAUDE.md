@@ -58,7 +58,7 @@ Browser (Next.js Frontend, localhost:3000)
     ├── Supabase Auth (login, tokens, session management)
     └── FastAPI Backend (localhost:8000)
             ├── Supabase DB (PostgreSQL + Storage, via service role key)
-            └── External APIs: Google Cloud Speech/TTS, OpenAI GPT-4o-mini, Resend Email
+            └── External APIs: Google Cloud Speech, Amazon Polly TTS, OpenAI, Resend Email, Stripe
 ```
 
 ### Backend Structure (Service Layer Pattern)
@@ -101,12 +101,17 @@ All DB operations use `SupabaseClient`. The client already uses the service role
 ### Frontend Structure (Next.js App Router)
 ```
 frontend/app/
-├── (auth)/           # Public routes: login, signup
-├── (dashboard)/      # Protected routes (middleware-guarded)
-│   ├── treatments/   # Treatment pages: word-finding, life-words, short-term-memory
-│   └── preparation/  # Step-by-step session preparation
-├── message/          # Public messaging page
-└── invite/           # Invite acceptance page
+├── (auth)/                       # Public routes: login, signup, reset-password
+├── dashboard/                    # Protected routes (middleware-guarded)
+│   ├── (dashboard)/practice/     # Practice pages (contacts, items, questions, session, etc.)
+│   ├── account/                  # Account management
+│   ├── admin/                    # Admin panel
+│   ├── settings/                 # User settings
+│   ├── progress/                 # Progress tracking
+│   └── subscribe/, subscription/ # Stripe billing
+├── message/[token]               # Public messaging page
+├── invite/[token]                # Invite acceptance page
+└── pricing/                      # Public pricing page
 ```
 
 Route groups `(auth)` and `(dashboard)` control layout and auth requirements.
@@ -163,12 +168,16 @@ Target audience is elderly users with cognitive impairments:
 
 ## Environment Variables
 
-Backend requires (in `.env` or environment):
-- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` — Supabase connection
-- `OPENAI_API_KEY` — GPT-4o-mini for answer extraction
-- `GOOGLE_APPLICATION_CREDENTIALS` — Google Cloud Speech/TTS
+Backend requires (in `.env.local`, see `backend/app/config.py`):
+- `SUPABASE_URL`, `SUPABASE_SECRET_KEY` — Supabase connection (service role key)
+- `OPENAI_API_KEY` — OpenAI API
+- `GOOGLE_CLOUD_PROJECT` — GCP project ID
 - `RESEND_API_KEY` — Transactional email
-- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` — Subscription billing
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_ID` — Stripe billing (optional)
+- `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION` — Amazon Polly TTS (optional)
+- `GOOGLE_APPLICATION_CREDENTIALS` — GCP service account JSON path (optional)
+- `ENVIRONMENT` — `development` or `production` (default: `development`)
+- `ALLOWED_ORIGINS` — CORS origins, comma-separated (default: `http://localhost:3000`)
 
 Frontend requires (in `.env.local`):
 - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase client
