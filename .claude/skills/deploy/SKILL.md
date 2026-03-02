@@ -28,6 +28,13 @@ cd /Users/fredweiner/dev/Life-Words/frontend && npm run lint && npm run build
 cd /Users/fredweiner/dev/Life-Words/frontend && npm test -- --passWithNoTests
 ```
 
+### Frontend E2E tests
+```bash
+cd /Users/fredweiner/dev/Life-Words/frontend && npx playwright test
+```
+
+If Playwright browsers are not installed, run `npx playwright install chromium --with-deps` first.
+
 If any tests fail:
 1. Analyze the failure output
 2. Fix the code
@@ -118,6 +125,7 @@ gh release create v{VERSION} --title "v{VERSION}" --generate-notes
 
 This triggers the `deploy-production.yml` GitHub Actions workflow which:
 - Runs backend tests (80% coverage gate)
+- Runs frontend E2E tests (gates frontend deploy)
 - Builds and pushes Docker images to Artifact Registry
 - Deploys `treatment-api` and `treatment-web` to Cloud Run
 
