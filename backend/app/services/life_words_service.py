@@ -383,7 +383,7 @@ class LifeWordsService:
             for r in (name_responses or []) if r.get("speech_confidence") is not None
         ]
         info_response_times = [
-            float(r.get("response_time") or 0)
+            float(r.get("response_time") or 0) / 1000  # convert ms to seconds
             for r in (info_responses or []) if r.get("response_time")
         ]
         info_hints_used = [

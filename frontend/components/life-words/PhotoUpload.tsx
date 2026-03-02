@@ -9,9 +9,10 @@ interface PhotoUploadProps {
   onUploadComplete: (url: string) => void
   currentPhotoUrl?: string
   className?: string
+  type?: 'contact' | 'item'
 }
 
-export function PhotoUpload({ onUploadComplete, currentPhotoUrl, className = '' }: PhotoUploadProps) {
+export function PhotoUpload({ onUploadComplete, currentPhotoUrl, className = '', type = 'contact' }: PhotoUploadProps) {
   const [preview, setPreview] = useState<string | null>(currentPhotoUrl || null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -275,7 +276,9 @@ export function PhotoUpload({ onUploadComplete, currentPhotoUrl, className = '' 
           </ul>
         )}
         <p className="text-xs text-blue-600 mt-3 text-center italic">
-          Tip: Use a clear, well-lit photo showing the person&apos;s face
+          {type === 'item'
+            ? 'Tip: Use a clear, well-lit photo of the item'
+            : 'Tip: Use a clear, well-lit photo showing the person\u0027s face'}
         </p>
       </div>
     </div>

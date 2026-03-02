@@ -804,7 +804,7 @@ export default function InformationPracticeSessionPage() {
 
           <div className="bg-teal-50 border-2 border-teal-200 rounded-lg p-6 mb-8">
             <p className="text-lg text-teal-800">
-              Listen carefully as each item is read aloud. Then you'll practice!
+              Listen carefully as each item is read aloud. Then you&apos;ll practice!
             </p>
           </div>
 

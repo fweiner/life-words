@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -36,21 +36,20 @@ export default function DashboardLayout({
     getUser()
   }, [supabase.auth])
 
-  const loadVoicePreference = useCallback(async () => {
-    try {
-      const profile = await apiClient.get<Record<string, unknown>>('/api/profile')
-      const gender = profile.voice_gender as string
-      if (gender === 'male' || gender === 'female') {
-        setVoiceGender(gender)
-      }
-    } catch {
-      // Use default
-    }
-  }, [])
-
   useEffect(() => {
+    async function loadVoicePreference() {
+      try {
+        const profile = await apiClient.get<Record<string, unknown>>('/api/profile')
+        const gender = profile.voice_gender as string
+        if (gender === 'male' || gender === 'female') {
+          setVoiceGender(gender)
+        }
+      } catch {
+        // Use default
+      }
+    }
     loadVoicePreference()
-  }, [loadVoicePreference])
+  }, [])
 
   // Close voice dropdown on outside click
   useEffect(() => {

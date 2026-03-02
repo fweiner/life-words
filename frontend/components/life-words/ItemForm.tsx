@@ -117,6 +117,7 @@ export function ItemForm({
         <PhotoUpload
           onUploadComplete={handlePhotoUpload}
           currentPhotoUrl={formData.photo_url}
+          type="item"
         />
       </div>
 

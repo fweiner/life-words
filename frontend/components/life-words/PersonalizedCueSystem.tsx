@@ -268,13 +268,13 @@ export function PersonalizedCueSystem({
   useEffect(() => {
     if (currentCueLevel > 7) {
       if (!finalAnswerCalledRef.current) {
-        handleFinalAnswer()
+        handleFinalAnswer() // eslint-disable-line react-hooks/set-state-in-effect -- async operation with timer
       }
       return
     }
 
     finalAnswerCalledRef.current = false
-    setIsShowingFinalAnswer(false) // eslint-disable-line react-hooks/set-state-in-effect
+    setIsShowingFinalAnswer(false)
 
     const cue = CUE_TYPES[currentCueLevel - 1]
     if (!cue) return

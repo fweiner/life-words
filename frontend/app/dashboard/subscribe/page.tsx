@@ -39,7 +39,7 @@ export default function SubscribePage() {
       const data = await apiClient.post<CheckoutResponse>('/api/stripe/checkout', {
         plan: planId,
       })
-      window.location.href = data.checkout_url
+      window.location.assign(data.checkout_url)
     } catch (err: unknown) {
       const e = err as Record<string, unknown>
       setError((e.detail as string) || (e.message as string) || 'Failed to start checkout')
