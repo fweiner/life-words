@@ -1,6 +1,7 @@
 /**
  * Text-to-speech utility using Amazon Polly via backend API
  */
+import { createClient } from '@/lib/supabase'
 
 export type VoiceGender = 'male' | 'female' | 'neutral'
 
@@ -69,11 +70,23 @@ export async function speak(
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
   try {
+    // Get auth token for the authenticated TTS endpoint
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    try {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+    } catch {
+      // Continue without auth — endpoint will return 401
+    }
+
     const response = await fetch(`${apiUrl}/api/speech/tts`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         text: text,
         gender: options.gender || 'neutral',
