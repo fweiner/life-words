@@ -80,7 +80,7 @@ export function ContactCard({ contact, onDelete, showActions = true, onQuickComp
         {isIncomplete ? (
           <>
             <IncompleteEntryBadge className="mb-2" />
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 text-base">
               This photo needs a name and relationship to be used in practice sessions.
             </p>
           </>
@@ -89,7 +89,7 @@ export function ContactCard({ contact, onDelete, showActions = true, onQuickComp
             <h3 className="text-xl font-bold text-gray-900">{contact.name}</h3>
 
             {contact.nickname && (
-              <p className="text-gray-600 text-sm">&quot;{contact.nickname}&quot;</p>
+              <p className="text-gray-600 text-base">&quot;{contact.nickname}&quot;</p>
             )}
 
             <p className="text-[var(--color-primary)] font-semibold mt-1">
@@ -97,7 +97,7 @@ export function ContactCard({ contact, onDelete, showActions = true, onQuickComp
             </p>
 
             {contact.description && (
-              <p className="text-gray-500 text-sm mt-2 line-clamp-2">{contact.description}</p>
+              <p className="text-gray-500 text-base mt-2 line-clamp-2">{contact.description}</p>
             )}
           </>
         )}
@@ -106,7 +106,7 @@ export function ContactCard({ contact, onDelete, showActions = true, onQuickComp
           <div className="flex gap-2 mt-4">
             <Link
               href={`/dashboard/practice/contacts/${contact.id}/edit`}
-              className={`flex-1 text-center py-2 px-3 font-semibold rounded-lg text-sm transition-colors ${
+              className={`flex-1 text-center py-3 px-3 font-semibold rounded-lg text-base transition-colors ${
                 isIncomplete
                   ? 'bg-amber-100 hover:bg-amber-200 text-amber-700'
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
@@ -120,7 +120,7 @@ export function ContactCard({ contact, onDelete, showActions = true, onQuickComp
                 e.stopPropagation()
                 handleDelete()
               }}
-              className="py-2 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-lg text-sm transition-colors"
+              className="py-3 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-semibold rounded-lg text-base transition-colors"
             >
               Remove
             </button>

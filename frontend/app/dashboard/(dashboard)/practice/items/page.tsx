@@ -89,7 +89,7 @@ export default function ItemsListPage() {
           </div>
           <Link
             href="/dashboard/practice"
-            className="text-[var(--color-primary)] hover:underline whitespace-nowrap"
+            className="text-[var(--color-primary)] hover:underline whitespace-nowrap text-lg py-2"
           >
             ← Back
           </Link>
@@ -125,7 +125,7 @@ export default function ItemsListPage() {
         {incompleteItems.length > 0 && (
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
-              <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-semibold">
+              <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-base font-semibold">
                 {incompleteItems.length} photo{incompleteItems.length !== 1 ? 's' : ''} need{incompleteItems.length === 1 ? 's' : ''} details
               </div>
             </div>

@@ -408,7 +408,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">📸</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">Quick Add</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">Quick Add</span>
               </Link>
 
               <Link
@@ -417,7 +417,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">❓</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">Instructions</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">Instructions</span>
               </Link>
 
               <Link
@@ -426,7 +426,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-green-50 border-2 border-gray-200 hover:border-green-300 transition-colors focus:outline-none focus:ring-2 focus:ring-green-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">📊</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">Progress</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">Progress</span>
               </Link>
 
               <Link
@@ -435,7 +435,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">💬</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">Messages</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">Messages</span>
                 <UnreadBadge />
               </Link>
 
@@ -445,7 +445,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">👥</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">My People</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">My People</span>
               </Link>
 
               <Link
@@ -454,7 +454,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">ℹ️</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">My Info</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">My Info</span>
               </Link>
 
               <Link
@@ -463,7 +463,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">📦</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">My Stuff</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">My Stuff</span>
               </Link>
 
               <Link
@@ -472,7 +472,7 @@ export default function LifeWordsPage() {
                 className="flex flex-col items-center justify-center p-3 rounded-lg bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 min-h-[90px]"
               >
                 <span className="text-2xl mb-1">⚙️</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-700 text-center leading-tight">Settings</span>
+                <span className="text-base font-semibold text-gray-700 text-center leading-tight">Settings</span>
               </Link>
             </div>
           </div>
