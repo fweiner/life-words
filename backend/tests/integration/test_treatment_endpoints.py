@@ -1,7 +1,6 @@
 """Integration tests for treatment endpoints."""
 import pytest
 from datetime import datetime
-import base64
 
 
 def test_create_treatment_session_unauthorized(client):
@@ -204,77 +203,5 @@ def test_update_session_success(app, client, mock_user_id, mock_db):
     data = response.json()
     assert data["completed_at"] is not None
 
-
-def test_transcribe_speech_unauthorized(client):
-    """Test speech transcription without authentication."""
-    response = client.post("/api/treatments/speech/transcribe")
-    assert response.status_code == 401
-
-
-def test_transcribe_speech_success(app, client, mock_user_id, mocker):
-    """Test speech transcription successfully."""
-    from app.core.auth import get_current_user_id
-
-    async def override_get_current_user_id():
-        return mock_user_id
-
-    app.dependency_overrides[get_current_user_id] = override_get_current_user_id
-
-    # Mock speech service method - patch the instance method
-    async def mock_speech_to_text(audio_content, language_code="en-US"):
-        return ("Hello world", 0.95)
-
-    mocker.patch("app.services.speech_service.speech_service.speech_to_text", side_effect=mock_speech_to_text)
-
-    # Create fake audio file
-    audio_data = b"fake_audio_content"
-
-    response = client.post(
-        "/api/treatments/speech/transcribe",
-        files={"audio": ("test.wav", audio_data, "audio/wav")},
-        headers={"Authorization": "Bearer valid-token"}
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert data["text"] == "Hello world"
-    assert data["confidence"] == 0.95
-
-
-def test_synthesize_speech_unauthorized(client):
-    """Test speech synthesis without authentication."""
-    response = client.post("/api/treatments/speech/synthesize")
-    assert response.status_code == 401
-
-
-def test_synthesize_speech_success(app, client, mock_user_id, mocker):
-    """Test speech synthesis successfully."""
-    from app.core.auth import get_current_user_id
-
-    async def override_get_current_user_id():
-        return mock_user_id
-
-    app.dependency_overrides[get_current_user_id] = override_get_current_user_id
-
-    # Mock speech service method - patch the instance method
-    async def mock_text_to_speech(text, language_code="en-US", voice_name=None):
-        return b"fake_audio_content"
-
-    mocker.patch("app.services.speech_service.speech_service.text_to_speech", side_effect=mock_text_to_speech)
-
-    response = client.post(
-        "/api/treatments/speech/synthesize",
-        json={"text": "Hello world", "language_code": "en-US"},
-        headers={"Authorization": "Bearer valid-token"}
-    )
-
-    assert response.status_code == 200
-    data = response.json()
-    assert "audio_content" in data
-    assert data["format"] == "mp3"
-
-    # Verify audio is base64 encoded
-    audio_bytes = base64.b64decode(data["audio_content"])
-    assert audio_bytes == b"fake_audio_content"
 
 

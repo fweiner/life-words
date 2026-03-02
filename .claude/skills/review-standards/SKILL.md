@@ -82,7 +82,16 @@ Verify all errors are properly logged to the `error_logs` table and none are swa
 - **Global handler coverage**: Verify `main.py` has a global `@app.exception_handler(Exception)` that calls `log_error(source="unhandled")` as a safety net — but this should not be relied upon as the only error logging. Services and routers that catch exceptions should log them explicitly.
 - **No `except Exception as e: pass`**: Silent exception swallowing is never acceptable.
 
-### Agent 7: Frontend Quality Standards
+### Agent 7: Migration & Database Standards
+
+Verify database migration practices:
+
+- **No unpushed migrations**: Check for migration files in `backend/supabase/migrations/` that haven't been applied. Run `supabase migration list` if possible.
+- **Migration naming**: Migration files should have descriptive names (not just timestamps).
+- **No raw SQL in services**: All DB operations go through `SupabaseClient`, never raw SQL queries in service code.
+- **Schema alignment**: Pydantic models in `backend/app/models/` should match the database schema defined in migrations.
+
+### Agent 8: Frontend Quality Standards
 
 Review frontend-specific standards:
 
@@ -106,6 +115,7 @@ After all agents complete, synthesize the findings into a structured report:
 - X coverage gaps found
 - X security concerns found
 - X swallowed/unlogged errors found
+- X migration/database issues found
 - X frontend quality issues found
 
 ### Critical Issues (fix immediately)

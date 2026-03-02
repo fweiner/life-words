@@ -2,7 +2,7 @@
 name: e2e-test
 description: Comprehensive end-to-end testing. Launches parallel sub-agents to research the codebase (structure, database schema, potential bugs), then uses Chrome DevTools MCP tools to test every user journey — taking screenshots, validating UI/UX/accessibility, and querying the database to verify records. Generates Playwright test files for regression testing.
 user-invocable: true
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: [journey-scope]
 ---
 
