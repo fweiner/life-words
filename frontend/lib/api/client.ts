@@ -22,11 +22,23 @@ export class ApiError extends Error {
   }
 }
 
-async function getAuthToken(): Promise<string | null> {
+export async function getAuthToken(): Promise<string | null> {
   try {
     const supabase = createClient()
+
+    // Fast path: session is already hydrated
     const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token ?? null
+    if (session?.access_token) {
+      return session.access_token
+    }
+
+    // Fallback: session not yet hydrated — force server-side verification
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+
+    // getUser() succeeded, so the session should now be available
+    const { data: { session: refreshedSession } } = await supabase.auth.getSession()
+    return refreshedSession?.access_token ?? null
   } catch {
     return null
   }

@@ -1,7 +1,7 @@
 /**
  * Text-to-speech utility using Amazon Polly via backend API
  */
-import { createClient } from '@/lib/supabase'
+import { getAuthToken } from '@/lib/api/client'
 
 export type VoiceGender = 'male' | 'female' | 'neutral'
 
@@ -74,14 +74,9 @@ export async function speak(
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
-    try {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`
-      }
-    } catch {
-      // Continue without auth — endpoint will return 401
+    const token = await getAuthToken()
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
     }
 
     const response = await fetch(`${apiUrl}/api/speech/tts`, {

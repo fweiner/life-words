@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
+import VideoPlayer from '@/components/shared/VideoPlayer'
 
 const FEATURES = [
   'Personalized name practice with photos',
@@ -87,6 +88,20 @@ export default function HomePage() {
               Create an Account
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Video Section */}
+      <section className="bg-gray-900 py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            See Life Words in Action
+          </h2>
+          <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto">
+            Watch how Life Words helps people practice recalling names, faces, and personal
+            information from the comfort of home.
+          </p>
+          <VideoPlayer src="/videos/life-words.mp4" />
         </div>
       </section>
 
