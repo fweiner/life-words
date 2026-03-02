@@ -1,6 +1,5 @@
 """Unit tests for Stripe subscription service."""
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock
 
 import pytest
 from fastapi import HTTPException
@@ -107,11 +106,11 @@ async def test_create_checkout_session(mock_db, mocker):
                  stripe_yearly_price_id="price_yearly",
                  cors_origins=["http://localhost:3000"])
 
-    mock_customer = MagicMock()
+    mock_customer = mocker.MagicMock()
     mock_customer.id = "cus_new123"
     mocker.patch("app.services.stripe_service.stripe.Customer.create", return_value=mock_customer)
 
-    mock_session = MagicMock()
+    mock_session = mocker.MagicMock()
     mock_session.url = "https://checkout.stripe.com/test"
     mocker.patch("app.services.stripe_service.stripe.checkout.Session.create", return_value=mock_session)
 
@@ -143,7 +142,7 @@ async def test_create_portal_session(mock_db, mocker):
                  stripe_secret_key="sk_test",
                  cors_origins=["http://localhost:3000"])
 
-    mock_session = MagicMock()
+    mock_session = mocker.MagicMock()
     mock_session.url = "https://billing.stripe.com/test"
     mocker.patch("app.services.stripe_service.stripe.billing_portal.Session.create", return_value=mock_session)
 
@@ -177,7 +176,7 @@ async def test_handle_webhook_checkout_completed(mock_db, mocker):
                  stripe_monthly_price_id="price_monthly",
                  stripe_yearly_price_id="price_yearly")
 
-    mock_sub = MagicMock()
+    mock_sub = mocker.MagicMock()
     mock_sub.current_period_end = 1700000000
     mock_sub.get.return_value = {"data": [{"price": {"id": "price_monthly"}}]}
     mocker.patch("app.services.stripe_service.stripe.Subscription.retrieve", return_value=mock_sub)
@@ -447,7 +446,7 @@ async def test_create_checkout_existing_customer(mock_db, mocker):
                  stripe_yearly_price_id="price_yearly",
                  cors_origins=["http://localhost:3000"])
 
-    mock_session = MagicMock()
+    mock_session = mocker.MagicMock()
     mock_session.url = "https://checkout.stripe.com/test"
     mocker.patch("app.services.stripe_service.stripe.checkout.Session.create", return_value=mock_session)
 
@@ -470,11 +469,11 @@ async def test_create_checkout_yearly(mock_db, mocker):
                  stripe_yearly_price_id="price_yearly",
                  cors_origins=["http://localhost:3000"])
 
-    mock_customer = MagicMock()
+    mock_customer = mocker.MagicMock()
     mock_customer.id = "cus_new"
     mocker.patch("app.services.stripe_service.stripe.Customer.create", return_value=mock_customer)
 
-    mock_session = MagicMock()
+    mock_session = mocker.MagicMock()
     mock_session.url = "https://checkout.stripe.com/yearly"
     mocker.patch("app.services.stripe_service.stripe.checkout.Session.create", return_value=mock_session)
 
@@ -523,7 +522,7 @@ async def test_determine_plan_yearly(mock_db, mocker):
                  stripe_secret_key="sk_test",
                  stripe_webhook_secret="whsec_test")
 
-    mock_sub = MagicMock()
+    mock_sub = mocker.MagicMock()
     mock_sub.current_period_end = 1700000000
     mock_sub.get.return_value = {"data": [{"price": {"id": "price_yearly"}}]}
     mocker.patch("app.services.stripe_service.stripe.Subscription.retrieve", return_value=mock_sub)
@@ -555,7 +554,7 @@ async def test_determine_plan_unknown_price(mock_db, mocker):
                  stripe_secret_key="sk_test",
                  stripe_webhook_secret="whsec_test")
 
-    mock_sub = MagicMock()
+    mock_sub = mocker.MagicMock()
     mock_sub.current_period_end = 1700000000
     mock_sub.get.return_value = {"data": [{"price": {"id": "price_unknown"}}]}
     mocker.patch("app.services.stripe_service.stripe.Subscription.retrieve", return_value=mock_sub)
@@ -587,7 +586,7 @@ async def test_determine_plan_no_items(mock_db, mocker):
                  stripe_secret_key="sk_test",
                  stripe_webhook_secret="whsec_test")
 
-    mock_sub = MagicMock()
+    mock_sub = mocker.MagicMock()
     mock_sub.current_period_end = 1700000000
     mock_sub.get.return_value = {"data": []}
     mocker.patch("app.services.stripe_service.stripe.Subscription.retrieve", return_value=mock_sub)

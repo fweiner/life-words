@@ -1,7 +1,6 @@
 """Unit tests for invite service."""
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import AsyncMock, MagicMock
 from fastapi import HTTPException
 
 from app.services.invite_service import InviteService
@@ -72,7 +71,7 @@ async def test_create_invite_success(mock_db, mocker):
     # Mock ProfileService.get_or_create_profile
     mocker.patch(
         "app.services.invite_service.ProfileService"
-    ).return_value.get_or_create_profile = AsyncMock(return_value=SAMPLE_PROFILE)
+    ).return_value.get_or_create_profile = mocker.AsyncMock(return_value=SAMPLE_PROFILE)
 
     # Mock token generation
     mocker.patch(
@@ -83,7 +82,7 @@ async def test_create_invite_success(mock_db, mocker):
     # Mock email sending
     mock_send_email = mocker.patch(
         "app.services.invite_service.send_invite_email",
-        new_callable=AsyncMock,
+        new_callable=mocker.AsyncMock,
         return_value=(True, None),
     )
 
@@ -104,7 +103,7 @@ async def test_create_invite_no_profile_name(mock_db, mocker):
     profile_no_name = {**SAMPLE_PROFILE, "full_name": None}
     mocker.patch(
         "app.services.invite_service.ProfileService"
-    ).return_value.get_or_create_profile = AsyncMock(return_value=profile_no_name)
+    ).return_value.get_or_create_profile = mocker.AsyncMock(return_value=profile_no_name)
 
     service = InviteService(mock_db)
     with pytest.raises(HTTPException) as exc_info:
@@ -119,7 +118,7 @@ async def test_create_invite_email_failure(mock_db, mocker):
     """Test that email send failure deletes invite and raises 500."""
     mocker.patch(
         "app.services.invite_service.ProfileService"
-    ).return_value.get_or_create_profile = AsyncMock(return_value=SAMPLE_PROFILE)
+    ).return_value.get_or_create_profile = mocker.AsyncMock(return_value=SAMPLE_PROFILE)
 
     mocker.patch(
         "app.services.invite_service.generate_secure_token",
@@ -128,7 +127,7 @@ async def test_create_invite_email_failure(mock_db, mocker):
 
     mocker.patch(
         "app.services.invite_service.send_invite_email",
-        new_callable=AsyncMock,
+        new_callable=mocker.AsyncMock,
         return_value=(False, "SMTP error"),
     )
 
