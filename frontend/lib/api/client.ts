@@ -57,6 +57,14 @@ async function buildHeaders(authenticated: boolean): Promise<Record<string, stri
   return headers
 }
 
+async function apiFetch(url: string, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch {
+    throw new ApiError(0, 'Unable to connect to the server. Is the backend running?')
+  }
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let detail = `HTTP ${response.status}`
@@ -77,7 +85,7 @@ export const apiClient = {
    */
   async get<T = unknown>(path: string, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
-    const response = await fetch(`${API_URL}${path}`, { headers })
+    const response = await apiFetch(`${API_URL}${path}`, { headers })
     return handleResponse<T>(response)
   },
 
@@ -86,7 +94,7 @@ export const apiClient = {
    */
   async post<T = unknown>(path: string, body?: unknown, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await apiFetch(`${API_URL}${path}`, {
       method: 'POST',
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -99,7 +107,7 @@ export const apiClient = {
    */
   async put<T = unknown>(path: string, body?: unknown, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await apiFetch(`${API_URL}${path}`, {
       method: 'PUT',
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -112,7 +120,7 @@ export const apiClient = {
    */
   async patch<T = unknown>(path: string, body?: unknown, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await apiFetch(`${API_URL}${path}`, {
       method: 'PATCH',
       headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -125,7 +133,7 @@ export const apiClient = {
    */
   async delete<T = unknown>(path: string, authenticated = true): Promise<T> {
     const headers = await buildHeaders(authenticated)
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await apiFetch(`${API_URL}${path}`, {
       method: 'DELETE',
       headers,
     })
@@ -144,7 +152,7 @@ export const apiClient = {
         headers['Authorization'] = `Bearer ${token}`
       }
     }
-    const response = await fetch(`${API_URL}${path}`, {
+    const response = await apiFetch(`${API_URL}${path}`, {
       method: 'POST',
       headers,
       body: formData,

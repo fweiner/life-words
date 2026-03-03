@@ -10,8 +10,7 @@ export function useSubscription() {
     try {
       const data = await apiClient.get<SubscriptionStatus>('/api/stripe/status')
       setSubscription(data)
-    } catch (err) {
-      console.error('Error fetching subscription:', err)
+    } catch {
       setSubscription(null)
     } finally {
       setLoading(false)
