@@ -88,6 +88,9 @@ export default function HomePage() {
               Create an Account
             </Link>
           </div>
+          <p className="text-gray-500 text-lg mt-4">
+            7-day free trial &mdash; no credit card required
+          </p>
         </div>
       </section>
 
@@ -238,6 +241,9 @@ export default function HomePage() {
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
               Personalized aphasia therapy tools designed for everyday practice.
             </p>
+            <p className="text-lg text-gray-500 mt-3">
+              Start with a 7-day free trial &mdash; no credit card required.
+            </p>
           </div>
 
           {/* Plan Cards */}
@@ -262,7 +268,7 @@ export default function HomePage() {
                 className="block w-full text-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                 style={{ minHeight: '44px' }}
               >
-                Purchase Subscription
+                Start Free Trial
               </Link>
             </div>
 
@@ -290,13 +296,13 @@ export default function HomePage() {
                 className="block w-full text-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                 style={{ minHeight: '44px' }}
               >
-                Purchase Subscription
+                Start Free Trial
               </Link>
             </div>
           </div>
 
           <div className="text-center text-gray-500 text-lg">
-            <p>Cancel anytime from your account settings.</p>
+            <p>7-day free trial, then cancel anytime from your account settings.</p>
           </div>
         </div>
       </section>
