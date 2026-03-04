@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { apiClient } from '@/lib/api/client'
 
 interface InviteModalProps {
@@ -9,46 +9,19 @@ interface InviteModalProps {
   onSuccess?: () => void
 }
 
-function getDefaultMessage(userName: string): string {
-  return `As you are probably aware, ${userName} is being treated for speech and memory. As part of his treatment we are talking to him about friends, relatives, pets, and objects in his environment. We would appreciate that you click this link that will take you to a page where you can add a photo of yourself and answer a few basic questions. This information will be added to ${userName}'s contact list to help with his rehabilitation.`
+const NAME_PLACEHOLDER = "--insert user's name--"
+
+function getDefaultMessage(): string {
+  return `As you are probably aware, ${NAME_PLACEHOLDER} is being treated for speech and memory. As part of treatment we are talking about friends, relatives, pets, and objects in the environment. We would appreciate that you click this link that will take you to a page where you can add a photo of yourself and answer a few basic questions. This information will be added to ${NAME_PLACEHOLDER}'s contact list to help with rehabilitation.`
 }
 
 export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
   const [recipientName, setRecipientName] = useState('')
   const [recipientEmail, setRecipientEmail] = useState('')
-  const [customMessage, setCustomMessage] = useState('')
-  const [userName, setUserName] = useState('')
+  const [customMessage, setCustomMessage] = useState(getDefaultMessage)
   const [isLoading, setIsLoading] = useState(false)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  // Fetch user's name when modal opens
-  useEffect(() => {
-    if (isOpen && !userName) {
-      fetchUserName()
-    }
-  }, [isOpen, userName])
-
-  // Set default message when userName is loaded
-  useEffect(() => {
-    if (userName && !customMessage) {
-      setCustomMessage(getDefaultMessage(userName))
-    }
-  }, [userName, customMessage])
-
-  const fetchUserName = async () => {
-    setIsLoadingProfile(true)
-    try {
-      const profile = await apiClient.get<{ full_name?: string }>('/api/profile')
-      if (profile.full_name) {
-        setUserName(profile.full_name)
-      }
-    } catch (err) {
-      console.error('Error fetching profile:', err)
-    } finally {
-      setIsLoadingProfile(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,8 +42,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
       setTimeout(() => {
         setRecipientName('')
         setRecipientEmail('')
-        setCustomMessage('')
-        setUserName('')
+        setCustomMessage(getDefaultMessage())
         setSuccess(false)
         onClose()
       }, 2000)
@@ -85,8 +57,7 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
     if (!isLoading) {
       setRecipientName('')
       setRecipientEmail('')
-      setCustomMessage('')
-      setUserName('')
+      setCustomMessage(getDefaultMessage())
       setError(null)
       setSuccess(false)
       onClose()
@@ -171,14 +142,14 @@ export function InviteModal({ isOpen, onClose, onSuccess }: InviteModalProps) {
                     id="customMessage"
                     value={customMessage}
                     onChange={(e) => setCustomMessage(e.target.value)}
-                    placeholder={isLoadingProfile ? "Loading default message..." : "Add a personal note to your invitation..."}
+                    placeholder="Add a personal note to your invitation..."
                     rows={6}
                     className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none resize-none"
-                    disabled={isLoading || isLoadingProfile}
+                    disabled={isLoading}
                     required
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    This message will be included in the email. Feel free to edit it.
+                  <p className="text-sm text-red-500 mt-1">
+                    Make sure you replace --insert user&apos;s name-- with the name of the user.
                   </p>
                 </div>
 
