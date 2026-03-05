@@ -4,6 +4,16 @@ const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
 
+  // Rewrite /explainer to serve the static HTML page
+  async rewrites() {
+    return [
+      {
+        source: '/explainer',
+        destination: '/explainer/index.html',
+      },
+    ];
+  },
+
   // Experimental features
   experimental: {
     serverActions: {

@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life Words — Explainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --teal:   #2A9D8F;
+  --teal2:  #1F7A6E;
+  --teal3:  #A8DEDA;
+  --teal-light: #E8F5F3;
+  --navy:   #1A2B3C;
+  --amber:  #E9A020;
+  --white:  #FFFFFF;
+  --offwhite: #F4F9F8;
+  --grey:   #F0F4F3;
+  --text:   #1A2B3C;
+  --muted:  #5A7A76;
+  --border: #C8E0DC;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--offwhite);
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* ─── PROGRESS BAR ─── */
+#progress-bar {
+  position: fixed;
+  top: 0; left: 0;
+  height: 3px;
+  background: var(--teal);
+  width: 0%;
+  z-index: 1000;
+  box-shadow: 0 0 8px var(--teal);
+  pointer-events: none;
+  transition: width 0.2s linear;
+}
+
+/* ─── CAPTION BOX ─── */
+#caption-box {
+  position: fixed;
+  bottom: 88px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  max-width: 740px;
+  width: calc(100% - 48px);
+  text-align: center;
+  pointer-events: none;
+}
+.caption-line {
+  display: inline-block;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 22px;
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: clamp(14px, 2vw, 17px);
+  color: var(--navy);
+  line-height: 1.65;
+  transition: opacity 0.4s ease;
+  min-height: 48px;
+  box-shadow: 0 2px 14px rgba(42,157,143,0.12);
+}
+
+/* ─── CONTROLS ─── */
+#controls {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 40px;
+  padding: 10px 20px;
+  box-shadow: 0 4px 24px rgba(42,157,143,0.15);
+}
+.ctrl-btn {
+  background: none; border: none;
+  color: var(--navy); cursor: pointer;
+  font-size: 18px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s;
+}
+.ctrl-btn:hover { background: var(--teal-light); }
+#scene-indicator {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  min-width: 56px;
+  text-align: center;
+}
+#restart-btn {
+  font-size: 13px; font-weight: 600;
+  color: var(--teal2);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+}
+#restart-btn:hover { background: var(--teal-light); }
+
+/* ─── MUTE BUTTON ─── */
+#mute-btn {
+  font-size: 16px;
+  background: none; border: none;
+  color: var(--muted);
+  cursor: pointer;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+#mute-btn:hover { color: var(--teal2); background: var(--teal-light); }
+
+.scene-num-badge {
+  position: fixed;
+  top: 16px; right: 20px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  z-index: 100;
+}
+
+/* ─── PARTICLES ─── */
+#particles {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0; overflow: hidden;
+}
+.particle {
+  position: absolute; border-radius: 50%; opacity: 0;
+  animation: float linear infinite;
+}
+@keyframes float {
+  0% { transform: translateY(100vh) scale(0); opacity: 0; }
+  10% { opacity: 0.35; }
+  90% { opacity: 0.1; }
+  100% { transform: translateY(-20vh) scale(1.4); opacity: 0; }
+}
+
+/* ─── SCENE BASE ─── */
+.scene {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 56px 40px 160px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 1s ease;
+}
+.scene.active { opacity: 1; pointer-events: all; }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ─── SCENE 0: TITLE ─── */
+#s0 { background: linear-gradient(145deg, #E8F5F3 0%, #F4F9F8 50%, #EBF6F4 100%); z-index: 10; }
+.bg-circle {
+  position: absolute;
+  width: 700px; height: 700px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(42,157,143,0.12) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  animation: breathe 5s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100% { transform: translate(-50%,-50%) scale(1); }
+  50%      { transform: translate(-50%,-50%) scale(1.08); }
+}
+.s0-logo {
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 22px;
+  opacity: 0; animation: fadeUp 0.9s 0.4s forwards;
+}
+.s0-title {
+  font-family: 'Lora', serif;
+  font-size: clamp(30px, 5vw, 58px);
+  color: var(--navy); text-align: center; line-height: 1.25;
+  opacity: 0; animation: fadeUp 1s 0.9s forwards;
+}
+.s0-title em { font-style: italic; color: var(--teal); }
+.s0-sub {
+  font-size: clamp(14px,2vw,17px); font-weight: 300;
+  color: var(--muted);
+  margin-top: 22px; text-align: center; max-width: 500px; line-height: 1.7;
+  opacity: 0; animation: fadeUp 0.9s 1.5s forwards;
+}
+.s0-url {
+  margin-top: 36px;
+  opacity: 0; animation: fadeUp 0.8s 2.1s forwards;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; color: var(--muted);
+}
+.pulse-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--teal);
+  animation: pulseDot 2s ease-in-out infinite;
+}
+@keyframes pulseDot {
+  0%,100% { transform:scale(1); opacity:1; }
+  50%      { transform:scale(1.7); opacity:0.4; }
+}
+
+/* ─── SHARED ─── */
+.scene-tag {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--teal); margin-bottom: 14px;
+  opacity: 0; transition: opacity 0.7s 0.2s;
+}
+.scene.active .scene-tag { opacity: 1; }
+
+.scene-headline {
+  font-family: 'Lora', serif;
+  font-size: clamp(24px, 3.8vw, 44px);
+  color: var(--navy); text-align: center; line-height: 1.3;
+  max-width: 760px;
+  opacity: 0; transform: translateY(22px);
+  transition: opacity 0.8s 0.4s, transform 0.8s 0.4s;
+}
+.scene.active .scene-headline { opacity:1; transform:translateY(0); }
+
+/* ─── SCENE 1 ─── */
+#s1 { background: linear-gradient(160deg, #EDF7F5 0%, #F4F9F8 100%); }
+.word-lost-anim {
+  margin: 28px 0 20px;
+  display: flex; align-items: center; justify-content: center;
+  gap: 20px; flex-wrap: wrap;
+  opacity: 0; transition: opacity 0.8s 1s;
+}
+.scene.active .word-lost-anim { opacity:1; }
+.memory-face {
+  width: 86px; height: 86px; border-radius: 50%;
+  background: linear-gradient(135deg, #D0EDE9, #B8E0DA);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px; flex-shrink: 0;
+}
+.word-bubble {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 20px;
+  font-family: 'Lora', serif; font-size: 17px;
+  color: var(--navy);
+  box-shadow: 0 2px 8px rgba(42,157,143,0.08);
+}
+.word-bubble.fading  { animation: wordFade 4s 1.8s infinite; }
+.word-bubble.fading2 { animation: wordFade 4s 3.2s infinite; }
+@keyframes wordFade {
+  0%,25% { opacity:1; }
+  65%,100% { opacity:0.25; color:rgba(200,80,50,0.6); }
+}
+.stat-chips {
+  display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  opacity: 0; transition: opacity 0.8s 1.6s;
+}
+.scene.active .stat-chips { opacity:1; }
+.stat-chip {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 18px; text-align: center;
+  box-shadow: 0 2px 8px rgba(42,157,143,0.07);
+}
+.stat-chip .num { font-size: 22px; font-weight: 700; color: var(--teal); display:block; }
+.stat-chip .lbl { font-size: 11px; color: var(--muted); margin-top:2px; }
+
+/* ─── SCENE 2 ─── */
+#s2 { background: linear-gradient(160deg, #F0F8F6 0%, #EAF5F3 100%); }
+.brain-wrap {
+  position: relative; margin: 24px 0 20px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.8s 1s;
+}
+.scene.active .brain-wrap { opacity:1; }
+.brain-icon {
+  font-size: 86px; display:block;
+  animation: brainPulse 4s ease-in-out infinite;
+  filter: drop-shadow(0 0 22px rgba(42,157,143,0.45));
+}
+@keyframes brainPulse {
+  0%,100% { filter:drop-shadow(0 0 18px rgba(42,157,143,0.4)); }
+  50%      { filter:drop-shadow(0 0 42px rgba(42,157,143,0.85)); }
+}
+.neural-ring {
+  position: absolute; border-radius: 50%;
+  border: 1.5px solid rgba(42,157,143,0.22);
+  top:50%; left:50%; transform:translate(-50%,-50%);
+  animation: ringExpand 4s ease-out infinite;
+}
+.neural-ring:nth-child(2) { animation-delay:1.3s; }
+.neural-ring:nth-child(3) { animation-delay:2.6s; }
+@keyframes ringExpand {
+  0% { width:80px; height:80px; opacity:0.7; }
+  100% { width:260px; height:260px; opacity:0; }
+}
+.neuro-facts {
+  display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+  opacity: 0; transition: opacity 0.8s 1.5s;
+}
+.scene.active .neuro-facts { opacity:1; }
+.neuro-fact {
+  background: #fff;
+  border-left: 3px solid var(--teal);
+  padding: 12px 16px; border-radius: 0 8px 8px 0;
+  max-width: 210px; text-align:left;
+  box-shadow: 0 2px 8px rgba(42,157,143,0.07);
+}
+.neuro-fact strong { display:block; font-size:13px; font-weight:600; color:var(--teal2); margin-bottom:4px; }
+.neuro-fact span { font-size:12px; color:var(--muted); line-height:1.55; }
+
+/* ─── SCENE 3 ─── */
+#s3 { background: linear-gradient(160deg, #F4F9F8 0%, #EBF6F4 100%); }
+.logo-reveal {
+  margin: 24px 0; text-align: center;
+  opacity: 0; transition: opacity 0.9s 0.9s;
+}
+.scene.active .logo-reveal { opacity:1; }
+.logo-big {
+  font-family:'Lora',serif;
+  font-size: clamp(36px,6vw,56px); font-weight:600; color:var(--navy);
+}
+.logo-big span { color:var(--teal); }
+.logo-tagline { font-size:13px; color:var(--muted); margin-top:5px; letter-spacing:0.05em; }
+.audience-grid {
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:12px; max-width:520px; width:100%;
+  opacity:0; transition: opacity 0.8s 1.4s;
+}
+.scene.active .audience-grid { opacity:1; }
+.aud-card {
+  background: #fff;
+  border:1px solid var(--border);
+  border-radius:12px; padding:13px 15px;
+  display:flex; align-items:center; gap:11px;
+  box-shadow: 0 2px 8px rgba(42,157,143,0.06);
+}
+.aud-icon { font-size:22px; }
+.aud-text strong { display:block; font-size:13px; font-weight:600; color:var(--navy); }
+.aud-text span { font-size:11px; color:var(--muted); }
+
+/* ─── SCENE 4 ─── */
+#s4 { background: linear-gradient(160deg, #EDF7F5 0%, #F4F9F8 100%); }
+.features-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:12px; max-width:760px; width:100%; margin-top:22px;
+}
+@media(max-width:580px){ .features-grid{ grid-template-columns:1fr 1fr; } }
+.feat-card {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:13px; padding:16px 14px; text-align:center;
+  opacity:0; transform:translateY(18px);
+  transition: opacity 0.5s, transform 0.5s, border-color 0.3s, box-shadow 0.3s;
+  box-shadow: 0 2px 8px rgba(42,157,143,0.06);
+}
+.feat-card:hover { border-color:var(--teal); box-shadow: 0 4px 16px rgba(42,157,143,0.15); }
+.scene.active .feat-card:nth-child(1){opacity:1;transform:translateY(0);transition-delay:.5s}
+.scene.active .feat-card:nth-child(2){opacity:1;transform:translateY(0);transition-delay:.7s}
+.scene.active .feat-card:nth-child(3){opacity:1;transform:translateY(0);transition-delay:.9s}
+.scene.active .feat-card:nth-child(4){opacity:1;transform:translateY(0);transition-delay:1.1s}
+.scene.active .feat-card:nth-child(5){opacity:1;transform:translateY(0);transition-delay:1.3s}
+.scene.active .feat-card:nth-child(6){opacity:1;transform:translateY(0);transition-delay:1.5s}
+.feat-icon { font-size:26px; margin-bottom:8px; display:block; }
+.feat-name { font-size:13px; font-weight:600; color:var(--navy); margin-bottom:5px; }
+.feat-desc { font-size:11.5px; font-weight:300; color:var(--muted); line-height:1.5; }
+
+/* ─── SCENE 5 ─── */
+#s5 { background: linear-gradient(160deg, #F0F8F6 0%, #EAF5F3 100%); }
+.dual-panel {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:18px; max-width:700px; width:100%; margin-top:24px;
+}
+@media(max-width:560px){ .dual-panel{grid-template-columns:1fr;} }
+.panel-card {
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:15px; padding:22px 20px;
+  opacity:0; transform:translateY(20px);
+  transition: opacity 0.7s, transform 0.7s;
+  box-shadow: 0 2px 12px rgba(42,157,143,0.08);
+}
+.scene.active .panel-card:nth-child(1){opacity:1;transform:translateY(0);transition-delay:.5s}
+.scene.active .panel-card:nth-child(2){opacity:1;transform:translateY(0);transition-delay:.8s}
+.panel-emoji { font-size:30px; margin-bottom:10px; display:block; }
+.panel-title { font-size:15px; font-weight:700; color:var(--teal2); margin-bottom:10px; }
+.panel-list { list-style:none; padding:0; }
+.panel-list li {
+  font-size:13px; color:var(--muted); line-height:1.6;
+  padding:5px 0; border-bottom:1px solid var(--border);
+  display:flex; gap:8px; align-items:flex-start;
+}
+.panel-list li:last-child { border-bottom:none; }
+.panel-list li::before { content:'→'; color:var(--teal); flex-shrink:0; margin-top:1px; }
+
+/* ─── SCENE 6: CTA ─── */
+#s6 { background: linear-gradient(145deg, #E2F3F0 0%, #EBF6F4 50%, #D8EEE9 100%); }
+.cta-logo {
+  font-family:'Lora',serif; font-size:clamp(36px,6vw,50px);
+  color:var(--navy); opacity:0; transition:opacity 0.9s 0.4s; text-align:center;
+}
+.cta-logo span { color:var(--teal); }
+.scene.active .cta-logo { opacity:1; }
+.cta-url {
+  font-size:clamp(16px,2.5vw,24px); font-weight:700;
+  color:var(--teal2); margin-top:10px;
+  opacity:0; transition:opacity 0.8s 0.9s; text-align:center; letter-spacing:0.02em;
+}
+.scene.active .cta-url { opacity:1; }
+.cta-price-row {
+  display:flex; gap:14px; margin-top:26px;
+  flex-wrap:wrap; justify-content:center;
+  opacity:0; transition:opacity 0.8s 1.4s;
+}
+.scene.active .cta-price-row { opacity:1; }
+.price-badge { border-radius:13px; padding:15px 22px; text-align:center; min-width:150px; }
+.price-badge.trial { background:var(--teal); border:2px solid var(--teal2); }
+.price-badge.monthly { background:#fff; border:1px solid var(--border); box-shadow: 0 2px 8px rgba(42,157,143,0.08); }
+.price-badge .pbig { font-size:24px; font-weight:700; color:var(--navy); display:block; }
+.price-badge .psmall { font-size:12px; color:var(--muted); margin-top:3px; }
+.price-badge.trial .pbig { color:#fff; }
+.price-badge.trial .psmall { color:rgba(255,255,255,0.75); }
+.cta-tagline {
+  font-family:'Lora',serif; font-size:clamp(16px,2vw,20px);
+  font-style:italic; color:var(--muted);
+  margin-top:24px; text-align:center;
+  opacity:0; transition:opacity 0.8s 1.9s;
+}
+.scene.active .cta-tagline { opacity:1; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div class="scene-num-badge" id="scene-num-badge">01 / 07</div>
+<div id="particles"></div>
+
+<div id="caption-box">
+  <div class="caption-line" id="caption-text"></div>
+</div>
+
+<div id="controls">
+  <button class="ctrl-btn" id="prev-btn">‹</button>
+  <button class="ctrl-btn" id="play-btn">⏸</button>
+  <button class="ctrl-btn" id="next-btn">›</button>
+  <span id="scene-indicator">1 / 7</span>
+  <button id="mute-btn" title="Mute">🔊</button>
+  <button id="restart-btn">↺ Restart</button>
+</div>
+
+<!-- ══ SCENE 0: TITLE ══ -->
+<div class="scene active" id="s0">
+  <div class="bg-circle"></div>
+  <div class="s0-logo">🦜 Life Words</div>
+  <h1 class="s0-title">Rebuild Your Words.<br><em>Reclaim Your Life.</em></h1>
+  <p class="s0-sub">A personalized platform for word-finding and memory recovery after stroke, brain injury, and neurological conditions.</p>
+  <div class="s0-url"><div class="pulse-dot"></div>words.parrotsoftware.com</div>
+</div>
+
+<!-- ══ SCENE 1: PROBLEM ══ -->
+<div class="scene" id="s1">
+  <span class="scene-tag">The Challenge</span>
+  <h2 class="scene-headline">When words disappear, so can connection.</h2>
+  <div class="word-lost-anim">
+    <div class="memory-face">👩</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="word-bubble fading">"Her name is… it's… "</div>
+      <div class="word-bubble fading2">"My address is… I can't…"</div>
+    </div>
+    <div class="memory-face">🧓</div>
+  </div>
+  <div class="stat-chips">
+    <div class="stat-chip"><span class="num">2M+</span><span class="lbl">Americans with Aphasia</span></div>
+    <div class="stat-chip"><span class="num">1.5M</span><span class="lbl">TBIs per year</span></div>
+    <div class="stat-chip"><span class="num">6.7M</span><span class="lbl">Alzheimer's cases (65+)</span></div>
+  </div>
+</div>
+
+<!-- ══ SCENE 2: SCIENCE ══ -->
+<div class="scene" id="s2">
+  <span class="scene-tag">The Science</span>
+  <h2 class="scene-headline">The brain can adapt.<br>Practice builds new pathways.</h2>
+  <div class="brain-wrap">
+    <div style="position:relative;display:inline-block;">
+      <div class="neural-ring"></div>
+      <div class="neural-ring"></div>
+      <div class="neural-ring"></div>
+      <span class="brain-icon">🧠</span>
+    </div>
+  </div>
+  <div class="neuro-facts">
+    <div class="neuro-fact"><strong>New Pathways Form</strong><span>Healthy regions compensate for damaged language areas through repetition</span></div>
+    <div class="neuro-fact"><strong>Repetition is Key</strong><span>Daily, personally meaningful practice strengthens recall connections fastest</span></div>
+    <div class="neuro-fact"><strong>Real Content Works Best</strong><span>Familiar faces & personal information produce more durable recall</span></div>
+  </div>
+</div>
+
+<!-- ══ SCENE 3: INTRODUCE ══ -->
+<div class="scene" id="s3">
+  <span class="scene-tag">The Solution</span>
+  <h2 class="scene-headline">Introducing Life Words</h2>
+  <div class="logo-reveal">
+    <div class="logo-big">Life <span>Words</span></div>
+    <div class="logo-tagline">words.parrotsoftware.com</div>
+  </div>
+  <div class="audience-grid">
+    <div class="aud-card"><span class="aud-icon">🧠</span><div class="aud-text"><strong>Aphasia</strong><span>Post-stroke language recovery</span></div></div>
+    <div class="aud-card"><span class="aud-icon">⚡</span><div class="aud-text"><strong>TBI</strong><span>Word-finding after brain injury</span></div></div>
+    <div class="aud-card"><span class="aud-icon">🌿</span><div class="aud-text"><strong>Alzheimer's</strong><span>Progressive memory support</span></div></div>
+    <div class="aud-card"><span class="aud-icon">🔬</span><div class="aud-text"><strong>Neurological</strong><span>Other language & memory conditions</span></div></div>
+  </div>
+</div>
+
+<!-- ══ SCENE 4: FEATURES ══ -->
+<div class="scene" id="s4">
+  <span class="scene-tag">How It Works</span>
+  <h2 class="scene-headline">Six tools built for real-world recovery</h2>
+  <div class="features-grid">
+    <div class="feat-card"><span class="feat-icon">📷</span><div class="feat-name">Your Photos</div><div class="feat-desc">Upload photos of people & places that matter. Practice with what's real.</div></div>
+    <div class="feat-card"><span class="feat-icon">💬</span><div class="feat-name">Name Recall</div><div class="feat-desc">Guided exercises for recalling names, facts & personal information.</div></div>
+    <div class="feat-card"><span class="feat-icon">🎤</span><div class="feat-name">Voice Recognition</div><div class="feat-desc">Tuned for aphasia speech patterns. Speak answers — no typing required.</div></div>
+    <div class="feat-card"><span class="feat-icon">📈</span><div class="feat-name">Progress Tracking</div><div class="feat-desc">Clear recall trend data for therapists and caregivers over time.</div></div>
+    <div class="feat-card"><span class="feat-icon">👪</span><div class="feat-name">Family Messaging</div><div class="feat-desc">Built-in messaging keeps caregivers informed and connected.</div></div>
+    <div class="feat-card"><span class="feat-icon">♿</span><div class="feat-name">Accessibility First</div><div class="feat-desc">Large text, high contrast, simple navigation for all abilities.</div></div>
+  </div>
+</div>
+
+<!-- ══ SCENE 5: FOR WHOM ══ -->
+<div class="scene" id="s5">
+  <span class="scene-tag">Who It Serves</span>
+  <h2 class="scene-headline">Built for caregivers and clinicians</h2>
+  <div class="dual-panel">
+    <div class="panel-card">
+      <span class="panel-emoji">🩺</span>
+      <div class="panel-title">Speech-Language Pathologists</div>
+      <ul class="panel-list">
+        <li>Extends therapy between clinical sessions</li>
+        <li>Curate personalized content per patient</li>
+        <li>Review progress data before appointments</li>
+        <li>Evidence-informed daily practice</li>
+      </ul>
+    </div>
+    <div class="panel-card">
+      <span class="panel-emoji">❤️</span>
+      <div class="panel-title">Family Members & Caregivers</div>
+      <ul class="panel-list">
+        <li>No clinical background required</li>
+        <li>Simple guided photo upload setup</li>
+        <li>Stay connected via built-in messaging</li>
+        <li>Track progress week by week</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCENE 6: CTA ══ -->
+<div class="scene" id="s6">
+  <div class="cta-logo">Life <span>Words</span></div>
+  <div class="cta-url">words.parrotsoftware.com</div>
+  <div class="cta-price-row">
+    <div class="price-badge trial"><span class="pbig">7 Days Free</span><span class="psmall">No credit card required</span></div>
+    <div class="price-badge monthly"><span class="pbig">$9.95 / mo</span><span class="psmall">or $99.95 / year</span></div>
+  </div>
+  <p class="cta-tagline">"Rebuild Your Words. Reclaim Your Life."</p>
+</div>
+
+<script>
+// ── Audio files ──
+const AUDIO_FILES = [
+  '/explainer/sound/1.mp3',
+  '/explainer/sound/2.mp3',
+  '/explainer/sound/3.mp3',
+  '/explainer/sound/4.mp3',
+  '/explainer/sound/5.mp3',
+  '/explainer/sound/6.mp3',
+  '/explainer/sound/7.mp3'
+];
+
+// Preload all audio
+const audioTracks = AUDIO_FILES.map(src => {
+  const a = new Audio(src);
+  a.preload = 'auto';
+  return a;
+});
+
+let muted = false;
+let currentAudio = null;
+
+function playAudio(idx) {
+  // Stop any currently playing track
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  if (muted) return;
+  currentAudio = audioTracks[idx];
+  currentAudio.currentTime = 0;
+  currentAudio.play().catch(() => {
+    // Autoplay blocked — user will need to interact first
+  });
+}
+
+function stopAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+}
+
+// Mute toggle
+document.getElementById('mute-btn').addEventListener('click', () => {
+  muted = !muted;
+  document.getElementById('mute-btn').textContent = muted ? '🔇' : '🔊';
+  if (muted) stopAudio();
+  else if (playing) playAudio(current);
+});
+
+// ── Particles ──
+const pc = document.getElementById('particles');
+['rgba(42,157,143,0.3)','rgba(82,181,168,0.25)','rgba(168,222,218,0.35)','rgba(42,157,143,0.2)'].forEach(c => {
+  for (let i=0;i<8;i++){
+    const p=document.createElement('div'); p.className='particle';
+    const s=Math.random()*5+2;
+    p.style.cssText=`width:${s}px;height:${s}px;left:${Math.random()*100}%;background:${c};animation-duration:${Math.random()*22+16}s;animation-delay:${Math.random()*-22}s;`;
+    pc.appendChild(p);
+  }
+});
+
+// ── Voiceover captions (shown in sync with audio) ──
+// [text, startMs, durationMs]
+const CAPTIONS = [
+  [ // Scene 0
+    ["Welcome to Life Words — a personalized platform for word-finding and memory recovery.", 1200, 5000],
+    ["Designed for people living with aphasia, traumatic brain injury, or Alzheimer's.", 6800, 5000],
+  ],
+  [ // Scene 1
+    ["After a stroke or brain injury, the ability to recall words and names can be profoundly disrupted.", 600, 6000],
+    ["This is called aphasia — and it affects millions of people and their families every day.", 7200, 5500],
+    ["Over 2 million Americans live with aphasia. 1.5 million sustain a TBI each year.", 13500, 5500],
+  ],
+  [ // Scene 2
+    ["The brain is remarkably adaptable. Healthy regions can form new neural pathways around damaged areas.", 700, 6500],
+    ["This is called neuroplasticity — and it requires one key ingredient: consistent, targeted practice.", 8200, 6000],
+    ["The more a person practices with real, meaningful content, the stronger those connections become.", 15500, 5500],
+  ],
+  [ // Scene 3
+    ["Life Words is a clinically informed, web-based platform that brings structured practice into the home.", 800, 6500],
+    ["Built to be accessible, affordable, and deeply personal — for aphasia, TBI, Alzheimer's, and more.", 8800, 6000],
+  ],
+  [ // Scene 4
+    ["Upload photos of the people and places that matter most — family, friends, familiar things.", 600, 6000],
+    ["The platform generates personalized recall exercises, with voice recognition tuned for speech difficulties.", 7800, 6500],
+    ["Progress is tracked over time, giving therapists and caregivers clear data on how recall is improving.", 15500, 6000],
+  ],
+  [ // Scene 5
+    ["For speech-language pathologists, Life Words extends the reach of clinical therapy between sessions.", 700, 6500],
+    ["For families, it offers a structured way to support a loved one — no clinical background required.", 8800, 6000],
+    ["Clear progress data means better-informed conversations at every appointment.", 16500, 5000],
+  ],
+  [ // Scene 6
+    ["Life Words is available now at words.parrotsoftware.com.", 800, 5000],
+    ["Start with a free 7-day trial — no credit card required. Plans start at just $9.95 a month.", 6800, 6000],
+    ["A simple, evidence-informed tool that makes daily practice possible — from home.", 14500, 5500],
+  ],
+];
+
+// Scene durations in ms — set slightly longer than each audio track to allow fade
+const DURATIONS = [12000, 22000, 24000, 20000, 25000, 26000, 24000];
+
+const scenes = document.querySelectorAll('.scene');
+const TOTAL = scenes.length;
+
+let current = 0;
+let playing = true;
+let timer = null;
+let captionTimers = [];
+let progressAnim = null;
+let progressStart = null;
+
+const progressBar = document.getElementById('progress-bar');
+const sceneIndicator = document.getElementById('scene-indicator');
+const sceneBadge = document.getElementById('scene-num-badge');
+const playBtn = document.getElementById('play-btn');
+const captionEl = document.getElementById('caption-text');
+
+function clearCaptionTimers() {
+  captionTimers.forEach(t => clearTimeout(t));
+  captionTimers = [];
+}
+
+function setCaption(text) {
+  captionEl.style.opacity = '0';
+  setTimeout(() => {
+    captionEl.innerHTML = text;
+    captionEl.style.opacity = '1';
+  }, 350);
+}
+
+function runCaptions(idx) {
+  clearCaptionTimers();
+  captionEl.style.opacity = '0';
+  captionEl.innerHTML = '';
+  const lines = CAPTIONS[idx] || [];
+  lines.forEach(([text, startMs, durMs]) => {
+    const t1 = setTimeout(() => setCaption(text), startMs);
+    const t2 = setTimeout(() => {
+      captionEl.style.opacity = '0';
+      setTimeout(() => { captionEl.innerHTML = ''; }, 400);
+    }, startMs + durMs);
+    captionTimers.push(t1, t2);
+  });
+}
+
+function goTo(idx) {
+  if (idx < 0 || idx >= TOTAL) return;
+  scenes[current].classList.remove('active');
+  current = idx;
+  scenes[current].classList.add('active');
+  sceneIndicator.textContent = `${current+1} / ${TOTAL}`;
+  sceneBadge.textContent = `${String(current+1).padStart(2,'0')} / ${String(TOTAL).padStart(2,'0')}`;
+  runCaptions(current);
+  playAudio(current);
+  if (playing) startTimer();
+}
+
+function startTimer() {
+  clearTimeout(timer);
+  cancelAnimationFrame(progressAnim);
+  progressStart = performance.now();
+  const dur = DURATIONS[current];
+
+  function animProg(now) {
+    const frac = Math.min((now - progressStart) / dur, 1);
+    progressBar.style.width = ((current + frac) / TOTAL * 100) + '%';
+    if (frac < 1) progressAnim = requestAnimationFrame(animProg);
+  }
+  progressAnim = requestAnimationFrame(animProg);
+
+  timer = setTimeout(() => {
+    if (current < TOTAL - 1) goTo(current + 1);
+    else { playing = false; playBtn.textContent = '▶'; stopAudio(); }
+  }, dur);
+}
+
+function pause() {
+  playing = false;
+  clearTimeout(timer);
+  cancelAnimationFrame(progressAnim);
+  clearCaptionTimers();
+  playBtn.textContent = '▶';
+  if (currentAudio) currentAudio.pause();
+}
+
+function play() {
+  playing = true;
+  playBtn.textContent = '⏸';
+  runCaptions(current);
+  if (currentAudio) {
+    currentAudio.play().catch(()=>{});
+  } else {
+    playAudio(current);
+  }
+  startTimer();
+}
+
+document.getElementById('play-btn').addEventListener('click', () => playing ? pause() : play());
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  if (current < TOTAL-1) { pause(); goTo(current+1); play(); }
+});
+document.getElementById('prev-btn').addEventListener('click', () => {
+  if (current > 0) { pause(); goTo(current-1); play(); }
+});
+document.getElementById('restart-btn').addEventListener('click', () => {
+  pause();
+  progressBar.style.width = '0%';
+  goTo(0); play();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key==='ArrowRight'||e.key===' '){e.preventDefault();if(current<TOTAL-1){pause();goTo(current+1);play();}}
+  else if (e.key==='ArrowLeft'){if(current>0){pause();goTo(current-1);play();}}
+  else if (e.key==='m'||e.key==='M'){document.getElementById('mute-btn').click();}
+});
+
+// Kick off — waits for first user interaction on browsers that block autoplay
+document.addEventListener('click', function unblock() {
+  if (audioTracks[0]) audioTracks[0].play().then(()=>{
+    audioTracks[0].pause();
+    audioTracks[0].currentTime=0;
+  }).catch(()=>{});
+  document.removeEventListener('click', unblock);
+}, { once: true });
+
+play();
+</script>
+</body>
+</html>
