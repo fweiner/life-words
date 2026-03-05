@@ -51,14 +51,15 @@ function SubscribeContent() {
   }
 
   // Auto-initiate checkout when plan param is present (e.g., from pricing page)
+  const autoPlan = searchParams.get('plan')
   useEffect(() => {
-    const plan = searchParams.get('plan')
-    if (plan && (plan === 'monthly' || plan === 'yearly') && !autoTriggered.current) {
+    if (autoPlan && (autoPlan === 'monthly' || autoPlan === 'yearly') && !autoTriggered.current) {
       autoTriggered.current = true
-      handleSubscribe(plan)
+      apiClient.post<CheckoutResponse>('/api/stripe/checkout', { plan: autoPlan })
+        .then((data) => window.location.assign(data.checkout_url))
+        .catch(() => { /* falls through to manual selection */ })
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [autoPlan])
 
   return (
     <div className="space-y-6">
