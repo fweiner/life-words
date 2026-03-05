@@ -40,6 +40,17 @@ SAMPLE_PROFILE_EXPIRED = {
     "subscription_current_period_end": None,
 }
 
+SAMPLE_PROFILE_TRIAL_WITH_CUSTOMER = {
+    "id": "user-1",
+    "email": "test@example.com",
+    "account_status": "trial",
+    "trial_ends_at": (datetime.now(timezone.utc) + timedelta(days=5)).isoformat(),
+    "stripe_customer_id": "cus_test123",
+    "stripe_subscription_id": None,
+    "subscription_plan": None,
+    "subscription_current_period_end": None,
+}
+
 
 @pytest.mark.asyncio
 async def test_get_subscription_status_trial_active(mock_db):
@@ -644,4 +655,101 @@ async def test_checkout_completed_no_subscription(mock_db, mocker):
     result = await service.handle_webhook_event(b"payload", "sig")
 
     assert result["status"] == "ok"
+    mock_db.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_sync_from_stripe_when_customer_has_active_sub(mock_db, mocker):
+    """Status check syncs from Stripe when customer exists but profile not paid."""
+    mock_db.query.return_value = [SAMPLE_PROFILE_TRIAL_WITH_CUSTOMER]
+
+    mocker.patch("app.services.stripe_service.settings", autospec=True,
+                 stripe_secret_key="sk_test",
+                 stripe_monthly_price_id="price_monthly",
+                 stripe_yearly_price_id="price_yearly")
+
+    mock_sub = mocker.MagicMock()
+    mock_sub.id = "sub_active"
+    mock_sub.current_period_end = 1700000000
+    mock_sub.get.return_value = {"data": [{"price": {"id": "price_monthly"}}]}
+
+    mock_list = mocker.MagicMock()
+    mock_list.data = [mock_sub]
+    mocker.patch("app.services.stripe_service.stripe.Subscription.list",
+                 return_value=mock_list)
+
+    service = StripeService(mock_db)
+    result = await service.get_subscription_status("user-1")
+
+    assert result["account_status"] == "paid"
+    assert result["is_paid"] is True
+    assert result["can_practice"] is True
+    mock_db.update.assert_called_once()
+    call_data = mock_db.update.call_args[1]["data"]
+    assert call_data["account_status"] == "paid"
+    assert call_data["stripe_subscription_id"] == "sub_active"
+
+
+@pytest.mark.asyncio
+async def test_sync_from_stripe_no_active_sub(mock_db, mocker):
+    """Status check doesn't change profile when no active Stripe subscription."""
+    mock_db.query.return_value = [SAMPLE_PROFILE_TRIAL_WITH_CUSTOMER]
+
+    mocker.patch("app.services.stripe_service.settings", autospec=True,
+                 stripe_secret_key="sk_test")
+
+    mock_list = mocker.MagicMock()
+    mock_list.data = []
+    mocker.patch("app.services.stripe_service.stripe.Subscription.list",
+                 return_value=mock_list)
+
+    service = StripeService(mock_db)
+    result = await service.get_subscription_status("user-1")
+
+    assert result["account_status"] == "trial"
+    assert result["is_trial_active"] is True
+    mock_db.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_sync_from_stripe_api_error_returns_original(mock_db, mocker):
+    """Status check returns original profile when Stripe API fails."""
+    mock_db.query.return_value = [SAMPLE_PROFILE_TRIAL_WITH_CUSTOMER]
+
+    mocker.patch("app.services.stripe_service.settings", autospec=True,
+                 stripe_secret_key="sk_test")
+
+    mocker.patch("app.services.stripe_service.stripe.Subscription.list",
+                 side_effect=Exception("Stripe API error"))
+
+    service = StripeService(mock_db)
+    result = await service.get_subscription_status("user-1")
+
+    assert result["account_status"] == "trial"
+    assert result["is_trial_active"] is True
+    mock_db.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_no_sync_when_no_stripe_customer(mock_db):
+    """Status check skips Stripe sync when no customer ID exists."""
+    mock_db.query.return_value = [SAMPLE_PROFILE_TRIAL]
+    service = StripeService(mock_db)
+
+    result = await service.get_subscription_status("user-1")
+
+    assert result["account_status"] == "trial"
+    # No update call means no Stripe sync attempted
+    mock_db.update.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_no_sync_when_already_paid(mock_db):
+    """Status check skips Stripe sync when already paid."""
+    mock_db.query.return_value = [SAMPLE_PROFILE_PAID]
+    service = StripeService(mock_db)
+
+    result = await service.get_subscription_status("user-1")
+
+    assert result["account_status"] == "paid"
     mock_db.update.assert_not_called()

@@ -109,10 +109,24 @@ class StripeService:
         return {"portal_url": session.url}
 
     async def get_subscription_status(self, user_id: str) -> Dict[str, Any]:
-        """Get subscription status for a user."""
+        """Get subscription status for a user.
+
+        If the user has a Stripe customer but isn't marked as paid,
+        checks Stripe directly and syncs the profile. This self-heals
+        when webhooks are delayed or missing.
+        """
         profile = await self._get_profile(user_id)
 
         account_status = profile.get("account_status", "trial")
+
+        # Self-heal: if user has a Stripe customer but profile isn't paid,
+        # check Stripe for an active subscription and sync if found
+        if account_status != "paid" and profile.get("stripe_customer_id"):
+            profile = await self._sync_subscription_from_stripe(
+                user_id, profile
+            )
+            account_status = profile.get("account_status", "trial")
+
         trial_ends_at = profile.get("trial_ends_at")
 
         is_trial_active = False
@@ -140,6 +154,44 @@ class StripeService:
             "has_stripe_customer": bool(profile.get("stripe_customer_id")),
             "has_subscription": bool(profile.get("stripe_subscription_id")),
         }
+
+    async def _sync_subscription_from_stripe(
+        self, user_id: str, profile: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Check Stripe for an active subscription and update profile if found."""
+        try:
+            _configure_stripe()
+            customer_id = profile["stripe_customer_id"]
+            subscriptions = stripe.Subscription.list(
+                customer=customer_id, status="active", limit=1
+            )
+
+            if not subscriptions.data:
+                return profile
+
+            sub = subscriptions.data[0]
+            plan = self._determine_plan(sub)
+            period_end = datetime.fromtimestamp(
+                sub.current_period_end, tz=timezone.utc
+            ).isoformat()
+
+            update_data = {
+                "account_status": "paid",
+                "stripe_subscription_id": sub.id,
+                "subscription_plan": plan,
+                "subscription_current_period_end": period_end,
+                "trial_ends_at": None,
+            }
+
+            await self.db.update(
+                "profiles", filters={"id": user_id}, data=update_data
+            )
+
+            # Return updated profile data
+            return {**profile, **update_data}
+        except Exception:
+            # If Stripe check fails, return original profile unchanged
+            return profile
 
     async def handle_webhook_event(
         self, payload: bytes, sig_header: str
