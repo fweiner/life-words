@@ -1,0 +1,200 @@
+/* ===== Promo Page Animations ===== */
+
+/* --- Base state for animated elements --- */
+.promo-animated {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.promo-animated.promo-visible {
+  animation-duration: 0.7s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-fill-mode: forwards;
+}
+
+/* --- Scroll-triggered reveals --- */
+@keyframes promo-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes promo-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes promo-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.promo-fade-up {
+  animation-name: promo-fade-up;
+}
+
+.promo-slide-left {
+  animation-name: promo-slide-left;
+}
+
+.promo-slide-right {
+  animation-name: promo-slide-right;
+}
+
+/* --- Bouncing scroll arrow --- */
+@keyframes promo-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(12px);
+  }
+}
+
+.promo-bounce {
+  animation: promo-bounce 2s ease-in-out infinite;
+}
+
+/* --- Mic pulse ring --- */
+@keyframes promo-mic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.promo-mic-pulse {
+  animation: promo-mic-pulse 1.5s ease-out infinite;
+}
+
+/* --- Progress bar fill --- */
+@keyframes promo-fill-bar {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--fill-width);
+  }
+}
+
+.promo-fill-bar {
+  animation: promo-fill-bar 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Session flow: 3-phase looping animation ---
+   Phase 1 (0-33%):   Idle visible
+   Phase 2 (33-66%):  Listening visible
+   Phase 3 (66-100%): Success visible
+*/
+@keyframes promo-session-idle {
+  0%, 30% { opacity: 1; }
+  35%, 100% { opacity: 0; }
+}
+
+@keyframes promo-session-listening {
+  0%, 30% { opacity: 0; }
+  35%, 63% { opacity: 1; }
+  68%, 100% { opacity: 0; }
+}
+
+@keyframes promo-session-success {
+  0%, 63% { opacity: 0; }
+  68%, 95% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.promo-session-idle {
+  animation: promo-session-idle 7s ease-in-out infinite;
+}
+
+.promo-session-listening {
+  animation: promo-session-listening 7s ease-in-out infinite;
+}
+
+.promo-session-success {
+  animation: promo-session-success 7s ease-in-out infinite;
+}
+
+/* --- Staggered children --- */
+.promo-stagger > :nth-child(1) { animation-delay: 0s; }
+.promo-stagger > :nth-child(2) { animation-delay: 0.1s; }
+.promo-stagger > :nth-child(3) { animation-delay: 0.2s; }
+.promo-stagger > :nth-child(4) { animation-delay: 0.3s; }
+.promo-stagger > :nth-child(5) { animation-delay: 0.4s; }
+.promo-stagger > :nth-child(6) { animation-delay: 0.5s; }
+.promo-stagger > :nth-child(7) { animation-delay: 0.6s; }
+.promo-stagger > :nth-child(8) { animation-delay: 0.7s; }
+
+.promo-stagger > * {
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.promo-visible .promo-stagger > * {
+  animation-name: promo-fade-up;
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Phone mockup --- */
+.promo-phone {
+  width: 280px;
+  border-radius: 32px;
+  border: 3px solid #1f2937;
+  background: white;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .promo-phone {
+    width: 320px;
+  }
+}
+
+.promo-phone-chrome {
+  background: #1f2937;
+  padding: 8px 16px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.promo-phone-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.promo-phone-body {
+  padding: 16px;
+  min-height: 380px;
+}
+
+@media (min-width: 640px) {
+  .promo-phone-body {
+    min-height: 420px;
+  }
+}
