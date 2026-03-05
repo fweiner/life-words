@@ -136,7 +136,7 @@ export default function InvitePage() {
           {inviteStatus.inviter_name ? `${inviteStatus.inviter_name}'s` : 'their'} contact list.
         </p>
         <p className="text-gray-500">
-          You should receive a confirmation email shortly.
+          You can close this page now.
         </p>
         <div className="mt-8 p-6 bg-blue-50 rounded-lg">
           <p className="text-blue-800">

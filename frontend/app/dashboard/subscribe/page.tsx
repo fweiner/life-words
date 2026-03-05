@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { apiClient } from '@/lib/api/client'
 import Link from 'next/link'
 
@@ -27,9 +28,11 @@ const PLANS = [
   },
 ]
 
-export default function SubscribePage() {
+function SubscribeContent() {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const autoTriggered = useRef(false)
 
   const handleSubscribe = async (planId: string) => {
     setLoading(planId)
@@ -46,6 +49,16 @@ export default function SubscribePage() {
       setLoading(null)
     }
   }
+
+  // Auto-initiate checkout when plan param is present (e.g., from pricing page)
+  useEffect(() => {
+    const plan = searchParams.get('plan')
+    if (plan && (plan === 'monthly' || plan === 'yearly') && !autoTriggered.current) {
+      autoTriggered.current = true
+      handleSubscribe(plan)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   return (
     <div className="space-y-6">
@@ -103,7 +116,7 @@ export default function SubscribePage() {
                 className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
                 style={{ minHeight: '44px' }}
               >
-                {loading === plan.id ? 'Redirecting...' : 'Subscribe'}
+                {loading === plan.id ? 'Redirecting to Stripe...' : 'Subscribe'}
               </button>
             </div>
           ))}
@@ -115,5 +128,13 @@ export default function SubscribePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function SubscribePage() {
+  return (
+    <Suspense>
+      <SubscribeContent />
+    </Suspense>
   )
 }

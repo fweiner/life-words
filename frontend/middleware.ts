@@ -60,7 +60,12 @@ export async function middleware(request: NextRequest) {
 
   // Protected routes require authentication
   if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    const loginUrl = new URL('/login', request.url)
+    const redirectTo = request.nextUrl.pathname + request.nextUrl.search
+    if (redirectTo !== '/dashboard') {
+      loginUrl.searchParams.set('redirectTo', redirectTo)
+    }
+    return NextResponse.redirect(loginUrl)
   }
 
   // Redirect logged-in users away from auth pages and marketing page

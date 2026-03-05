@@ -69,7 +69,7 @@ export default function PricingPage() {
               ))}
             </ul>
             <Link
-              href="/dashboard/subscribe"
+              href="/dashboard/subscribe?plan=monthly"
               className="block w-full text-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ minHeight: '44px' }}
             >
@@ -97,7 +97,7 @@ export default function PricingPage() {
               ))}
             </ul>
             <Link
-              href="/dashboard/subscribe"
+              href="/dashboard/subscribe?plan=yearly"
               className="block w-full text-center bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors focus:outline-none focus:ring-4 focus:ring-[var(--color-primary)] focus:ring-offset-2"
               style={{ minHeight: '44px' }}
             >

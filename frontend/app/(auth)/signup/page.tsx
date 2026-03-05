@@ -49,11 +49,10 @@ export default function SignupPage() {
             Account Created!
           </h1>
           <p className="text-lg mb-6">
-            Please check your email to confirm your account.
-            Your 7-day free trial starts now!
+            Your account is ready and your 7-day free trial starts now!
           </p>
           <p className="text-base text-gray-600 mb-8">
-            We sent a confirmation link to <strong>{email}</strong>
+            Sign in with <strong>{email}</strong> to get started.
           </p>
           <Link
             href="/login"
