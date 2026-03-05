@@ -753,3 +753,25 @@ async def test_no_sync_when_already_paid(mock_db):
 
     assert result["account_status"] == "paid"
     mock_db.update.assert_not_called()
+
+
+def test_get_period_end_from_subscription():
+    """Gets current_period_end from subscription object."""
+    sub = {"current_period_end": 1700000000, "items": {"data": []}}
+    assert StripeService._get_period_end(sub) == 1700000000
+
+
+def test_get_period_end_from_item():
+    """Falls back to item-level current_period_end (flexible billing)."""
+    sub = {
+        "items": {
+            "data": [{"current_period_end": 1700000000}]
+        }
+    }
+    assert StripeService._get_period_end(sub) == 1700000000
+
+
+def test_get_period_end_none():
+    """Returns None when no period end found."""
+    sub = {"items": {"data": []}}
+    assert StripeService._get_period_end(sub) is None

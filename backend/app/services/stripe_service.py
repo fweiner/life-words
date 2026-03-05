@@ -171,9 +171,12 @@ class StripeService:
 
             sub = subscriptions.data[0]
             plan = self._determine_plan(sub)
-            period_end = datetime.fromtimestamp(
-                sub.current_period_end, tz=timezone.utc
-            ).isoformat()
+            raw_period_end = self._get_period_end(sub)
+            period_end = (
+                datetime.fromtimestamp(raw_period_end, tz=timezone.utc).isoformat()
+                if raw_period_end
+                else None
+            )
 
             update_data = {
                 "account_status": "paid",
@@ -253,9 +256,12 @@ class StripeService:
 
         plan = self._determine_plan(subscription)
 
-        period_end = datetime.fromtimestamp(
-            subscription.current_period_end, tz=timezone.utc
-        ).isoformat()
+        raw_period_end = self._get_period_end(subscription)
+        period_end = (
+            datetime.fromtimestamp(raw_period_end, tz=timezone.utc).isoformat()
+            if raw_period_end
+            else None
+        )
 
         await self.db.update(
             "profiles",
@@ -279,9 +285,12 @@ class StripeService:
 
         status = subscription.get("status")
         plan = self._determine_plan(subscription)
-        period_end = datetime.fromtimestamp(
-            subscription["current_period_end"], tz=timezone.utc
-        ).isoformat()
+        raw_period_end = self._get_period_end(subscription)
+        period_end = (
+            datetime.fromtimestamp(raw_period_end, tz=timezone.utc).isoformat()
+            if raw_period_end
+            else None
+        )
 
         update_data: Dict[str, Any] = {
             "subscription_plan": plan,
@@ -332,6 +341,42 @@ class StripeService:
             filters={"id": profiles[0]["id"]},
             data={"account_status": "past_due"},
         )
+
+    @staticmethod
+    def _get_period_end(subscription: Any) -> Optional[int]:
+        """Get current_period_end from subscription or its first item.
+
+        Newer Stripe API versions with billing_mode=flexible put
+        current_period_end on the subscription item, not the subscription.
+        """
+        # Try subscription-level first
+        period_end = None
+        if isinstance(subscription, dict):
+            period_end = subscription.get("current_period_end")
+        else:
+            period_end = getattr(subscription, "current_period_end", None)
+
+        if period_end:
+            return period_end
+
+        # Fall back to first item
+        items_data = (
+            subscription.get("items", {})
+            if isinstance(subscription, dict)
+            else getattr(subscription, "items", {})
+        )
+        items = (
+            items_data.get("data", [])
+            if isinstance(items_data, dict)
+            else getattr(items_data, "data", [])
+        )
+        if items:
+            item = items[0]
+            if isinstance(item, dict):
+                return item.get("current_period_end")
+            return getattr(item, "current_period_end", None)
+
+        return None
 
     def _determine_plan(self, subscription: Any) -> Optional[str]:
         """Determine the plan name from a Stripe subscription."""
