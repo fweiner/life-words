@@ -980,7 +980,7 @@ export default function LifeWordsQuestionSessionPage() {
                       const questionText = currentQ?.spoken_question_text || ''
                       const isFirstQuestion = currentIndexRef.current === 0
                       const prompt = isFirstQuestion
-                        ? "Now let's see what you remember. " + questionText
+                        ? "Now it's your turn. " + questionText
                         : questionText
                       await speak(prompt, { gender: voiceGender })
                       await new Promise(resolve => setTimeout(resolve, 300))

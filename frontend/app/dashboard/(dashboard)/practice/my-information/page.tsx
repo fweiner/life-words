@@ -49,7 +49,11 @@ const MARITAL_STATUS_OPTIONS = [
 function calculateAge(dateOfBirth: string | null): number | null {
   if (!dateOfBirth) return null
   const today = new Date()
-  const birthDate = new Date(dateOfBirth)
+  // Parse YYYY-MM-DD directly to avoid UTC timezone shift
+  const match = dateOfBirth.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  const birthDate = match
+    ? new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+    : new Date(dateOfBirth)
   let age = today.getFullYear() - birthDate.getFullYear()
   const monthDiff = today.getMonth() - birthDate.getMonth()
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {

@@ -173,7 +173,14 @@ export default function InformationPracticeSessionPage() {
     const formatDate = (dateValue: unknown): string => {
       if (!dateValue) return ''
       try {
-        const date = new Date(dateValue as string | number)
+        const dateStr = String(dateValue).trim()
+        // Parse YYYY-MM-DD directly to avoid UTC timezone shift
+        const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (match) {
+          const date = new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]))
+          return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+        }
+        const date = new Date(dateStr)
         return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
       } catch {
         return String(dateValue)
@@ -361,7 +368,7 @@ export default function InformationPracticeSessionPage() {
         const nextIndex = currentIdx + 1
         if (nextIndex >= allItems.length) {
           // Teaching complete, start practice phase
-          await speakWithRetry("Now let's see what you remember!")
+          await speakWithRetry("Now it's your turn!")
           await new Promise(resolve => setTimeout(resolve, 1500))
 
           // Reset to first item for practice
@@ -474,7 +481,7 @@ export default function InformationPracticeSessionPage() {
       const nextIndex = 1
       if (nextIndex >= items.length) {
         // Only one item, go to practice
-        await speakWithRetry("Now let's see what you remember!")
+        await speakWithRetry("Now it's your turn!")
         await new Promise(resolve => setTimeout(resolve, 1500))
 
         isTeachingSpeakingRef.current = false
@@ -812,7 +819,7 @@ export default function InformationPracticeSessionPage() {
             onClick={handleStartLearning}
             className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-12 rounded-lg text-2xl transition-colors"
           >
-            Start Learning
+            Start
           </button>
 
           <div className="mt-6">
