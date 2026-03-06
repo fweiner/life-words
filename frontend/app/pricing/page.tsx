@@ -1,5 +1,12 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
+
+export const metadata: Metadata = {
+  title: 'Pricing & Plans',
+  description:
+    'Life Words aphasia therapy starting at $9.95/month. Personalized name practice, voice recognition, progress tracking, and family messaging. Start your 7-day free trial today.',
+}
 
 const FEATURES = [
   'Personalized name practice with photos',

@@ -1,6 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import Image from 'next/image'
 import VideoPlayer from '@/components/shared/VideoPlayer'
+
+export const metadata: Metadata = {
+  title: {
+    absolute: 'Life Words - Rebuild Your Words, Reclaim Your Life',
+  },
+  description:
+    'Personalized therapy for aphasia, brain injury, and memory difficulties. Practice recalling names and faces with your own photos. Voice recognition, progress tracking, and family messaging. 7-day free trial.',
+}
 
 const FEATURES = [
   'Personalized name practice with photos',
