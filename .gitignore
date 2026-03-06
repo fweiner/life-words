@@ -65,6 +65,9 @@ gcp-*.json
 # Supabase
 .supabase/
 
+# Test results
+test-results/
+
 # Coverage
 coverage/
 .nyc_output/
