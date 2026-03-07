@@ -323,13 +323,13 @@ async def test_get_unread_count(mock_db):
     """Test getting unread count returns correct number."""
     from app.services.messaging_service import MessagingService
 
-    mock_db.query.return_value = [{"id": "msg-1"}, {"id": "msg-2"}, {"id": "msg-3"}]
+    mock_db.count.return_value = 3
 
     service = MessagingService(mock_db)
     result = await service.get_unread_count("user-123")
 
     assert result["count"] == 3
-    call_kwargs = mock_db.query.call_args.kwargs
+    call_kwargs = mock_db.count.call_args.kwargs
     assert call_kwargs["filters"]["direction"] == "contact_to_user"
     assert call_kwargs["filters"]["is_read"] is False
 

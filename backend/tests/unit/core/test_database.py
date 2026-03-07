@@ -203,6 +203,55 @@ async def test_delete(mocker):
 
 
 @pytest.mark.asyncio
+async def test_count(mocker):
+    """Test database count using HEAD request with Prefer: count=exact."""
+    from app.core.database import SupabaseClient
+
+    mock_response = mocker.Mock()
+    mock_response.headers = {"content-range": "*/5"}
+    mock_response.raise_for_status = mocker.Mock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.head.return_value = mock_response
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+
+    mocker.patch("httpx.AsyncClient", return_value=mock_client)
+
+    db = SupabaseClient()
+    result = await db.count("messages", filters={"user_id": "user-123", "is_read": False})
+
+    assert result == 5
+    mock_client.head.assert_called_once()
+    call_args = mock_client.head.call_args
+    assert "count=exact" in call_args.kwargs["headers"]["Prefer"]
+    assert call_args.kwargs["params"]["user_id"] == "eq.user-123"
+    assert call_args.kwargs["params"]["is_read"] == "eq.False"
+
+
+@pytest.mark.asyncio
+async def test_count_no_results(mocker):
+    """Test database count returns 0 when no matches."""
+    from app.core.database import SupabaseClient
+
+    mock_response = mocker.Mock()
+    mock_response.headers = {"content-range": "*/0"}
+    mock_response.raise_for_status = mocker.Mock()
+
+    mock_client = mocker.AsyncMock()
+    mock_client.head.return_value = mock_response
+    mock_client.__aenter__.return_value = mock_client
+    mock_client.__aexit__.return_value = None
+
+    mocker.patch("httpx.AsyncClient", return_value=mock_client)
+
+    db = SupabaseClient()
+    result = await db.count("messages")
+
+    assert result == 0
+
+
+@pytest.mark.asyncio
 async def test_rpc(mocker):
     """Test database RPC call."""
     from app.core.database import SupabaseClient

@@ -287,7 +287,7 @@ def test_get_unread_count_success(app, client, mock_user_id, mock_db):
     app.dependency_overrides[get_current_user_id] = override_get_current_user_id
     app.dependency_overrides[get_db] = override_get_db
 
-    mock_db.query.return_value = [{"id": "1"}, {"id": "2"}, {"id": "3"}]
+    mock_db.count.return_value = 3
 
     response = client.get(
         "/api/life-words/messaging/unread-count",

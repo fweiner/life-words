@@ -124,6 +124,27 @@ class SupabaseClient:
             response.raise_for_status()
             return True
 
+    async def count(
+        self,
+        table: str,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> int:
+        """Count rows matching filters without fetching data."""
+        url = f"{self.url}/rest/v1/{table}"
+        headers = {**self.headers, "Prefer": "count=exact"}
+        params: Dict[str, str] = {"select": "id", "limit": "0"}
+
+        if filters:
+            for key, value in filters.items():
+                params[key] = f"eq.{value}"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.head(url, headers=headers, params=params)
+            response.raise_for_status()
+            content_range = response.headers.get("content-range", "*/0")
+            total = content_range.split("/")[-1]
+            return int(total) if total != "*" else 0
+
     async def rpc(
         self,
         function_name: str,

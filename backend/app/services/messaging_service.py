@@ -243,16 +243,15 @@ class MessagingService:
 
     async def get_unread_count(self, user_id: str) -> Dict[str, int]:
         """Get total unread message count for notification badge."""
-        messages = await self.db.query(
+        count = await self.db.count(
             "messages",
-            select="id",
             filters={
                 "user_id": user_id,
                 "direction": "contact_to_user",
                 "is_read": False
             }
         )
-        return {"count": len(messages) if messages else 0}
+        return {"count": count}
 
     # ============== Public operations (for contacts via token) ==============
 
