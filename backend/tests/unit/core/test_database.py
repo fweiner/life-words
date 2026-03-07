@@ -10,7 +10,7 @@ async def test_query_basic(mocker):
     # Mock httpx client
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"id": "1", "name": "Test"}]
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.get.return_value = mock_response
@@ -33,7 +33,7 @@ async def test_query_with_filters(mocker):
 
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"id": "1", "user_id": "user-123"}]
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.get.return_value = mock_response
@@ -58,7 +58,7 @@ async def test_query_with_order_and_limit(mocker):
 
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"id": "1"}, {"id": "2"}]
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.get.return_value = mock_response
@@ -83,7 +83,7 @@ async def test_insert(mocker):
 
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"id": "new-id", "name": "Test"}]
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.post.return_value = mock_response
@@ -108,7 +108,7 @@ async def test_upsert(mocker):
 
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"id": "new-id", "name": "Test"}]
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.post.return_value = mock_response
@@ -136,7 +136,7 @@ async def test_upsert_without_on_conflict(mocker):
 
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"id": "new-id"}]
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.post.return_value = mock_response
@@ -160,7 +160,7 @@ async def test_update(mocker):
 
     mock_response = mocker.Mock()
     mock_response.json.return_value = [{"id": "1", "name": "Updated"}]
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.patch.return_value = mock_response
@@ -186,7 +186,7 @@ async def test_delete(mocker):
     from app.core.database import SupabaseClient
 
     mock_response = mocker.Mock()
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.delete.return_value = mock_response
@@ -209,7 +209,7 @@ async def test_count(mocker):
 
     mock_response = mocker.Mock()
     mock_response.headers = {"content-range": "*/5"}
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.head.return_value = mock_response
@@ -236,7 +236,7 @@ async def test_count_no_results(mocker):
 
     mock_response = mocker.Mock()
     mock_response.headers = {"content-range": "*/0"}
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.head.return_value = mock_response
@@ -258,7 +258,7 @@ async def test_rpc(mocker):
 
     mock_response = mocker.Mock()
     mock_response.json.return_value = {"result": "success"}
-    mock_response.raise_for_status = mocker.Mock()
+    mock_response.is_success = True
 
     mock_client = mocker.AsyncMock()
     mock_client.post.return_value = mock_response
